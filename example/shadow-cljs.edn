@@ -8,7 +8,7 @@
              :compiler-options {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}
 
              :modules
-             {:main {:entries [donut.frontend.example.app]}}
+             {:main {:entries [donut.frontend.example.core]}}
 
              ;; start a development http server on http://localhost:3000
              :devtools
