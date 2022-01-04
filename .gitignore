@@ -1,0 +1,15 @@
+*.jar
+.DS_Store
+.clj-kondo/.cache
+.cljs_node_repl
+.cpcache
+.lsp
+.nrepl*
+.shadow-cljs
+node_modules
+out
+output
+pom.xml*
+public
+target
+tmp
