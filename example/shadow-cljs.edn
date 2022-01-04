@@ -1,19 +1,17 @@
 ;; shadow-cljs configuration
-{:deps   {}
- :builds {:dev
-          {:target           :browser
-           :output-dir       "frontend-target/example/public/js"
-           :asset-path       "/js"
-           :compiler-options {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}
+{:deps     {}
+ :dev-http {5432 {:roots ["resources/public" "frontend-target/dev/public"]}}
+ :builds   {:dev
+            {:target           :browser
+             :output-dir       "frontend-target/dev/public/js"
+             :asset-path       "/js"
+             :compiler-options {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}
 
-           :modules
-           {:main {:entries [donut.frontend.example.app]}}
+             :modules
+             {:main {:entries [donut.frontend.example.app]}}
 
-           ;; start a development http server on http://localhost:3000
-           :devtools
-           {:http-root         "resources/public"
-            :http-port         5432
-            :http-resource-rot "."
-            :preloads          [day8.re-frame-10x.preload]
-            :before-load       donut.frontend.example.core/stop
-            :after-load        donut.frontend.example.core/-main}}}}
+             ;; start a development http server on http://localhost:3000
+             :devtools
+             {:preloads    [day8.re-frame-10x.preload]
+              :before-load donut.frontend.example.core/stop
+              :after-load  donut.frontend.example.core/-main}}}}
