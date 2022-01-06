@@ -1,11 +1,14 @@
 ;; shadow-cljs configuration
 {:deps     {}
- :dev-http {5432 {:roots ["resources/public" "frontend-target/dev/public"]}}
+ :dev-http {3333 {:roots ["resources/public" "frontend-target/dev/public"]}}
  :builds   {:dev
             {:target           :browser
              :output-dir       "frontend-target/dev/public/js"
              :asset-path       "/js"
-             :compiler-options {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}
+             :compiler-options {:optimizations           :none
+                                :source-map              true
+                                :source-map-detail-level :all
+                                :closure-defines         {"re_frame.trace.trace_enabled_QMARK_" true}}
 
              :modules
              {:main {:entries [donut.frontend.example.core]}}

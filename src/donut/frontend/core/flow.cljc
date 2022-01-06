@@ -2,38 +2,35 @@
   (:require [re-frame.core  :as rf]
             [re-frame.db :as rfdb]
             [re-frame.loggers :as rfl]
+            [donut.frontend.handlers :as dh]
             [donut.frontend.core.utils :as u]
-            [donut.frontend.paths :as paths]
-            [donut.frontend.handlers :as sth]
+            [donut.sugar.utils :as dsu]
             [donut.system :as ds])
   (:import #?(:cljs [goog.async Debouncer])))
 
-(sth/rr rf/reg-event-db ::assoc-in
+(dh/rr rf/reg-event-db ::assoc-in
   [rf/trim-v]
   (fn [db [path val]] (assoc-in db path val)))
 
-(sth/rr rf/reg-event-db ::merge
+(dh/rr rf/reg-event-db ::merge
   [rf/trim-v]
   (fn [db [m & [path]]]
     (if path
       (update-in db path merge m)
       (merge db m))))
 
-(defn merge-entity
+#_(defn merge-entity
   ([db ent-type m]
    (merge-entity db ent-type :id m))
   ([db ent-type id-key m]
    (update-in db (paths/full-path :entity ent-type (id-key m)) merge m)))
 
-(defn deep-merge
-  [db [m]]
-  (u/deep-merge db m))
-
-(sth/rr rf/reg-event-db ::deep-merge
+(dh/rr rf/reg-event-db ::deep-merge
   [rf/trim-v]
-  deep-merge)
+  (fn [db [m]]
+    (dsu/deep-merge db m)))
 
-(defn replace-entities
+#_(defn replace-entities
   "whereas deep merge will merge new entities with old, this replaces
   old entities with new."
   [db patches]
@@ -44,12 +41,12 @@
                  (update-in db (paths/full-path :entity) (partial merge-with merge) patch))
                db)))
 
-(sth/rr rf/reg-event-db ::replace-entities
+#_(dh/rr rf/reg-event-db ::replace-entities
   [rf/trim-v]
   (fn [db [patches]]
     (replace-entities db patches)))
 
-(defn update-db
+#_(defn update-db
   "Takes a db and a vector of db-patches, and applies those patches to
   the db using the udpaters stored in
   [:sweet-tooth/system :sweet-tooth.frontend.core.flow/update-db]
@@ -64,37 +61,37 @@
             db
             db-patches)))
 
-(sth/rr rf/reg-event-db ::update-db
+#_(dh/rr rf/reg-event-db ::update-db
   [rf/trim-v]
   (fn [db [db-patches]]
     (update-db db db-patches)))
 
-(defn db-patch-handle-entity
+#_(defn db-patch-handle-entity
   [db db-patch]
   (let [entity-prefix (paths/prefix :entity)]
     (update db entity-prefix u/deep-merge db-patch)))
 
-(sth/rr rf/reg-event-db ::toggle
+(dh/rr rf/reg-event-db ::toggle
   [rf/trim-v]
   (fn [db [path]] (update-in db path not)))
 
-(sth/rr rf/reg-event-db ::toggle-val
+(dh/rr rf/reg-event-db ::toggle-val
   [rf/trim-v]
   (fn [db [path val]]
     (update-in db path #(if % nil val))))
 
 ;; Toggles set inclusion/exclusion from set
-(sth/rr rf/reg-event-db ::set-toggle
+(dh/rr rf/reg-event-db ::set-toggle
   [rf/trim-v]
   (fn [db [path val]]
-    (update-in db path u/set-toggle val)))
+    (update-in db path dsu/set-toggle val)))
 
-(sth/rr rf/reg-event-db ::dissoc-in
+(dh/rr rf/reg-event-db ::dissoc-in
   [rf/trim-v]
   (fn [db [path]]
-    (u/dissoc-in db path)))
+    (dsu/dissoc-in db path)))
 
-(sth/rr rf/reg-event-db ::remove-entity
+(dh/rr rf/reg-event-db ::remove-entity
   [rf/trim-v]
   (fn [db [entity-type id]]
     (update-in db [:entity entity-type] dissoc id)))
@@ -109,11 +106,11 @@
   #?(:cljs (doto (Debouncer. rf/dispatch interval)
              (.fire dispatch))))
 
-(sth/rr rf/reg-fx ::debounce-dispatch
+(dh/rr rf/reg-fx ::debounce-dispatch
   (fn [value]
     (doseq [{:keys [ms id dispatch] :as effect} (remove nil? value)]
       (if (or (empty? dispatch) (not (number? ms)))
-        (rfl/console :error "re-frame: ignoring bad :sweet-tooth.frontend.core.flow/debounce-dispatch value:" effect)
+        (rfl/console :error "re-frame: ignoring bad :donut.frontend.core.flow/debounce-dispatch value:" effect)
         (if-let [debouncer ^Debouncer (get @debouncers id)]
           (.fire debouncer dispatch)
           (swap! debouncers assoc id (new-debouncer ms dispatch)))))))
@@ -125,4 +122,4 @@
 
 (rf/reg-fx ::init-system
   (fn [config]
-    (reset! rfdb/app-db {:donut/system (ds/start config)})))
+    (reset! rfdb/app-db {:donut/system (ds/signal config :start)})))
