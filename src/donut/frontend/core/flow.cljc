@@ -107,8 +107,8 @@
              (.fire dispatch))))
 
 (dh/rr rf/reg-fx ::debounce-dispatch
-  (fn [value]
-    (doseq [{:keys [ms id dispatch] :as effect} (remove nil? value)]
+  (fn [debounce-effects]
+    (doseq [{:keys [ms id dispatch] :as effect} (remove nil? debounce-effects)]
       (if (or (empty? dispatch) (not (number? ms)))
         (rfl/console :error "re-frame: ignoring bad :donut.frontend.core.flow/debounce-dispatch value:" effect)
         (if-let [debouncer ^Debouncer (get @debouncers id)]
