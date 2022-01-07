@@ -3,16 +3,19 @@
             [re-frame.db :as rfdb]
             [re-frame.loggers :as rfl]
             [donut.frontend.handlers :as dh]
-            [donut.frontend.core.utils :as u]
             [donut.sugar.utils :as dsu]
             [donut.system :as ds])
   (:import #?(:cljs [goog.async Debouncer])))
 
-(dh/rr rf/reg-event-db ::assoc-in
+(dh/rr rf/reg-sub ::get-in
+  (fn [db [_ path]]
+    (get-in db path)))
+
+#_(dh/rr rf/reg-event-db ::assoc-in
   [rf/trim-v]
   (fn [db [path val]] (assoc-in db path val)))
 
-(dh/rr rf/reg-event-db ::merge
+#_(dh/rr rf/reg-event-db ::merge
   [rf/trim-v]
   (fn [db [m & [path]]]
     (if path
@@ -25,7 +28,7 @@
   ([db ent-type id-key m]
    (update-in db (paths/full-path :entity ent-type (id-key m)) merge m)))
 
-(dh/rr rf/reg-event-db ::deep-merge
+#_(dh/rr rf/reg-event-db ::deep-merge
   [rf/trim-v]
   (fn [db [m]]
     (dsu/deep-merge db m)))
@@ -73,12 +76,9 @@
 
 (dh/rr rf/reg-event-db ::toggle
   [rf/trim-v]
-  (fn [db [path]] (update-in db path not)))
-
-(dh/rr rf/reg-event-db ::toggle-val
-  [rf/trim-v]
-  (fn [db [path val]]
-    (update-in db path #(if % nil val))))
+  (fn [db [path val alt-val]]
+    (let [val (if (and (nil? val) (nil? alt-val)) true val)]
+      (update-in db path #(dsu/toggle % val alt-val)))))
 
 ;; Toggles set inclusion/exclusion from set
 (dh/rr rf/reg-event-db ::set-toggle
@@ -86,12 +86,12 @@
   (fn [db [path val]]
     (update-in db path dsu/set-toggle val)))
 
-(dh/rr rf/reg-event-db ::dissoc-in
+#_(dh/rr rf/reg-event-db ::dissoc-in
   [rf/trim-v]
   (fn [db [path]]
     (dsu/dissoc-in db path)))
 
-(dh/rr rf/reg-event-db ::remove-entity
+#_(dh/rr rf/reg-event-db ::remove-entity
   [rf/trim-v]
   (fn [db [entity-type id]]
     (update-in db [:entity entity-type] dissoc id)))
@@ -122,4 +122,4 @@
 
 (rf/reg-fx ::init-system
   (fn [config]
-    (reset! rfdb/app-db {:donut/system (ds/signal config :start)})))
+    (swap! rfdb/app-db merge {:donut/system (ds/signal config :start)})))

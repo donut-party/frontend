@@ -37,4 +37,5 @@
 (defonce initial-load (delay (-main)))
 @initial-load
 
-(defn stop [_])
+(defn stop [_]
+  (rf/clear-subscription-cache!))
