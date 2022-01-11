@@ -10,6 +10,7 @@
          meta-merge/meta-merge     {:mvn/version "1.0.0"}
          com.cemerick/url          {:mvn/version "0.1.1"}
          venantius/accountant      {:mvn/version "0.2.4"}
+         metosin/malli             {:mvn/version "0.7.5"}
          metosin/reitit-core       {:mvn/version "0.5.15"}
          metosin/reitit-frontend   {:mvn/version "0.5.15"}
          metosin/reitit-spec       {:mvn/version "0.5.15"}
