@@ -4,19 +4,21 @@
 
   The term 'sync' is used instead of AJAX"
   (:require [re-frame.core :as rf]
+            [re-frame.loggers :as rfl]
+            [donut.frontend.path :as path]
             [sweet-tooth.frontend.handlers :as sth]
             [sweet-tooth.frontend.core.flow :as stcf]
             [sweet-tooth.frontend.core.utils :as stcu]
             [sweet-tooth.frontend.core.compose :as stcc]
             [sweet-tooth.frontend.routes :as stfr]
             [sweet-tooth.frontend.routes.protocol :as strp]
-            [sweet-tooth.frontend.paths :as paths]
             [sweet-tooth.frontend.failure.flow :as stfaf]
             [sweet-tooth.frontend.specs :as ss]
             [integrant.core :as ig]
             [medley.core :as medley]
             [clojure.walk :as walk]
             [meta-merge.core :refer [meta-merge]]
+            [reitit.core :as r]
             [taoensso.timbre :as log]
             [clojure.spec.alpha :as s]
             [cognitect.anomalies :as anom]))
@@ -42,7 +44,8 @@
 (def ReqOpts [:map
               [:route-params {:optional true} RouteParams]
               [:query-params {:optional true} QueryParams]
-              [:params {:optional true} Params]])
+              [:params {:optional true} Params]
+              [::req-id {:optional true} some?]])
 
 (def Req [:cat
           [:req-method ReqMethod]
@@ -57,43 +60,48 @@
 ;;--------------------
 ;; request tracking
 ;;--------------------
-(defn req-path
+(defn req-key
   "returns a 'normalized' req path for a request.
 
-  normalized in the sense that when it comes to distinguishing requests
-  in order to track them, some of the variations between requests are
-  significant, and some aren't.
+  normalized in the sense that when it comes to distinguishing requests in order
+  to track them, some of the variations between requests are significant, and
+  some aren't:
+  [:get :foo {:id 1, :params {:content \"vader\"}}]
+  probably shouldn't be distinguished from
+  [:get :foo {:id 1, :params {:content \"chewbacca\"}}].
 
-  The first two elements of the request, `method` and `route`, are
-  always significant. Where things get tricky is with `opts`. We don't
-  want to use `opts` itself because the variation would lead to
-  \"identical\" requests being treated as separate, so we use
-  `stfr/req-id` to select a subset of opts to distinguish reqs"
+  The first two elements of the request, `method` and `route-name`, are always
+  significant. Where things get tricky is with `opts`. We don't want to use
+  `opts` itself because the variation would lead to \"identical\" requests being
+  treated as separate.
+
+  Therefore we use `dfr/req-id` to select a subset of opts to distinguish
+  requests with the same `method` and `route-name`. Sync routes can specify a
+  `:id-key`, a keyword like `:id` or `:db/id` that identifies an entity.
+  `dfr/req-id` will use that value if present.
+
+  It's also possible to completely specify the req-key with `::req-key`."
   [[method route opts]]
-  (let [path (or (::req-path opts)
-                 (let [req-id (or (::req-id opts) (stfr/req-id route opts))]
-                   (if (empty? req-id)
-                     [method route]
-                     [method route req-id])))]
-    (when (contains? (:debug opts) ::req-path)
-      (log/info ::req-path
-                {:opts-req-path (::req-path opts)
-                 :route-name    route
-                 :req-path      path}))
-    path))
+  (or (::req-key opts)
+      (let [req-id (stfr/req-id route opts)]
+        (if (empty? req-id)
+          [method route]
+          [method route req-id]))))
 
 (defn track-new-request
   "Adds a request's state te the app-db and increments the active request
   count"
   [db req]
   (-> db
-      (update-in [::reqs (req-path req)] merge {:state        :active
-                                                :active-route (paths/get-path db :nav :route)})
+      (update-in (path/reqs [(req-key req)])
+                 merge
+                 {:state            :active
+                  :active-nav-route (path/get-path db :nav :route)})
       (update ::active-request-count (fnil inc 0))))
 
 (defn remove-req
   [db req]
-  (update db ::reqs dissoc (req-path req)))
+  (update-in db [:donut :reqs] dissoc (req-key req)))
 
 ;;------
 ;; dispatch handler wrappers
@@ -102,37 +110,45 @@
   "Update sync bookkeeping"
   [db [_ req resp]]
   (-> db
-      (assoc-in [::reqs (req-path req) :state] (:status resp))
+      (assoc-in (path/reqs [(req-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
 (sth/rr rf/reg-event-db ::sync-finished
   []
   sync-finished)
 
+(sth/rr rf/reg-event-fx ::sync-response
+  [rf/trim-v]
+  (fn [_ [dispatches]]
+    {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
+
 (defn sync-response-handler
-  "Returns a function to handle sync responses"
+  "Used by sync implementations (e.g. ajax) to create a response handler"
   [req]
   (fn [{:keys [status] :as resp}]
     (let [{:keys [on] :as rdata} (get req 2)
           $ctx                   (assoc (get rdata :$ctx {})
                                         :resp resp
                                         :req  req)
-          composed-fx            (stcc/compose-fx (get on status (get on :fail)))]
-      (rf/dispatch [::stcc/compose-dispatch
+          dispatches             (get on status (get on :fail))
+          dispatches             (if (keyword? (first dispatches))
+                                   [dispatches]
+                                   dispatches)]
+      (rf/dispatch [::sync-response
                     [[::sync-finished req resp]
                      (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x))
-                                    composed-fx)]]))))
+                                    dispatches)]]))))
 
 ;;------
 ;; registrations
 ;;------
 (defn sync-state
   [db req]
-  (get-in db [::reqs (req-path req) :state]))
+  (path/get-path db :reqs [(req-key req) :state]))
 
 (rf/reg-sub ::req
   (fn [db [_ req]]
-    (get-in db [::reqs (req-path req)])))
+    (path/get-path db :reqs [(req-key req)])))
 
 (rf/reg-sub ::sync-state
   (fn [db [_ req comparison]]
@@ -145,25 +161,65 @@
 ;; Used to find, e.g. all requests like [:get :topic] or [:post :host]
 (rf/reg-sub ::sync-state-q
   (fn [db [_ query]]
-    (medley/filter-keys (partial stcu/projection? query) (::reqs db))))
+    (medley/filter-keys (partial stcu/projection? query) (get-in db [:donut :reqs]))))
+
+(defmulti sync-success
+  "Dispatches based on the type of the response-data. Maps and vectors are treated
+  identically; they're considered to be either a singal instance or collection
+  of entities. Those entities are placed in the entity-db, replacing whatever's
+  there.
+
+  SegmentResponses are handled separately."
+  (fn [db {{:keys [response-data]} :resp}]
+    (cond (map? response-data) :map
+          (vector? response-data) :vector
+          :else (type response-data))))
+
+(defmethod sync-success :map
+  [db {{:keys [response-data]} :resp :as response}]
+  ;; it's easier to forward to a base case, bruv
+  (sync-success db (assoc-in response [:resp :response-data] [response-data])))
+
+;; Updates db by replacing each entity with return value
+(defmethod sync-success :vector
+  [db {{:keys [response-data]} :resp
+       :keys                   [req]
+       :as                     response}]
+  ;; TODO handle case of `:ent-type` or `:id-key` missing
+  (let [endpoint-router     (path/get-path db :system [:routes :endpoint-router])
+        endpoint-route-name (second req)
+        endpoint-route      (r/match-by-name router route-name)
+        ent-type            (get-in endpoint-route [:data :ent-type])
+        id-key              (get-in endpoint-route [:data :id-key])]
+    ;; TODO This replacement strategy could be seriously flawed! I'm trying to
+    ;; keep this simple and make possibly problematic code obvious
+    (reduce (fn [db ent]
+              (assoc-in db (path/path :entity [ent-type (id-key ent)]) ent))
+            db
+            response-data)))
+
+(defmethod sync-success nil [db _] db)
+
+(defmethod sync-success :default
+  [db {{:keys [response-data]} :resp
+       :keys                   [req]
+       :as                     response}]
+
+  (rfl/warn "Sync response data type was not recognized"
+            {:response-data response-data
+             :req (into [] (take 2 req))})
+  db)
 
 (sth/rr rf/reg-event-db ::default-sync-success
   [rf/trim-v]
-  (fn [db [{{:keys [response-data]} :resp
-            :keys [req]}]]
-    (let [response-data (if (nil? response-data) [] response-data)]
-      (if (vector? response-data)
-        (stcf/update-db db response-data)
-        (do (log/warn "Sync response data was not a vector:" {:response-data response-data
-                                                              :req           (into [] (take 2 req))})
-            db)))))
+  (fn [db [response]] (sync-success db response)))
 
 (sth/rr rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
     (let [sync-info {:response-data response-data :req (into [] (take 2 req))}]
       (when-not (vector? response-data)
-        (log/warn "Sync response data was not a vector:" sync-info))
+        (rfl/warn "Sync response data was not a vector:" sync-info))
       (cond-> {:dispatch [::stfaf/add-failure [:sync sync-info]]}
         (vector? response-data) (assoc :db (stcf/update-db db response-data))))))
 
@@ -171,7 +227,7 @@
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
-      (log/warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
+      (rfl/warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
       {:dispatch [::stfaf/add-failure [:sync sync-info]]})))
 
 ;;-----------------------
@@ -276,7 +332,7 @@
    :before (fn [ctx]
              (if (sync-rule? ctx :merge-route-params)
                (update-ctx-req-opts ctx (fn [opts]
-                                          (merge {:route-params (paths/get-path (ctx-db ctx) :nav [:route :params])}
+                                          (merge {:route-params (path/get-path (ctx-db ctx) :nav [:route :params])}
                                                  opts)))
                ctx))
    :after  identity})
@@ -302,14 +358,14 @@
 (def sync-entity-path
   {:id     ::sync-entity-path
    :before (fn [ctx]
-             (get-in-path ctx :entity-path #(paths/get-path (ctx-db ctx) :entity %)))
+             (get-in-path ctx :entity-path #(path/get-path (ctx-db ctx) :entity %)))
    :after  identity})
 
 ;; Use the form buffer at given path to populate route-params and params of request
 (def sync-form-path
   {:id     ::sync-form-path
    :before (fn [ctx]
-             (get-in-path ctx :form-path #(paths/get-path (ctx-db ctx) :form % :buffer)))
+             (get-in-path ctx :form-path #(path/get-path (ctx-db ctx) :form % :buffer)))
    :after  identity})
 
 (def sync-data-path
@@ -358,7 +414,7 @@
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
   [{:keys [db] :as _cofx} req]
-  (let [{:keys [router sync-dispatch-fn]} (paths/get-path db :system ::sync)
+  (let [{:keys [router sync-dispatch-fn]} (path/get-path db :system ::sync)
         adapted-req                       (-> req
                                               (add-default-sync-response-handlers)
                                               (unsugar-handlers)
@@ -520,7 +576,7 @@
   [db key-filter value-filter]
   (let [key-filter   (or key-filter (constantly false))
         value-filter (or value-filter (constantly false))]
-    (update db (paths/prefix :reqs)
+    (update db (path/prefix :reqs)
             (fn [req-map]
               (->> req-map
                    (remove (fn [[k v]] (and (key-filter k) (value-filter v))))

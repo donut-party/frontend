@@ -1,4 +1,4 @@
-(ns donut.frontend.example.core-flow.component
+(ns donut.frontend.example.core.flow-component
   (:require [re-frame.core :as rf]
             [donut.frontend.core.flow :as dcf]))
 
