@@ -15,7 +15,6 @@
    [medley.core :as medley]
    [clojure.walk :as walk]
    [meta-merge.core :refer [meta-merge]]
-   [reitit.core :as r]
    [cognitect.anomalies :as anom]))
 
 (doseq [t [::anom/incorrect
@@ -197,11 +196,15 @@
   ;; TODO handle case of `:ent-type` or `:id-key` missing
   (let [sync-router     (p/get-path db :system-component [:donut.frontend :sync-router])
         sync-route-name (second req)
-        sync-route      (r/match-by-name sync-router sync-route-name)
-        ent-type        (get-in sync-route [:data :ent-type])
-        id-key          (get-in sync-route [:data :id-key])]
+        sync-route      (drp/route sync-router sync-route-name)
+        ent-type        (:ent-type sync-route)
+        id-key          (:id-key sync-route)]
     ;; TODO This replacement strategy could be seriously flawed! I'm trying to
     ;; keep this simple and make possibly problematic code obvious
+    (when-not id-key
+      (throw (ex-info "could not determine id-key for sync response"
+                      {:ent-type        ent-type
+                       :sync-route-name sync-route-name})))
     (reduce (fn [db ent]
               (assoc-in db (p/path :entity [ent-type (id-key ent)]) ent))
             db

@@ -1,4 +1,7 @@
 (ns donut.frontend.sync.dispatch.echo
+  "This is for development and testing purposes. Allows you to specify the
+  'response' you get back within the request's options, letting you
+  try out responses without having a backend."
   (:require
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]
@@ -21,7 +24,7 @@
     (response-handler echo)))
 
 (defn sync-dispatch-fn
-  [[_method _route-name {:keys [echo]} :as req]]
+  [[_method _route-name {:keys [::echo]} :as req]]
   (if-not req
     (do
       (rfl/console :error

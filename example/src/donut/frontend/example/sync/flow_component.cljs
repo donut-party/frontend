@@ -1,6 +1,7 @@
 (ns donut.frontend.example.sync.flow-component
   (:require [re-frame.core :as rf]
-            [donut.frontend.sync.flow :as dsf]))
+            [donut.frontend.sync.flow :as dsf]
+            [donut.frontend.sync.dispatch.echo :as dsde]))
 
 ;; example req use cases
 
@@ -48,7 +49,9 @@
   []
   [:div
    [:button
-    {:on-click #(rf/dispatch [::dsf/get :users])}
+    {:on-click #(rf/dispatch [::dsf/get :users {::dsde/echo {:status        :success
+                                                             :response-data {:id   1
+                                                                             :name "bob"}}}])}
     "click"]])
 
 (defn examples

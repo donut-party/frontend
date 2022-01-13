@@ -1,6 +1,5 @@
 (ns donut.frontend.path
-  "donut roots for the re-frame db"
-  )
+  "donut roots for the re-frame db. helpers for those roots.")
 
 (def config
   {:form             [:donut :form]

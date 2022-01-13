@@ -11,8 +11,12 @@
 
 (def fake-endpoint-routes
   "We're not making requests to real endpoints,"
-  [["/user"      {:name :users}]
-   ["/user/{id}" {:name :user}]])
+  [["/user"      {:name     :users
+                  :ent-type :user
+                  :id-key   :id}]
+   ["/user/{id}" {:name     :user
+                  :ent-type :user
+                  :id-key   :id}]])
 
 (defn system-config
   "This is a function instead of a static value so that it will pick up
