@@ -12,7 +12,7 @@
    :system          [:donut :system]})
 
 (defn path
-  [prefix-name partial-path]
+  [prefix-name & partial-path]
   (when-not (contains? config prefix-name)
     (throw (ex-info "invalid path prefix" prefix-name)))
   (into (prefix-name config)

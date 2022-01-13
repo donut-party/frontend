@@ -6,7 +6,7 @@
   (:require [re-frame.core :as rf]
             [re-frame.loggers :as rfl]
             [donut.frontend.handlers :as dh]
-            [donut.frontend.path :as path]
+            [donut.frontend.path :as p]
             [donut.frontend.routes.protocol :as drp]
             [donut.sugar.utils :as dsu]
             [donut.frontend.routes :as dfr]
@@ -88,10 +88,10 @@
   count"
   [db req]
   (-> db
-      (update-in (path/reqs [(req-key req)])
+      (update-in (p/reqs [(req-key req)])
                  merge
                  {:state            :active
-                  :active-nav-route (path/get-path db :nav :route)})
+                  :active-nav-route (p/get-path db :nav :route)})
       (update ::active-request-count (fnil inc 0))))
 
 (defn remove-req
@@ -105,7 +105,7 @@
   "Update sync bookkeeping"
   [db [_ req resp]]
   (-> db
-      (assoc-in (path/reqs [(req-key req) :state]) (:status resp))
+      (assoc-in (p/reqs [(req-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
 (dh/rr rf/reg-event-db ::sync-finished
@@ -153,11 +153,11 @@
 ;;------
 (defn sync-state
   [db req]
-  (path/get-path db :reqs [(req-key req) :state]))
+  (p/get-path db :reqs [(req-key req) :state]))
 
 (rf/reg-sub ::req
   (fn [db [_ req]]
-    (path/get-path db :reqs [(req-key req)])))
+    (p/get-path db :reqs [(req-key req)])))
 
 (rf/reg-sub ::sync-state
   (fn [db [_ req comparison]]
@@ -195,7 +195,7 @@
        :keys                   [req]
        :as                     _response}]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
-  (let [endpoint-router     (path/get-path db :system [:routes :endpoint-router])
+  (let [endpoint-router     (p/get-path db :system [:routes :endpoint-router])
         endpoint-route-name (second req)
         endpoint-route      (r/match-by-name endpoint-router endpoint-route-name)
         ent-type            (get-in endpoint-route [:data :ent-type])
@@ -203,7 +203,7 @@
     ;; TODO This replacement strategy could be seriously flawed! I'm trying to
     ;; keep this simple and make possibly problematic code obvious
     (reduce (fn [db ent]
-              (assoc-in db (path/path :entity [ent-type (id-key ent)]) ent))
+              (assoc-in db (p/path :entity [ent-type (id-key ent)]) ent))
             db
             response-data)))
 
@@ -327,7 +327,7 @@
    :before (fn [ctx]
              (if (sync-rule? ctx :merge-route-params)
                (update-ctx-req-opts ctx (fn [opts]
-                                          (merge {:route-params (path/get-path (ctx-db ctx) :nav [:route :params])}
+                                          (merge {:route-params (p/get-path (ctx-db ctx) :nav [:route :params])}
                                                  opts)))
                ctx))
    :after  identity})
@@ -353,14 +353,14 @@
 (def sync-entity-path
   {:id     ::sync-entity-path
    :before (fn [ctx]
-             (get-in-path ctx :entity-path #(path/get-path (ctx-db ctx) :entity %)))
+             (get-in-path ctx :entity-path #(p/get-path (ctx-db ctx) :entity %)))
    :after  identity})
 
 ;; Use the form buffer at given path to populate route-params and params of request
 (def sync-form-path
   {:id     ::sync-form-path
    :before (fn [ctx]
-             (get-in-path ctx :form-path #(path/get-path (ctx-db ctx) :form % :buffer)))
+             (get-in-path ctx :form-path #(p/get-path (ctx-db ctx) :form % :buffer)))
    :after  identity})
 
 (def sync-data-path
@@ -412,7 +412,7 @@
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
   [{:keys [db] :as _cofx} req]
-  (let [{:keys [router sync-dispatch-fn]} (path/get-path db :system ::sync)
+  (let [{:keys [router sync-dispatch-fn]} (p/get-path db :system ::sync)
         adapted-req                       (-> req
                                               (add-default-sync-response-handlers)
                                               (adapt-req router))]
@@ -509,7 +509,7 @@
   [db key-filter value-filter]
   (let [key-filter   (or key-filter (constantly false))
         value-filter (or value-filter (constantly false))]
-    (update db (path/path :reqs [])
+    (update db (p/path :reqs [])
             (fn [req-map]
               (->> req-map
                    (remove (fn [[k v]] (and (key-filter k) (value-filter v))))
