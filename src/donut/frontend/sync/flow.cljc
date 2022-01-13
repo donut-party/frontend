@@ -5,22 +5,17 @@
   The term 'sync' is used instead of AJAX"
   (:require [re-frame.core :as rf]
             [re-frame.loggers :as rfl]
+            [donut.frontend.handlers :as dh]
             [donut.frontend.path :as path]
-            [sweet-tooth.frontend.handlers :as sth]
-            [sweet-tooth.frontend.core.flow :as stcf]
-            [sweet-tooth.frontend.core.utils :as stcu]
-            [sweet-tooth.frontend.core.compose :as stcc]
-            [sweet-tooth.frontend.routes :as stfr]
-            [sweet-tooth.frontend.routes.protocol :as strp]
-            [sweet-tooth.frontend.failure.flow :as stfaf]
-            [sweet-tooth.frontend.specs :as ss]
-            [integrant.core :as ig]
+            [donut.frontend.routes.protocol :as drp]
+            [donut.sugar.utils :as dsu]
+            [donut.frontend.routes :as dfr]
+            [donut.failure.flow :as dfaf]
             [medley.core :as medley]
             [clojure.walk :as walk]
             [meta-merge.core :refer [meta-merge]]
             [reitit.core :as r]
             [taoensso.timbre :as log]
-            [clojure.spec.alpha :as s]
             [cognitect.anomalies :as anom]))
 
 (doseq [t [::anom/incorrect
@@ -83,7 +78,7 @@
   It's also possible to completely specify the req-key with `::req-key`."
   [[method route opts]]
   (or (::req-key opts)
-      (let [req-id (stfr/req-id route opts)]
+      (let [req-id (dfr/req-id route opts)]
         (if (empty? req-id)
           [method route]
           [method route req-id]))))
@@ -113,31 +108,45 @@
       (assoc-in (path/reqs [(req-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
-(sth/rr rf/reg-event-db ::sync-finished
+(dh/rr rf/reg-event-db ::sync-finished
   []
   sync-finished)
 
-(sth/rr rf/reg-event-fx ::sync-response
+(dh/rr rf/reg-event-fx ::sync-response
   [rf/trim-v]
   (fn [_ [dispatches]]
     {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
 
+(defn vectorize-dispatches
+  [xs]
+  (cond (nil? xs)             []
+        (keyword? (first xs)) [xs]
+        :else                 xs))
+
+(defn response-dispatches
+  "Combine default response dispatches with request-specific response dispatches"
+  [req {:keys [status] :as _resp}]
+  (let [{:keys [default-on on] :as _rdata} (get req 2)
+
+        default-dispatches (->> (get default-on status (get default-on
+                                                            :fail))
+                                (vectorize-dispatches))
+        dispatches         (->> (get on status (get on :fail))
+                                (vectorize-dispatches))]
+    (into default-dispatches dispatches)))
+
 (defn sync-response-handler
   "Used by sync implementations (e.g. ajax) to create a response handler"
   [req]
-  (fn [{:keys [status] :as resp}]
-    (let [{:keys [on] :as rdata} (get req 2)
+  (fn [resp]
+    (let [rdata (get req 2)
           $ctx                   (assoc (get rdata :$ctx {})
                                         :resp resp
-                                        :req  req)
-          dispatches             (get on status (get on :fail))
-          dispatches             (if (keyword? (first dispatches))
-                                   [dispatches]
-                                   dispatches)]
+                                        :req  req)]
       (rf/dispatch [::sync-response
                     [[::sync-finished req resp]
-                     (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x))
-                                    dispatches)]]))))
+                     (->> (response-dispatches req resp)
+                          (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x))))]]))))
 
 ;;------
 ;; registrations
@@ -161,7 +170,7 @@
 ;; Used to find, e.g. all requests like [:get :topic] or [:post :host]
 (rf/reg-sub ::sync-state-q
   (fn [db [_ query]]
-    (medley/filter-keys (partial stcu/projection? query) (get-in db [:donut :reqs]))))
+    (medley/filter-keys (partial dsu/projection? query) (get-in db [:donut :reqs]))))
 
 (defmulti sync-success
   "Dispatches based on the type of the response-data. Maps and vectors are treated
@@ -184,11 +193,11 @@
 (defmethod sync-success :vector
   [db {{:keys [response-data]} :resp
        :keys                   [req]
-       :as                     response}]
+       :as                     _response}]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
   (let [endpoint-router     (path/get-path db :system [:routes :endpoint-router])
         endpoint-route-name (second req)
-        endpoint-route      (r/match-by-name router route-name)
+        endpoint-route      (r/match-by-name endpoint-router endpoint-route-name)
         ent-type            (get-in endpoint-route [:data :ent-type])
         id-key              (get-in endpoint-route [:data :id-key])]
     ;; TODO This replacement strategy could be seriously flawed! I'm trying to
@@ -203,32 +212,32 @@
 (defmethod sync-success :default
   [db {{:keys [response-data]} :resp
        :keys                   [req]
-       :as                     response}]
+       :as                     _response}]
 
-  (rfl/warn "Sync response data type was not recognized"
-            {:response-data response-data
-             :req (into [] (take 2 req))})
+  (rfl/log :warn
+           "sync response data type was not recognized"
+           {:response-data response-data
+            :req (into [] (take 2 req))})
   db)
 
-(sth/rr rf/reg-event-db ::default-sync-success
+(dh/rr rf/reg-event-db ::default-sync-success
   [rf/trim-v]
   (fn [db [response]] (sync-success db response)))
 
-(sth/rr rf/reg-event-fx ::default-sync-fail
+(dh/rr rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
+    ;; TODO possibly allow failed responses to carry data
     (let [sync-info {:response-data response-data :req (into [] (take 2 req))}]
-      (when-not (vector? response-data)
-        (rfl/warn "Sync response data was not a vector:" sync-info))
-      (cond-> {:dispatch [::stfaf/add-failure [:sync sync-info]]}
-        (vector? response-data) (assoc :db (stcf/update-db db response-data))))))
+      (rfl/log :info "sync failed" sync-info)
+      {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
-(sth/rr rf/reg-event-fx ::default-sync-unavailable
+(dh/rr rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
-      (rfl/warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
-      {:dispatch [::stfaf/add-failure [:sync sync-info]]})))
+      (rfl/log :warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
+      {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
 ;;-----------------------
 ;; dispatch sync requests
@@ -244,35 +253,17 @@
 
 (defn add-default-sync-response-handlers
   [req]
-  (update req 2 #(meta-merge default-handlers
-                             {:$ctx {:req req}} %)))
-
-(defn reconcile-default-handlers
-  "Adds default handlers"
-  [req]
-  (let [{:keys [default-on on] :as opts} (get req 2)]
-    (assoc req 2 (reduce-kv (fn [opts handler-name default-handler-events]
-                              (assoc-in opts [:on handler-name] (let [on-events (handler-name on)]
-                                                                  (if (vector? default-handler-events)
-                                                                    (stcc/compose-events default-handler-events on-events)
-                                                                    on-events))))
-                            opts
-                            default-on))))
-
-(defn unsugar-handlers
-  [req]
-  (update req 2 stcu/move-keys #{:fail :success} [:on]))
-
+  (update req 2 #(meta-merge default-handlers {:$ctx {:req req}} %)))
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
   [[method route-name opts :as _res] router]
-  (when-let [path (strp/path router
-                             route-name
-                             (or (:route-params opts)
-                                 (:params opts)
-                                 opts)
-                             (:query-params opts))]
+  (when-let [path (drp/path router
+                            route-name
+                            (or (:route-params opts)
+                                (:params opts)
+                                opts)
+                            (:query-params opts))]
     [method route-name (assoc opts :path path)]))
 
 (defn ctx-db
@@ -289,10 +280,6 @@
   [ctx f]
   (update-in ctx [:coeffects :event 1 2] f))
 
-(defn sync-rule?
-  [ctx rule]
-  (contains? (get-in (ctx-req ctx) [2 :rules]) rule))
-
 (defn ctx-sync-state
   [ctx]
   (sync-state (ctx-db ctx) (ctx-req ctx)))
@@ -300,6 +287,14 @@
 ;;---
 ;; sync interceptors
 ;;---
+
+;; You can specify `:rules` in a sync request's options to modify its behavior,
+;; e.g. by only syncing once or only syncing when not active.
+
+(defn sync-rule?
+  [ctx rule]
+  (contains? (get-in (ctx-req ctx) [2 :rules]) rule))
+
 (defn sync-entity-req
   "To be used when dispatching a sync event for an entity:
   (sync-entity-req :put :comment {:id 1 :content \"comment\"})"
@@ -326,9 +321,9 @@
                ctx))
    :after  identity})
 
-(def sync-route-params
+(def sync-merge-route-params
   "Merges frontend route params into API request's route-params"
-  {:id     ::sync-route-params
+  {:id     ::sync-merge-route-params
    :before (fn [ctx]
              (if (sync-rule? ctx :merge-route-params)
                (update-ctx-req-opts ctx (fn [opts]
@@ -385,15 +380,18 @@
 (def sync-method
   {:id     ::sync-method
    :before (fn [ctx]
+             ;; TODO figure out why this is needed
              (if-let [method (get sync-methods (name (get-in ctx [:coeffects :event 0])))]
-               (update-in ctx [:coeffects :event] (fn [[event-name & args]]
-                                                    (conj [event-name] (into [method] args))))
+               (update-in ctx
+                          [:coeffects :event]
+                          (fn [[event-name & args]]
+                            (conj [event-name] (into [method] args))))
                ctx))
    :after  identity})
 
 (def sync-interceptors
   [sync-method
-   sync-route-params
+   sync-merge-route-params
    sync-entity-path
    sync-form-path
    sync-data-path
@@ -417,8 +415,6 @@
   (let [{:keys [router sync-dispatch-fn]} (path/get-path db :system ::sync)
         adapted-req                       (-> req
                                               (add-default-sync-response-handlers)
-                                              (unsugar-handlers)
-                                              (reconcile-default-handlers)
                                               (adapt-req router))]
     (if adapted-req
       {:db             (track-new-request db adapted-req)
@@ -428,73 +424,25 @@
                     {:req (update req 2 select-keys [:params :route-params :query-params :data])})
           {:db db}))))
 
-(s/fdef sync-event-fx
-  :args (s/cat :cofx ::ss/cofx :req ::req)
-  :ret  (s/keys :req-un [::ss/db]
-                :req    [::dispatch-sync]))
-
 ;;---
 ;; handlers
 
 ;; The core event handler for syncing
-(sth/rr rf/reg-event-fx ::sync
+(dh/rr rf/reg-event-fx ::sync
   sync-interceptors
   (fn [cofx [req]]
     (sync-event-fx cofx req)))
 
 ;; makes it a little easier to sync a single entity
-(sth/rr rf/reg-event-fx ::sync-entity
+(dh/rr rf/reg-event-fx ::sync-entity
   sync-interceptors
   (fn [cofx [req]]
     (sync-event-fx cofx (sync-entity-req req))))
 
-;; Like `::sync`, but only fires if there hasn't previously been a
-;; successful request with the same signature
-(sth/rr rf/reg-event-fx ::sync-once
-  [rf/trim-v]
-  (fn [cofx [req]]
-    (when-not (= :success (sync-state (:db cofx) req))
-      (sync-event-fx cofx req))))
-
-;; makes it a little easier to sync a single entity once
-(sth/rr rf/reg-event-fx ::sync-entity-once
-  [rf/trim-v]
-  (fn [cofx [req]]
-    (when-not (= :success (sync-state (:db cofx) req))
-      (sync-event-fx cofx (sync-entity-req req)))))
-
-;; only sync if there's no active sync
-(sth/rr rf/reg-event-fx ::sync-unless-active
-  [rf/trim-v]
-  (fn [cofx [req]]
-    (when-not (= :active (sync-state (:db cofx) req))
-      (sync-event-fx cofx req))))
-
-;; only sync entity if there's no active sync
-(sth/rr rf/reg-event-fx ::sync-entity-unless-active
-  [rf/trim-v]
-  (fn [cofx [req]]
-    (when-not (= :active (sync-state (:db cofx) req))
-      (sync-event-fx cofx (sync-entity-req req)))))
-
 ;; The effect handler that actually performs a sync
-(sth/rr rf/reg-fx ::dispatch-sync
+(dh/rr rf/reg-fx ::dispatch-sync
   (fn [{:keys [dispatch-fn req]}]
     (dispatch-fn req)))
-
-;;---------------
-;; sync responses
-;;---------------
-;; Unwraps response-data for update-db
-(sth/rr rf/reg-event-db ::update-db
-  [rf/trim-v]
-  (fn [db [{{:keys [response-data]} :resp}]]
-    (stcf/update-db db response-data)))
-
-(sth/rr rf/reg-event-db ::replace-entities
-  [rf/trim-v]
-  (fn [db [{{:keys [response-data]} :resp}]]
-    (stcf/replace-entities db response-data)))
 
 ;;------
 ;; event helpers
@@ -502,9 +450,10 @@
 
 (defn build-opts
   [opts call-opts params]
-  (let [{:keys [route-params params] :as new-opts} (-> (meta-merge opts call-opts)
-                                                       (update :params meta-merge params)
-                                                       (stcu/move-keys #{:success :fail} [:on]))]
+  (let [{:keys [route-params params] :as new-opts} (-> opts
+                                                       (meta-merge call-opts)
+                                                       (update :params meta-merge params))]
+    ;; by default also use param for route params
     (cond-> new-opts
       (not route-params) (assoc :route-params params))))
 
@@ -522,23 +471,12 @@
   (fn [_cofx [call-opts params]]
     {:dispatch (sync-req->sync-event req call-opts params)}))
 
-(defmethod ig/init-key ::sync
-  [_ opts]
-  opts)
-
-;;------
-;; db patch exception
-;;------
-(defn db-patch-handle-exception
-  [db ex-data]
-  #?(:cljs (js/console.warn "sync exception" ex-data))
-  db)
-
 ;;---------------
 ;; common sync
 ;;---------------
+
 (doseq [method [::get ::put ::post ::delete ::patch]]
-  (sth/rr rf/reg-event-fx method
+  (dh/rr rf/reg-event-fx method
     sync-interceptors
     (fn [cofx [req]]
       (sync-event-fx cofx req))))
@@ -549,18 +487,12 @@
 
 (defn single-entity
   [ctx]
-  (->> (get-in ctx [:resp :response-data])
-       (filter #(= :entity (first %)))
-       (first)
-       (second)
-       (vals)
-       (first)
-       (vals)
-       (first)))
+  (get-in ctx [:resp :response-data]))
 
 ;;---------------
 ;; sync subs
 ;;---------------
+
 (defn sync-subs
   [req-id]
   {:sync-state    (rf/subscribe [::sync-state req-id])
@@ -572,24 +504,25 @@
 ;;---------------
 ;; sync req data handlers
 ;;---------------
+
 (defn remove-reqs
   [db key-filter value-filter]
   (let [key-filter   (or key-filter (constantly false))
         value-filter (or value-filter (constantly false))]
-    (update db (path/prefix :reqs)
+    (update db (path/path :reqs [])
             (fn [req-map]
               (->> req-map
                    (remove (fn [[k v]] (and (key-filter k) (value-filter v))))
                    (into {}))))))
 
-(sth/rr rf/reg-event-db ::remove-reqs
+(dh/rr rf/reg-event-db ::remove-reqs
   [rf/trim-v]
   (fn [db [key-filter value-filter]]
     (remove-reqs db key-filter value-filter)))
 
 ;; remove all sync reqs dispatched while `route` was active
 ;; with a method found in set `methods`
-(sth/rr rf/reg-event-db ::remove-reqs-by-route-and-method
+(dh/rr rf/reg-event-db ::remove-reqs-by-route-and-method
   [rf/trim-v]
   (fn [db [route methods]]
     (remove-reqs db
