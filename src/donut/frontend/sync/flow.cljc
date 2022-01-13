@@ -183,7 +183,7 @@
 
 (defmulti apply-sync-segment
   ""
-  (fn [_db [segment-type] _response] segment-type))
+  (fn [_db [segment-type]] segment-type))
 
 ;; TODO it'd be better to not require id-key
 (defmethod apply-sync-segment :entity
@@ -242,11 +242,8 @@
 
 (defmethod handle-sync-response-data :segments
   [db {{:keys [response-data]} :resp
-       :keys                   [req]
        :as                     _response}]
-  (reduce (fn [db segment])
-          db
-          response-data))
+  (reduce apply-sync-segment db response-data))
 
 (defmethod handle-sync-response-data :empty [db _] db)
 
@@ -288,7 +285,7 @@
 
 (dh/rr rf/reg-event-db ::default-sync-success
   [rf/trim-v]
-  (fn [db [response]] (sync-success db response)))
+  (fn [db [response]] (handle-sync-response-data db response)))
 
 (dh/rr rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
