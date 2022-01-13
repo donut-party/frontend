@@ -3,20 +3,20 @@
   the state of sync requests.
 
   The term 'sync' is used instead of AJAX"
-  (:require [re-frame.core :as rf]
-            [re-frame.loggers :as rfl]
-            [donut.frontend.handlers :as dh]
-            [donut.frontend.path :as p]
-            [donut.frontend.routes.protocol :as drp]
-            [donut.sugar.utils :as dsu]
-            [donut.frontend.routes :as dfr]
-            [donut.failure.flow :as dfaf]
-            [medley.core :as medley]
-            [clojure.walk :as walk]
-            [meta-merge.core :refer [meta-merge]]
-            [reitit.core :as r]
-            [taoensso.timbre :as log]
-            [cognitect.anomalies :as anom]))
+  (:require
+   [re-frame.core :as rf]
+   [re-frame.loggers :as rfl]
+   [donut.frontend.handlers :as dh]
+   [donut.frontend.path :as p]
+   [donut.frontend.routes.protocol :as drp]
+   [donut.sugar.utils :as dsu]
+   [donut.frontend.routes :as dfr]
+   [donut.failure.flow :as dfaf]
+   [medley.core :as medley]
+   [clojure.walk :as walk]
+   [meta-merge.core :refer [meta-merge]]
+   [reitit.core :as r]
+   [cognitect.anomalies :as anom]))
 
 (doseq [t [::anom/incorrect
            ::anom/forbidden
@@ -346,7 +346,7 @@
   (if-let [path (get-in (ctx-req ctx) [2 path-kw])]
     (if-let [ent (path-fn path)]
       (update-ctx-req-opts ctx #(merge-ent-params % ent))
-      (log/warn ::sync-entity-ent-not-found {path-kw path}))
+      (rfl/log :warn ::sync-entity-ent-not-found {path-kw path}))
     ctx))
 
 ;; Use the entity at given path to populate route-params and params of request
@@ -420,8 +420,8 @@
       {:db             (track-new-request db adapted-req)
        ::dispatch-sync {:dispatch-fn sync-dispatch-fn
                         :req         adapted-req}}
-      (do (log/warn "sync router could not match req"
-                    {:req (update req 2 select-keys [:params :route-params :query-params :data])})
+      (do (rfl/log :warn "sync router could not match req"
+                   {:req (update req 2 select-keys [:params :route-params :query-params :data])})
           {:db db}))))
 
 ;;---
