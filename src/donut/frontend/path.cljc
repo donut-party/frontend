@@ -1,5 +1,5 @@
 (ns donut.frontend.path
-  "sweet tooth roots for the re-frame db"
+  "donut roots for the re-frame db"
   )
 
 (def config

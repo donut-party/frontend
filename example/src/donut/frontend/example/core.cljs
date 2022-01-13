@@ -1,33 +1,27 @@
 (ns donut.frontend.example.core
   (:require [reagent.dom :as rdom]
             [re-frame.core :as rf]
-            [re-frame.db :as rfdb]
             [donut.frontend.example.app :as app]
             [donut.frontend.config :as dconf]
             [donut.frontend.core.flow :as dcf]
             [donut.frontend.core.utils :as dcu]
             [donut.frontend.sync.dispatch.echo :as dsde]
-            [donut.system :as ds]))
+            [donut.system :as ds]
+            [meta-merge.core :as meta-merge]))
+
+(def fake-endpoint-routes
+  "We're not making requests to real endpoints,"
+  [["/user"      {:name :users}]
+   ["/user/{id}" {:name :user}]])
 
 (defn system-config
   "This is a function instead of a static value so that it will pick up
   reloaded changes"
   []
-  ;; (cond-> (meta-merge stconfig/default-config
-  ;;                     {::stsda/sync-dispatch-fn {:global-opts {:with-credentials true}}
-  ;;                      ::stfr/frontend-router   {:use :reitit
-  ;;                                                :routes froutes/frontend-routes}
-  ;;                      ::stfr/sync-router       {:use :reitit
-  ;;                                                :routes (ig/ref ::eroutes/routes)}
-  ;;                      ::stnf/global-lifecycle  {:before-enter [[::stnuf/clear :route]
-  ;;                                                               [::bch/register-flash-msg]
-  ;;                                                               [:ga/send-pageview]]}
-  ;;                      ::stjehf/handlers        {}
-  ;;                      ::eroutes/routes         ""}))
-  {::ds/defs {:donut.frontend {:endpoint-router {}
-                               :sync            {:sync-dispatch-fn dsde/sync-dispatch-fn}}}}
-  dconf/default-config
-  )
+  (meta-merge/meta-merge
+   dconf/default-config
+   {::ds/defs {:donut.frontend {:sync-dispatch-fn dsde/sync-dispatch-fn
+                                :sync-router      {:conf {:routes fake-endpoint-routes}}}}}))
 
 (defn -main []
   ;; (rf/dispatch-sync [::stcf/init-system (system-config)])

@@ -89,6 +89,6 @@
   [{:keys [routes router-opts] :as config}]
   (let [router (rc/router routes (merge {:compile coercion/compile-request-coercers}
                                         router-opts))]
-    (map->ReititRouter (merge {:routes      routes
-                               :router      router}
+    (map->ReititRouter (merge {:routes routes
+                               :router router}
                               (select-keys config [:on-no-path :on-no-route])))))

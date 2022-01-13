@@ -48,7 +48,7 @@
   []
   [:div
    [:button
-    {:on-click #(rf/dispatch [::dsf/get :test-route])}
+    {:on-click #(rf/dispatch [::dsf/get :users])}
     "click"]])
 
 (defn examples

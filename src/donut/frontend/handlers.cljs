@@ -1,9 +1,9 @@
 (ns donut.frontend.handlers
-  "Sweet Tooth provides handlers. Rather than registering outright,
+  "Donut provides handlers. Rather than registering outright,
   handlers are registered with an internal registry using the `rr`
   function in this namespace, and the `register-handlers` function is
   then used to register the handlers with re-frame. This allows users
-  to specify interceptors for Sweet Tooth's handlers."
+  to specify interceptors for Donut's handlers."
   (:require [meta-merge.core :refer [meta-merge]]))
 
 (def handlers (atom {}))
