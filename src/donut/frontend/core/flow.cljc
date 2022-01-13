@@ -3,6 +3,7 @@
             [re-frame.db :as rfdb]
             [re-frame.loggers :as rfl]
             [donut.frontend.handlers :as dh]
+            [donut.frontend.path :as p]
             [donut.sugar.utils :as dsu]
             [donut.system :as ds]
             [meta-merge.core :as meta-merge])
@@ -12,68 +13,27 @@
   (fn [db [_ path]]
     (get-in db path)))
 
-#_(dh/rr rf/reg-event-db ::assoc-in
+(dh/rr rf/reg-event-db ::assoc-in
   [rf/trim-v]
   (fn [db [path val]] (assoc-in db path val)))
 
-#_(dh/rr rf/reg-event-db ::merge
+(dh/rr rf/reg-event-db ::merge
   [rf/trim-v]
   (fn [db [m & [path]]]
     (if path
       (update-in db path merge m)
       (merge db m))))
 
-#_(defn merge-entity
+(defn merge-entity
   ([db ent-type m]
    (merge-entity db ent-type :id m))
   ([db ent-type id-key m]
-   (update-in db (paths/full-path :entity ent-type (id-key m)) merge m)))
+   (update-in db (p/path :entity [ent-type (id-key m)]) merge m)))
 
-#_(dh/rr rf/reg-event-db ::deep-merge
+(dh/rr rf/reg-event-db ::deep-merge
   [rf/trim-v]
   (fn [db [m]]
     (dsu/deep-merge db m)))
-
-#_(defn replace-entities
-  "whereas deep merge will merge new entities with old, this replaces
-  old entities with new."
-  [db patches]
-  (->> patches
-       (filter #(= :entity (first %)))
-       (map second)
-       (reduce (fn [db patch]
-                 (update-in db (paths/full-path :entity) (partial merge-with merge) patch))
-               db)))
-
-#_(dh/rr rf/reg-event-db ::replace-entities
-  [rf/trim-v]
-  (fn [db [patches]]
-    (replace-entities db patches)))
-
-#_(defn update-db
-  "Takes a db and a vector of db-patches, and applies those patches to
-  the db using the udpaters stored in
-  [:sweet-tooth/system :sweet-tooth.frontend.core.flow/update-db]
-  of the app-db."
-  [db db-patches]
-  {:pre [(vector? db-patches)]}
-  (let [updaters (paths/get-path db :system ::update-db)]
-    (reduce (fn [db [patch-key patch-val]]
-              (if-let [updater (get updaters patch-key (get updaters :default))]
-                (updater db patch-val)
-                (throw (ex-info "no updater for patch" {:patch-key patch-key :patch-val patch-val :db-patches db-patches}))))
-            db
-            db-patches)))
-
-#_(dh/rr rf/reg-event-db ::update-db
-  [rf/trim-v]
-  (fn [db [db-patches]]
-    (update-db db db-patches)))
-
-#_(defn db-patch-handle-entity
-  [db db-patch]
-  (let [entity-prefix (paths/prefix :entity)]
-    (update db entity-prefix u/deep-merge db-patch)))
 
 (dh/rr rf/reg-event-db ::toggle
   [rf/trim-v]
@@ -87,17 +47,28 @@
   (fn [db [path val]]
     (update-in db path dsu/set-toggle val)))
 
-#_(dh/rr rf/reg-event-db ::dissoc-in
+(dh/rr rf/reg-event-db ::dissoc-in
   [rf/trim-v]
   (fn [db [path]]
     (dsu/dissoc-in db path)))
 
-#_(dh/rr rf/reg-event-db ::remove-entity
+;;---
+;; entities
+;;---
+
+(dh/rr rf/reg-event-db ::remove-entity
   [rf/trim-v]
   (fn [db [entity-type id]]
     (update-in db [:entity entity-type] dissoc id)))
 
-;; debounce dispatches
+(dh/rr rf/reg-sub ::entity
+  (fn [db [_ ent-type id]]
+    (p/get-path db :entity [ent-type id])))
+
+;;---
+;; debouncing
+;;---
+
 ;; TODO i don't like this atom :(
 ;; TODO dispose of debouncer
 (def debouncers (atom {}))
@@ -116,7 +87,10 @@
           (.fire debouncer dispatch)
           (swap! debouncers assoc id (new-debouncer ms dispatch)))))))
 
+;;---
 ;; system initialization
+;;---
+
 (rf/reg-event-fx ::init-system
   (fn [_ [_ config]]
     {::init-system config}))

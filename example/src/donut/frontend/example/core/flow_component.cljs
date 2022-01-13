@@ -2,6 +2,11 @@
   (:require [re-frame.core :as rf]
             [donut.frontend.core.flow :as dcf]))
 
+;; TODO list
+;; - ::dcf/assoc-in
+;; - ::dcf/merge
+;; - ::dcf/deep-merge
+
 ;;---
 ;; debounce dispatch
 ;;---
