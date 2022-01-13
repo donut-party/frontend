@@ -43,3 +43,16 @@
      ::dsf/req-id :foo}])
 
   )
+
+(defn success-example
+  []
+  [:div
+   [:button
+    {:on-click #(rf/dispatch [::dsf/get :test-route])}
+    "click"]])
+
+(defn examples
+  []
+  [:div
+   [:h2 "donut.frontend.sync.flow"]
+   [success-example]])

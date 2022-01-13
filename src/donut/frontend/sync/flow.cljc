@@ -11,7 +11,7 @@
    [donut.frontend.routes.protocol :as drp]
    [donut.sugar.utils :as dsu]
    [donut.frontend.routes :as dfr]
-   [donut.failure.flow :as dfaf]
+   [donut.frontend.failure.flow :as dfaf]
    [medley.core :as medley]
    [clojure.walk :as walk]
    [meta-merge.core :refer [meta-merge]]
@@ -195,11 +195,11 @@
        :keys                   [req]
        :as                     _response}]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
-  (let [endpoint-router     (p/get-path db :system [:routes :endpoint-router])
-        endpoint-route-name (second req)
-        endpoint-route      (r/match-by-name endpoint-router endpoint-route-name)
-        ent-type            (get-in endpoint-route [:data :ent-type])
-        id-key              (get-in endpoint-route [:data :id-key])]
+  (let [sync-router     (p/get-path db :system-component [:donut.frontend :sync-router])
+        sync-route-name (second req)
+        sync-route      (r/match-by-name sync-router sync-route-name)
+        ent-type        (get-in sync-route [:data :ent-type])
+        id-key          (get-in sync-route [:data :id-key])]
     ;; TODO This replacement strategy could be seriously flawed! I'm trying to
     ;; keep this simple and make possibly problematic code obvious
     (reduce (fn [db ent]
@@ -214,10 +214,10 @@
        :keys                   [req]
        :as                     _response}]
 
-  (rfl/log :warn
-           "sync response data type was not recognized"
-           {:response-data response-data
-            :req (into [] (take 2 req))})
+  (rfl/console :warn
+               "sync response data type was not recognized"
+               {:response-data response-data
+                :req (into [] (take 2 req))})
   db)
 
 (dh/rr rf/reg-event-db ::default-sync-success
@@ -229,14 +229,14 @@
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
     ;; TODO possibly allow failed responses to carry data
     (let [sync-info {:response-data response-data :req (into [] (take 2 req))}]
-      (rfl/log :info "sync failed" sync-info)
+      (rfl/console :info "sync failed" sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
 (dh/rr rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
-      (rfl/log :warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
+      (rfl/console :warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
 ;;-----------------------
@@ -346,7 +346,7 @@
   (if-let [path (get-in (ctx-req ctx) [2 path-kw])]
     (if-let [ent (path-fn path)]
       (update-ctx-req-opts ctx #(merge-ent-params % ent))
-      (rfl/log :warn ::sync-entity-ent-not-found {path-kw path}))
+      (rfl/console :warn ::sync-entity-ent-not-found {path-kw path}))
     ctx))
 
 ;; Use the entity at given path to populate route-params and params of request
@@ -412,16 +412,17 @@
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
   [{:keys [db] :as _cofx} req]
-  (let [{:keys [router sync-dispatch-fn]} (p/get-path db :system ::sync)
-        adapted-req                       (-> req
-                                              (add-default-sync-response-handlers)
-                                              (adapt-req router))]
+  (let [{:keys [sync-router sync-dispatch-fn]} (p/get-path db :system-component [:donut.frontend])
+
+        adapted-req (-> req
+                        (add-default-sync-response-handlers)
+                        (adapt-req sync-router))]
     (if adapted-req
       {:db             (track-new-request db adapted-req)
        ::dispatch-sync {:dispatch-fn sync-dispatch-fn
                         :req         adapted-req}}
-      (do (rfl/log :warn "sync router could not match req"
-                   {:req (update req 2 select-keys [:params :route-params :query-params :data])})
+      (do (rfl/console :warn "sync router could not match req"
+                       {:req (update req 2 select-keys [:params :route-params :query-params :data])})
           {:db db}))))
 
 ;;---
@@ -458,8 +459,8 @@
       (not route-params) (assoc :route-params params))))
 
 (defn sync-req->sync-event
-  [[method endpoint opts] & [call-opts params]]
-  [::sync [method endpoint (build-opts opts call-opts params)]])
+  [[method route-name opts] & [call-opts params]]
+  [::sync [method route-name (build-opts opts call-opts params)]])
 
 (defn sync-req->dispatch
   [req & [call-opts params]]

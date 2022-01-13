@@ -2,7 +2,7 @@
   "experimental handlers for temporarily showing failures"
   (:require [re-frame.core :as rf]
             [donut.frontend.handlers :as dh]
-            [donut.frontend.paths :as p]))
+            [donut.frontend.path :as p]))
 
 (dh/rr rf/reg-event-fx ::add-failure
   [rf/trim-v]

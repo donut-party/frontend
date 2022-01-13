@@ -4,28 +4,28 @@
    [reitit.core :as rc]
    [reitit.frontend :as reif]
    [reitit.coercion :as coercion]
-   [donut.core.utils :as dcu]
-   [donut.routes.protocol :as drp]
+   [donut.frontend.core.utils :as dcu]
+   [donut.frontend.routes.protocol :as drp]
    [clojure.set :as set]))
 
 (defn on-no-path-default
   [name match route-params]
   (let [required (get match :required)]
     ;; TODO update this to be more specific. does it not exist? is it missing params?
-    (rfl/log :warn
-             "reitit could not generate path. route might not exist, or might not have required params."
-             {:route-name   name
-              :route-params (select-keys route-params required)
-              :required     required
-              :match        (-> match
-                                (dissoc :data :required)
-                                (update :path-params select-keys required))})))
+    (rfl/console :warn
+                 "reitit could not generate path. route might not exist, or might not have required params."
+                 {:route-name   name
+                  :route-params (select-keys route-params required)
+                  :required     required
+                  :match        (-> match
+                                    (dissoc :data :required)
+                                    (update :path-params select-keys required))})))
 
 (defn on-no-route-default
   [path-or-name route-params query-params]
-  (rfl/log :warn
-           "reitit could not match route"
-           {:route-args [path-or-name route-params query-params]}))
+  (rfl/console :warn
+               "reitit could not match route"
+               {:route-args [path-or-name route-params query-params]}))
 
 (def config-defaults
   {:use         :reitit
@@ -58,7 +58,7 @@
   (drp/req-id
     [_this name opts]
     (when (and (some? opts) (not (map? opts)))
-      (rfl/log :error "req-id opts should be a map" {:opts opts}))
+      (rfl/console :error "req-id opts should be a map" {:opts opts}))
     (let [params (or (:route-params opts)
                      (:params opts)
                      opts)]

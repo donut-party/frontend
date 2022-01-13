@@ -6,6 +6,7 @@
             [donut.frontend.config :as dconf]
             [donut.frontend.core.flow :as dcf]
             [donut.frontend.core.utils :as dcu]
+            [donut.frontend.sync.dispatch.echo :as dsde]
             [donut.system :as ds]))
 
 (defn system-config
@@ -23,7 +24,8 @@
   ;;                                                               [:ga/send-pageview]]}
   ;;                      ::stjehf/handlers        {}
   ;;                      ::eroutes/routes         ""}))
-  {::ds/defs {}}
+  {::ds/defs {:donut.frontend {:endpoint-router {}
+                               :sync            {:sync-dispatch-fn dsde/sync-dispatch-fn}}}}
   dconf/default-config
   )
 

@@ -4,7 +4,8 @@
             [re-frame.loggers :as rfl]
             [donut.frontend.handlers :as dh]
             [donut.sugar.utils :as dsu]
-            [donut.system :as ds])
+            [donut.system :as ds]
+            [meta-merge.core :as meta-merge])
   (:import #?(:cljs [goog.async Debouncer])))
 
 (dh/rr rf/reg-sub ::get-in
@@ -122,4 +123,4 @@
 
 (rf/reg-fx ::init-system
   (fn [config]
-    (swap! rfdb/app-db merge {:donut/system (ds/signal config :start)})))
+    (swap! rfdb/app-db meta-merge/meta-merge {:donut {:system (ds/signal config :start)}})))

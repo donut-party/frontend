@@ -3,20 +3,21 @@
   )
 
 (def config
-  {:form            [:donut :form]
-   :page            [:donut :page]
-   :entity          [:donut :entity]
-   :nav             [:donut :nav]
-   :failure         [:donut :failure]
-   :reqs            [:donut :reqs]
-   :system          [:donut :system]})
+  {:form             [:donut :form]
+   :page             [:donut :page]
+   :entity           [:donut :entity]
+   :nav              [:donut :nav]
+   :failure          [:donut :failure]
+   :reqs             [:donut :reqs]
+   :system           [:donut :system]
+   :system-component [:donut :system :donut.system/instances]})
 
 (defn path
-  [prefix-name & partial-path]
+  [prefix-name & [partial-path]]
   (when-not (contains? config prefix-name)
     (throw (ex-info "invalid path prefix" prefix-name)))
-  (into (prefix-name config)
-        partial-path))
+  (cond-> (prefix-name config)
+    (some? partial-path) (into partial-path)))
 
 (defn form [partial-path]    (into [:donut :form] partial-path))
 (defn page [partial-path]    (into [:donut :page] partial-path))
