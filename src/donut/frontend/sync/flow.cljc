@@ -256,7 +256,7 @@
   db)
 
 (defmulti apply-sync-segment
-  ""
+  "Sync segments allow the backend to convey heterogenous data to the frontend."
   (fn [_db [segment-type]] segment-type))
 
 ;; TODO it'd be better to not require id-key
@@ -444,6 +444,7 @@
    :after  identity})
 ;; end populate sync with path data
 
+;; TODO I don't remember what this is fore
 (def sync-methods
   {"get"    :get
    "put"    :put
@@ -451,6 +452,7 @@
    "post"   :post
    "patch"  :patch})
 
+;; TODO I don't remember what this is fore
 (def sync-method
   {:id     ::sync-method
    :before (fn [ctx]

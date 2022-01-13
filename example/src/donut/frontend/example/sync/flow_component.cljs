@@ -8,7 +8,6 @@
 
 ;; TODO list
 ;; - specify success handler
-;; - return segments
 ;; - handle failure
 ;;   - show failure message
 
@@ -45,12 +44,35 @@
                                                                                :name (random-string)}]}}])}
      "click"]]
    [:div
-    "entities at [:user]:"
-    @(rf/subscribe [::dcf/get-in (p/path :entity)])]])
+    "entities at [:user]: "
+    @(rf/subscribe [::dcf/get-in (p/path :entity [:user])])]])
+
+(defn segments-example
+  []
+  [:div
+   [:h3 "segments with entities example"]
+   [:div
+    [:button
+     ;; TODO make name random
+     {:on-click
+      #(rf/dispatch [::dsf/get
+                     :users
+                     {::dsde/echo {:status        :success
+                                   :response-data [[:entity [:post :id {:id      1
+                                                                        :content (random-string)}]]
+                                                   [:entities [:post :id [{:id      2
+                                                                           :content (random-string)}
+                                                                          {:id      3
+                                                                           :content (random-string)}]]]]}}])}
+     "click"]]
+   [:div
+    "entities at [:post]:"
+    @(rf/subscribe [::dcf/get-in (p/path :entity [:post])])]])
 
 (defn examples
   []
   [:div
    [:h2 "donut.frontend.sync.flow"]
    [basic-success-example]
-   [multiple-entities-success-example]])
+   [multiple-entities-success-example]
+   [segments-example]])
