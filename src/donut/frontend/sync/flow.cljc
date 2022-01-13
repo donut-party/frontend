@@ -197,22 +197,28 @@
 (def response-data-types
   "Response data types and predicates are broken out from sync-success like this
   to at least make it possible to alter them with set!"
-  [[:entity   #(map? %)]
-   [:entities #(and (vector? %) (map? (first %)))]
-   [:segments #(and (vector? %) (vector? (first %)))]
-   [:empty    #(empty? %)]])
+  [[:entity   (fn [response-data _full-response]
+                (map? response-data))]
+   [:entities (fn [response-data _full-response]
+                (and (vector? response-data)
+                     (map? (first response-data))))]
+   [:segments (fn [response-data _full-response]
+                (and (vector? response-data)
+                     (vector? (first response-data))))]
+   [:empty    (fn [response-data _full-response]
+                (empty? response-data))]])
 
 (defmulti handle-sync-response-data
   "Dispatches based on the type of the response-data. Maps and vectors are treated
   identically; they're considered to be either a singal instance or collection
   of entities. Those entities are placed in the entity-db, replacing whatever's
   there. "
-  (fn [db {{:keys [response-data]} :resp}]
+  (fn [db {{:keys [response-data]} :resp :as full-response}]
     (loop [[[dt-name pred] & dts] response-data-types]
       (when (nil? dt-name)
         (throw (ex-info "could not determine response data type"
                         {:response-data response-data})))
-      (if (pred response-data)
+      (if (pred response-data full-response)
         dt-name
         (recur dts)))))
 
