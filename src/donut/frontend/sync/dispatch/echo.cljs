@@ -21,7 +21,7 @@
     (response-handler echo)))
 
 (defn sync-dispatch-fn
-  [[_method _route-name {:keys [echo] :as req}]]
+  [[_method _route-name {:keys [echo]} :as req]]
   (if-not req
     (do
       (rfl/console :error
@@ -29,5 +29,5 @@
                    ::no-route-found
                    {:req req})
       (throw (js/Error. "Invalid request: could not find route for request")))
-    (rf/dispatch [:dispatch-echo {:response-handler (dsf/sync-response-handler req)
-                                  :echo             echo}])))
+    (rf/dispatch [::dispatch-echo {:response-handler (dsf/sync-response-handler req)
+                                   :echo             echo}])))

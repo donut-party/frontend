@@ -15,7 +15,7 @@
 (defn path
   [prefix-name & [partial-path]]
   (when-not (contains? config prefix-name)
-    (throw (ex-info "invalid path prefix" prefix-name)))
+    (throw (ex-info "invalid path prefix" {:prefix prefix-name})))
   (cond-> (prefix-name config)
     (some? partial-path) (into partial-path)))
 

@@ -9,7 +9,7 @@
   (fn [{:keys [db]} [failure]]
     (let [new-db (update-in db (p/path :failure) (fnil conj []) {:failure  failure
                                                                  :ui-state :show})
-          pos    (dec (count (p/get-path new-db [:failure])))]
+          pos    (dec (count (p/get-path new-db :failure)))]
       {:db             new-db
        :dispatch-later [{:ms 2000 :dispatch [::hide-failure pos]}]})))
 

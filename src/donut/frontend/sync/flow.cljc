@@ -91,7 +91,7 @@
       (update-in (p/reqs [(req-key req)])
                  merge
                  {:state            :active
-                  :active-nav-route (p/get-path db :nav :route)})
+                  :active-nav-route (p/get-path db :nav [:route])})
       (update ::active-request-count (fnil inc 0))))
 
 (defn remove-req
@@ -138,15 +138,15 @@
 (defn sync-response-handler
   "Used by sync implementations (e.g. ajax) to create a response handler"
   [req]
-  (fn [resp]
+  (fn anon-sync-response-handler [resp]
     (let [rdata (get req 2)
           $ctx                   (assoc (get rdata :$ctx {})
                                         :resp resp
                                         :req  req)]
       (rf/dispatch [::sync-response
-                    [[::sync-finished req resp]
-                     (->> (response-dispatches req resp)
-                          (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x))))]]))))
+                    (into [[::sync-finished req resp]]
+                          (->> (response-dispatches req resp)
+                               (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x)))))]))))
 
 ;;------
 ;; registrations
@@ -229,7 +229,7 @@
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
     ;; TODO possibly allow failed responses to carry data
     (let [sync-info {:response-data response-data :req (into [] (take 2 req))}]
-      (rfl/console :info "sync failed" sync-info)
+      (rfl/console :log "sync failed" sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
 (dh/rr rf/reg-event-fx ::default-sync-unavailable
