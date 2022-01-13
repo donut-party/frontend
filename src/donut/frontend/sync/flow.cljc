@@ -17,7 +17,7 @@
    [meta-merge.core :refer [meta-merge]]
    [cognitect.anomalies :as anom]))
 
-(declare sync-success)
+(declare apply-sync-segment)
 
 (doseq [t [::anom/incorrect
            ::anom/forbidden
@@ -181,32 +181,23 @@
           db
           ents))
 
-(defmulti apply-sync-segment
-  ""
-  (fn [_db [segment-type]] segment-type))
-
-;; TODO it'd be better to not require id-key
-(defmethod apply-sync-segment :entity
-  [db [_ [ent-type id-key ent]]]
-  (apply-sync-segment db [:entities [ent-type id-key [ent]]]))
-
-(defmethod apply-sync-segment :entities
-  [db [_ [ent-type id-key ents]]]
-  (replace-ents db ent-type id-key ents))
+(defn response-data
+  [response]
+  (get-in response [:resp :response-data]))
 
 (def response-data-types
   "Response data types and predicates are broken out from sync-success like this
   to at least make it possible to alter them with set!"
-  [[:entity   (fn [response-data _full-response]
-                (map? response-data))]
-   [:entities (fn [response-data _full-response]
-                (and (vector? response-data)
-                     (map? (first response-data))))]
-   [:segments (fn [response-data _full-response]
-                (and (vector? response-data)
-                     (vector? (first response-data))))]
-   [:empty    (fn [response-data _full-response]
-                (empty? response-data))]])
+  [[:entity   (fn [response]
+                (map? (response-data response)))]
+   [:entities (fn [response]
+                (let [rd (response-data response)]
+                  (and (vector? rd) (map? (first rd)))))]
+   [:segments (fn [response]
+                (let [rd (response-data response)]
+                  (and (vector? rd) (vector? (first rd)))))]
+   [:empty    (fn [response]
+                (empty? (response-data response)))]])
 
 (defmulti handle-sync-response-data
   "Dispatches based on the type of the response-data. Maps and vectors are treated
@@ -218,7 +209,7 @@
       (when (nil? dt-name)
         (throw (ex-info "could not determine response data type"
                         {:response-data response-data})))
-      (if (pred response-data full-response)
+      (if (pred full-response)
         dt-name
         (recur dts)))))
 
@@ -263,6 +254,20 @@
                {:response-data response-data
                 :req (into [] (take 2 req))})
   db)
+
+(defmulti apply-sync-segment
+  ""
+  (fn [_db [segment-type]] segment-type))
+
+;; TODO it'd be better to not require id-key
+(defmethod apply-sync-segment :entity
+  [db [_ [ent-type id-key ent]]]
+  (apply-sync-segment db [:entities [ent-type id-key [ent]]]))
+
+(defmethod apply-sync-segment :entities
+  [db [_ [ent-type id-key ents]]]
+  (replace-ents db ent-type id-key ents))
+
 
 ;;------
 ;; registrations

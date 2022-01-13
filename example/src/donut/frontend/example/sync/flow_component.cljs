@@ -8,7 +8,6 @@
 
 ;; TODO list
 ;; - specify success handler
-;; - return a vector of records
 ;; - return segments
 ;; - handle failure
 ;;   - show failure message
