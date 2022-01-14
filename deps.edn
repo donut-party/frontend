@@ -5,7 +5,7 @@
                                     :scope       "provided"}
          re-frame/re-frame         {:mvn/version "1.2.0"
                                     :scope       "provided"}
-         club.donutpower/system    {:mvn/version "0.0.100"}
+         club.donutpower/system    {:mvn/version "0.0.101"}
          club.donutpower/sugar     {:mvn/version "0.0.11"}
          meta-merge/meta-merge     {:mvn/version "1.0.0"}
          com.cemerick/url          {:mvn/version "0.1.1"}

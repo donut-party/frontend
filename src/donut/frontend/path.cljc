@@ -10,7 +10,8 @@
    :failure          [:donut :failure]
    :reqs             [:donut :reqs]
    :system           [:donut :system]
-   :system-component [:donut :system :donut.system/instances]})
+   :system-component [:donut :system :donut.system/instances]
+   :donut-component  [:donut :system :donut.system/instances :donut.frontend]})
 
 (defn path
   [prefix-name & [partial-path]]

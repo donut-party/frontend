@@ -224,7 +224,7 @@
        :keys                   [req]
        :as                     _response}]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
-  (let [sync-router     (p/get-path db :system-component [:donut.frontend :sync-router])
+  (let [sync-router     (p/get-path db :donut-component [:sync-router])
         sync-route-name (second req)
         sync-route      (drp/route sync-router sync-route-name)
         ent-type        (:ent-type sync-route)
@@ -488,7 +488,7 @@
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
   [{:keys [db] :as _cofx} req]
-  (let [{:keys [sync-router sync-dispatch-fn]} (p/get-path db :system-component [:donut.frontend])
+  (let [{:keys [sync-router sync-dispatch-fn]} (p/get-path db :donut-component)
 
         adapted-req (-> req
                         (add-default-sync-response-handlers)

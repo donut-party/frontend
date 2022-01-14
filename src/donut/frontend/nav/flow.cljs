@@ -61,7 +61,7 @@
 
 (defn- navigate-handler
   [{:keys [db] :as _cofx} [path query]]
-  (let [{:keys [history]} (p/get-path db :system-component [:nav-handler])
+  (let [{:keys [history]} (p/get-path db :donut-component [:nav-handler])
         token             (.getToken history)
         query-string      (dcu/params-to-str (reduce-kv (fn [valid k v]
                                                           (if v
@@ -84,7 +84,7 @@
 (dh/rr rf/reg-event-fx ::navigate-route
   [rf/trim-v]
   (fn [{:keys [db] :as cofx} [route route-params query-params]]
-    (let [router (p/get-path db :system-component [:frontend-router])]
+    (let [router (p/get-path db :donut-component [:frontend-router])]
       (when-let [path (drp/path router route route-params query-params)]
         (navigate-handler cofx [path])))))
 
@@ -114,12 +114,12 @@
   {:id     ::process-route-change
    :before (fn [{{:keys [db event]} :coeffects
                  :as                ctx}]
-             (let [global-lifecycle (p/get-path db :system-component [:nav-global-lifecycle])
-                   router           (p/get-path db :system-component [:frontend-router])
+             (let [global-lifecycle (p/get-path db :donut-component [:nav-global-lifecycle])
+                   router           (p/get-path db :donut-component [:frontend-router])
                    path             (get event 1)
                    new-route        (or (drp/route router path)
                                         (drp/route router ::not-found))
-                   existing-route   (p/get-path db :nav :route)
+                   existing-route   (p/get-path db :nav [:route])
                    scope            (if (= (:route-name new-route)
                                            (:route-name existing-route))
                                       :params
@@ -160,7 +160,7 @@
       ;; TODO this limits routes to only ever being able to dispatch, which
       ;; isn't necessarily what we want.
       true             (map (fn [dispatch] [:dispatch dispatch]))
-      true             (into [[:dispatch-later [{:ms 0 :dispatch [::nav-loaded]}]]]))))
+      true             (into [[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]))))
 
 (defn change-route-fx
   "Composes all effects returned by lifecycle methods"
@@ -169,8 +169,8 @@
    (let [{:keys [can-change-route?] :as route-change-cofx} (::route-change cofx)]
      (when can-change-route?
        (let [db (-> db
-                    (assoc-in (p/path :nav :route) (:new-route route-change-cofx))
-                    (assoc-in (p/path :nav :state) :loading))
+                    (assoc-in (p/path :nav [:route]) (:new-route route-change-cofx))
+                    (assoc-in (p/path :nav [:state]) :loading))
              updated-cofx (assoc cofx :db db)]
          {:db db
           :fx (route-effects updated-cofx)})))))
@@ -183,7 +183,7 @@
 (dh/rr rf/reg-event-db ::nav-loaded
   [rf/trim-v]
   (fn [db _]
-    (assoc-in db (p/path :nav :state) :loaded)))
+    (assoc-in db (p/path :nav [:state]) :loaded)))
 
 ;; ------
 ;; dispatch current
@@ -207,11 +207,14 @@
 (dh/rr rf/reg-event-fx ::perform-current-lifecycle
   []
   (fn [{:keys [db] :as cofx} _]
-    (let [current-route (get-in db (p/path :nav :route))]
-      (change-route-fx (assoc cofx ::route-change {:can-change-route? true
-                                                   :scope             :route
-                                                   :new-route         current-route
-                                                   :global-lifecycle  (p/get-path db :system ::handler :global-lifecycle)})))))
+    (let [current-route (get-in db (p/path :nav [:route]))]
+      (change-route-fx
+       (assoc cofx
+              ::route-change
+              {:can-change-route? true
+               :scope             :route
+               :new-route         current-route
+               :global-lifecycle  (p/get-path db :donut-component [:nav-handler :global-lifecycle])})))))
 
 ;; ------
 ;; update token
@@ -222,10 +225,12 @@
   [process-route-change]
   (fn [{:keys [db] :as cofx} [_ relative-href op title]]
     (when-let [fx (change-route-fx cofx)]
-      (update fx :fx conj {:history       (p/get-path db :system ::handler :history)
-                           :relative-href relative-href
-                           :title         title
-                           :op            op}))))
+      (update fx :fx conj
+              [::update-token
+               {:history       (p/get-path db :donut-component [:nav-handler :history])
+                :relative-href relative-href
+                :title         title
+                :op            op}]))))
 
 (dh/rr rf/reg-fx ::update-token
   (fn [{:keys [op history relative-href title]}]
