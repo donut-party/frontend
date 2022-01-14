@@ -4,11 +4,10 @@
   (:require [goog.events :as events]
             [goog.events.EventType]
             [re-frame.core :as rf]
-            [integrant.core :as ig]
-            [taoensso.timbre :as log]
+            [re-frame.loggers :as rfl]
             [medley.core :as medley]
             [donut.frontend.nav.accountant :as accountant]
-            [donut.frontend.paths :as p]
+            [donut.frontend.path :as p]
             [donut.frontend.core.utils :as dcu]
             [donut.frontend.handlers :as dh]
             [donut.frontend.nav.ui.flow :as dnuf]
@@ -28,7 +27,13 @@
 (defn init-handler
   "Configures accountant, window unloading, keeps track of event
   handlers for system teardown"
-  [{:keys [router dispatch-route-handler reload-same-path? check-can-unload? global-lifecycle] :as _config}]
+  [{:keys [router
+           dispatch-route-handler
+           reload-same-path?
+           check-can-unload?
+           global-lifecycle]
+    :as _config}
+   & _]
   (let [history      (accountant/new-history)
         nav-handler  (fn [path] (rf/dispatch [dispatch-route-handler path]))
         update-token (fn [relative-href title] (rf/dispatch [::update-token relative-href :set title]))
@@ -42,10 +47,6 @@
                                                                                          update-token)
                                 :navigate       (accountant/dispatch-on-navigate history nav-handler)}
                          check-can-unload? (assoc :before-unload (handle-unloading)))}))
-
-(defmethod ig/init-key ::handler
-  [_ config]
-  (init-handler config))
 
 (defn halt-handler!
   "Teardown HTML5 history navigation.
@@ -65,7 +66,7 @@
 
 (defn- navigate-handler
   [{:keys [db] :as _cofx} [path query]]
-  (let [{:keys [history]} (p/get-path db :system-component [::handler])
+  (let [{:keys [history]} (p/get-path db :system-component [:nav-handler])
         token             (.getToken history)
         query-string      (dcu/params-to-str (reduce-kv (fn [valid k v]
                                                           (if v
@@ -109,8 +110,9 @@
                                                                                        new-route))))
                                                 route-change-checks)]
     (or (empty? check-failures)
-        (log/debug ::prevented-route-change
-                   {:check-failures (set (keys check-failures))}))))
+        (rfl/console :debug
+                     ::prevented-route-change
+                     {:check-failures (set (keys check-failures))}))))
 
 (def process-route-change
   "Intercepor that interprets new route, adding a ::route-change coeffect"
