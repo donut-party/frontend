@@ -52,16 +52,12 @@
 
   Undoes all of the stateful changes, including unlistening to events,
   that are setup when init'd"
-  [handler]
+  [handler & _]
   (.dispose ^Html5History (:history handler))
   (doseq [key (vals (select-keys (:listeners handler) [:document-click :navigate]))]
     (events/unlistenByKey key))
   (when-let [before-unload (get-in handler [:listeners :before-unload])]
     (.removeEventListener js/window "beforeunload" before-unload)))
-
-(defmethod ig/halt-key! ::handler
-  [_ handler]
-  (halt-handler! handler))
 
 (defn- navigate-handler
   [{:keys [db] :as _cofx} [path query]]
@@ -231,7 +227,7 @@
                            :title         title
                            :op            op}))))
 
-(sth/rr rf/reg-fx ::update-token
+(dh/rr rf/reg-fx ::update-token
   (fn [{:keys [op history relative-href title]}]
     (reset! accountant/app-updated-token? true)
     (if (= op :replace)
@@ -242,7 +238,7 @@
 ;; check can unload
 ;; ------
 
-(sth/rr rf/reg-event-fx ::before-unload
+(dh/rr rf/reg-event-fx ::before-unload
   []
   (fn [{:keys [db] :as cofx} [_ before-unload-event]]
     (let [existing-route                          (p/get-path db :nav :route)
@@ -340,10 +336,12 @@
 ;; form interactions
 ;; ------
 
-(sth/rr rf/reg-event-db ::initialize-form-with-routed-entity
-  [rf/trim-v]
-  (fn [db [form-path entity-key param-key form-opts]]
-    (dnu/initialize-form-with-routed-entity db form-path entity-key param-key form-opts)))
+(comment
+  ;; TODO move this to form namespace
+  (dh/rr rf/reg-event-db ::initialize-form-with-routed-entity
+    [rf/trim-v]
+    (fn [db [form-path entity-key param-key form-opts]]
+      (dnu/initialize-form-with-routed-entity db form-path entity-key param-key form-opts))))
 
 (rf/reg-event-fx ::navigate-to-synced-entity
   [rf/trim-v]

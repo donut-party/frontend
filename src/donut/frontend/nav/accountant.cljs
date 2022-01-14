@@ -1,12 +1,14 @@
 (ns donut.frontend.nav.accountant
   "Adapted from Accountant, https://github.com/venantius/accountant
   Accountant is licensed under the EPL v1.0."
-  (:require [goog.events :as events]
-            [goog.events.EventType]
-            [goog.history.EventType :as EventType])
-  (:import goog.history.Event
-           goog.history.Html5History
-           [goog Uri]))
+  (:require
+   [goog.events :as events]
+   [goog.events.EventType]
+   [goog.history.EventType :as EventType])
+  (:import
+   goog.history.Html5History
+   [goog.history Event]
+   [goog Uri]))
 
 
 (def app-updated-token? (atom false))
@@ -34,7 +36,7 @@
   (events/listen
    history
    EventType/NAVIGATE
-   (fn [e]
+   (fn [^Event e]
      (if-not @app-updated-token?
        (let [token (.-token e)]
          (nav-handler token))

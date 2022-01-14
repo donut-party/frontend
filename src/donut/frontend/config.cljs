@@ -21,7 +21,8 @@
                            :conf  drr/config-defaults}
      :nav-global-lifecyle dnf/default-global-lifecycle
      :nav-handler         {:start dnf/init-handler
-                           :conf  {:dispatch-route-handler ::stnf/dispatch-route
+                           :stop  dnf/halt-handler!
+                           :conf  {:dispatch-route-handler ::dnf/dispatch-route
                                    :check-can-unload?      true
                                    :router                 (ds/ref :frontend-router)
                                    :global-lifecycle       (ds/ref :nav-global-lifecycle)}}}}})
