@@ -17,6 +17,16 @@
   [rf/trim-v]
   (fn [db [path val]] (assoc-in db path val)))
 
+(dh/rr rf/reg-event-db ::dissoc-in
+  [rf/trim-v]
+  (fn [db [path]]
+    (dsu/dissoc-in db path)))
+
+(dh/rr rf/reg-event-db ::update-in
+  [rf/trim-v]
+  (fn [db [path & args]]
+    (apply update-in db path args)))
+
 (dh/rr rf/reg-event-db ::merge
   [rf/trim-v]
   (fn [db [m & [path]]]
@@ -46,11 +56,6 @@
   [rf/trim-v]
   (fn [db [path val]]
     (update-in db path dsu/set-toggle val)))
-
-(dh/rr rf/reg-event-db ::dissoc-in
-  [rf/trim-v]
-  (fn [db [path]]
-    (dsu/dissoc-in db path)))
 
 ;;---
 ;; entities
