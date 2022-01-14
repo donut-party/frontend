@@ -91,10 +91,20 @@
 ;; system initialization
 ;;---
 
-(rf/reg-event-fx ::init-system
+(rf/reg-event-fx ::start-system
   (fn [_ [_ config]]
-    {::init-system config}))
+    {::start-system config}))
 
-(rf/reg-fx ::init-system
+(rf/reg-fx ::start-system
   (fn [config]
     (swap! rfdb/app-db meta-merge/meta-merge {:donut {:system (ds/signal config :start)}})))
+
+(rf/reg-event-fx ::stop-system
+  (fn [_ _]
+    {:fx [[::stop-system]]}))
+
+(rf/reg-fx ::stop-system
+  (fn []
+    (-> @rfdb/app-db
+        (p/get-path :system)
+        (ds/signal :stop))))

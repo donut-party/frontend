@@ -1,5 +1,6 @@
 (ns donut.frontend.config
   (:require
+   [re-frame.core :as rf]
    [donut.frontend.handlers :as dh]
    [donut.frontend.nav.flow :as dnf]
    [donut.frontend.routes :as dr]
@@ -25,4 +26,6 @@
                             :conf  {:dispatch-route-handler ::dnf/dispatch-route
                                     :check-can-unload?      true
                                     :router                 (ds/ref :frontend-router)
-                                    :global-lifecycle       (ds/ref :nav-global-lifecycle)}}}}})
+                                    :global-lifecycle       (ds/ref :nav-global-lifecycle)}}
+     :re-frame             {:start (constantly true)
+                            :stop  (fn [& _] (rf/clear-subscription-cache!))}}}})

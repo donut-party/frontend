@@ -52,7 +52,7 @@
 
   Undoes all of the stateful changes, including unlistening to events,
   that are setup when init'd"
-  [handler & _]
+  [_ handler _]
   (.dispose ^Html5History (:history handler))
   (doseq [key (vals (select-keys (:listeners handler) [:document-click :navigate]))]
     (events/unlistenByKey key))

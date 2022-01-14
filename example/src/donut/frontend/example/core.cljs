@@ -32,16 +32,16 @@
       :sync-router      {:conf {:routes fake-endpoint-routes}}
       :frontend-router  {:conf {:routes frontend-routes/routes}}}}}))
 
-(defn -main []
+(defn ^:dev/after-load start []
   ;; (rf/dispatch-sync [::stcf/init-system (system-config)])
   ;; (rf/dispatch [::bch/init])
   ;; (rf/dispatch-sync [::stnf/dispatch-current])
-  (rf/dispatch-sync [::dcf/init-system (system-config)])
+  (rf/dispatch-sync [::dcf/start-system (system-config)])
   (rf/dispatch-sync [::dnf/dispatch-current])
   (rdom/render [app/app] (dcu/el-by-id "app")))
 
-(defonce initial-load (delay (-main)))
-@initial-load
+(defn init []
+  (start))
 
-(defn stop [_]
-  (rf/clear-subscription-cache!))
+(defn ^:dev/before-load stop [_]
+  (rf/dispatch-sync [::dcf/stop-system]))
