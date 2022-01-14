@@ -14,12 +14,12 @@
     {:handlers            dh/RegisterHandlersComponent
      :sync                {:router           (ds/ref :sync-router)
                            :sync-dispatch-fn (ds/ref :sync-dispatch-fn)}
-     :sync-dispatch-fn    dsda/SyncDispatchFn
+     :sync-dispatch-fn    {:start dsda/system-sync-dispatch-fn}
      :frontend-router     {:start dr/start-frontend-router
                            :conf  drr/config-defaults}
      :sync-router         {:start dr/start-sync-router
                            :conf  drr/config-defaults}
-     :nav-global-lifecyle {}
+     :nav-global-lifecyle dnf/default-global-lifecycle
      :nav-handler         {:start dnf/init-handler
                            :conf  {:dispatch-route-handler ::stnf/dispatch-route
                                    :check-can-unload?      true

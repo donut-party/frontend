@@ -1,7 +1,6 @@
 (ns donut.frontend.nav.utils
   (:require
-   [donut.frontend.form.flow :as dff]
-   [donut.frontend.paths :as paths]
+   [donut.frontend.path :as p]
    [donut.sugar.utils :as dsu]
    [cemerick.url :as url]
    [clojure.string :as str]
@@ -29,21 +28,22 @@
 (defn routed-entity
   "Returns an entity by looking up its entity-key in nav params"
   [db entity-key param-key]
-  (paths/get-path db :entity entity-key (paths/get-path db :nav :route :params param-key)))
+  (p/get-path db :entity entity-key (p/get-path db :nav :route :params param-key)))
 
 (defn routed-entity-form
   [db partial-form-path param-key]
-  (paths/get-path db :form partial-form-path (select-keys (paths/get-path db :nav :route :params) [param-key])))
+  (p/get-path db :form partial-form-path (select-keys (p/get-path db :nav :route :params) [param-key])))
 
-(defn initialize-form-with-routed-entity
-  [db form-path entity-key param-key & [form-opts]]
-  (let [ent (routed-entity db entity-key param-key)]
-    (dff/initialize-form db [(conj form-path (select-keys ent [param-key]))
-                             (merge {:buffer ent} form-opts)])))
+;; TODO put this in form namespace
+#_(defn initialize-form-with-routed-entity
+    [db form-path entity-key param-key & [form-opts]]
+    (let [ent (routed-entity db entity-key param-key)]
+      (dff/initialize-form db [(conj form-path (select-keys ent [param-key]))
+                               (merge {:buffer ent} form-opts)])))
 
 (defn route
   [db]
-  (paths/get-path db :nav [:route]))
+  (p/get-path db :nav [:route]))
 
 (defn params
   [db]

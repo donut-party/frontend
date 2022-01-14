@@ -10,7 +10,6 @@
             [donut.frontend.path :as p]
             [donut.frontend.core.utils :as dcu]
             [donut.frontend.handlers :as dh]
-            [donut.frontend.nav.ui.flow :as dnuf]
             [donut.frontend.nav.utils :as dnu]
             [donut.frontend.sync.flow :as dsf]
             [donut.frontend.routes :as dfr]
@@ -290,13 +289,10 @@
 (def default-global-lifecycle
   {:before-exit         nil
    :after-exit          nil
-   :before-enter        (constantly [::dnuf/clear :route])
+   :before-enter        (constantly [::clear-buffer [:route]])
    :after-enter         nil
-   :before-param-change (constantly [::dnuf/clear :params])
+   :before-param-change (constantly [::clear-buffer [:params]])
    :after-param-change  nil})
-
-(defmethod ig/init-key ::global-lifecycle [_ lifecycle]
-  lifecycle)
 
 ;; ------
 ;; subscriptions

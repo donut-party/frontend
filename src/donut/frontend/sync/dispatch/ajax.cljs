@@ -82,6 +82,6 @@
                                         (assoc :status (get fail-map (:status resp) :fail))
                                         (set/rename-keys {:response :response-data}))))))))))
 
-(def SyncDispatchFn
-  {:start (fn [{:keys [global-opts]} _ _]
-            (sync-dispatch-fn global-opts))})
+(defn system-sync-dispatch-fn
+  [{:keys [global-opts]} _ _]
+  (sync-dispatch-fn global-opts))
