@@ -6,6 +6,7 @@
 ;; - ::dcf/assoc-in
 ;; - ::dcf/merge
 ;; - ::dcf/deep-merge
+;; - expiring-component
 
 ;;---
 ;; debounce dispatch
