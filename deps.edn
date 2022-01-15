@@ -1,19 +1,20 @@
 {:paths ["src"]
- :deps  {org.clojure/clojure       {:mvn/version "1.10.3"
-                                    :scope       "provided"}
-         org.clojure/clojurescript {:mvn/version "1.11.4"
-                                    :scope       "provided"}
-         re-frame/re-frame         {:mvn/version "1.2.0"
-                                    :scope       "provided"}
-         club.donutpower/system    {:mvn/version "0.0.101"}
-         club.donutpower/sugar     {:mvn/version "0.0.14"}
-         meta-merge/meta-merge     {:mvn/version "1.0.0"}
-         com.cemerick/url          {:mvn/version "0.1.1"}
-         venantius/accountant      {:mvn/version "0.2.4"}
-         metosin/malli             {:mvn/version "0.7.5"}
-         metosin/reitit-core       {:mvn/version "0.5.15"}
-         metosin/reitit-frontend   {:mvn/version "0.5.15"}
-         medley/medley             {:mvn/version "1.3.0"}
-         rads/anomalies            {:mvn/version "0.1.13"}
-         cljs-ajax/cljs-ajax       {:mvn/version "0.8.4"}
-         sweet-tooth/describe      {:mvn/version "0.4.0"}}}
+ :deps  {org.clojure/clojure         {:mvn/version "1.10.3"
+                                      :scope       "provided"}
+         org.clojure/clojurescript   {:mvn/version "1.11.4"
+                                      :scope       "provided"}
+         re-frame/re-frame           {:mvn/version "1.2.0"
+                                      :scope       "provided"}
+         cljs-ajax/cljs-ajax         {:mvn/version "0.8.4"}
+         club.donutpower/system      {:mvn/version "0.0.101"}
+         club.donutpower/sugar       {:mvn/version "0.0.14"}
+         com.andrewmcveigh/cljs-time {:mvn/version "0.5.2"}
+         com.cemerick/url            {:mvn/version "0.1.1"}
+         medley/medley               {:mvn/version "1.3.0"}
+         meta-merge/meta-merge       {:mvn/version "1.0.0"}
+         metosin/malli               {:mvn/version "0.7.5"}
+         metosin/reitit-core         {:mvn/version "0.5.15"}
+         metosin/reitit-frontend     {:mvn/version "0.5.15"}
+         rads/anomalies              {:mvn/version "0.1.13"}
+         sweet-tooth/describe        {:mvn/version "0.4.0"}
+         venantius/accountant        {:mvn/version "0.2.4"}}}
