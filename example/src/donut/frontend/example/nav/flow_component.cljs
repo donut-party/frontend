@@ -73,6 +73,18 @@
          boolean
          str)]]])
 
+(defn routed-entity-component
+  []
+  [:div
+   [:h3 "routed entity"]
+   [:p "the ::dnf/routed-entity subscription uses an id-key in route params to look up an entity"]
+   [:div
+    [:button
+     {:on-click #(rf/dispatch [::dcf/merge-entity ::example :id {:id 1, :username "bobby"}])}
+     "populate entity in [:entity ::example 1]"]]
+   [:div [dnc/route-link :nav.routed-entity {:id 1} ":nav.routed-entity"]]
+   [:div "routed entity: " @(rf/subscribe [::dnf/routed-entity ::example :id])]])
+
 (defn examples
   []
   [:div
@@ -80,4 +92,5 @@
    [route-subs]
    [lifecycle-handlers]
    [buffer]
-   [prevent-nav-change]])
+   [prevent-nav-change]
+   [routed-entity-component]])

@@ -40,6 +40,11 @@
   ([db ent-type id-key m]
    (update-in db (p/path :entity [ent-type (id-key m)]) merge m)))
 
+(dh/rr rf/reg-event-db ::merge-entity
+  [rf/trim-v]
+  (fn [db [ent-type & args]]
+    (apply merge-entity db ent-type args)))
+
 (dh/rr rf/reg-event-db ::deep-merge
   [rf/trim-v]
   (fn [db [m]]

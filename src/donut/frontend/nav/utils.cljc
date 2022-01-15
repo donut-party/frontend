@@ -28,11 +28,17 @@
 (defn routed-entity
   "Returns an entity by looking up its entity-key in nav params"
   [db entity-key param-key]
-  (p/get-path db :entity entity-key (p/get-path db :nav :route :params param-key)))
+  (p/get-path db
+              :entity
+              [entity-key
+               (p/get-path db :nav [:route :params param-key])]))
 
 (defn routed-entity-form
   [db partial-form-path param-key]
-  (p/get-path db :form partial-form-path (select-keys (p/get-path db :nav :route :params) [param-key])))
+  (p/get-path db
+              :form
+              (into partial-form-path
+                    (select-keys (p/get-path db [:nav :route :params]) [param-key]))))
 
 ;; TODO put this in form namespace
 #_(defn initialize-form-with-routed-entity
