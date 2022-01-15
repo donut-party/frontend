@@ -1,15 +1,21 @@
-(ns donut.frontend.example.form.flow-component
+(ns donut.frontend.reference.form.examples
   (:require
    [donut.frontend.core.flow :as dcf]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.flow :as dff]
+   [donut.frontend.reference.form.simplemde]
    [donut.frontend.sync.dispatch.echo :as dsde]
+   ["marked" :as marked]
    [re-frame.core :as rf]))
 
 (defn random-string
   []
   (subs (str (random-uuid)) 0 8))
+
+;;---
+;; common case features
+;;---
 
 (defn read-form-buffer
   [*form-buffer]
@@ -58,6 +64,18 @@
             (map (fn [u] [:li (str u)]))
             (into [:ul]))]]]))
 
+;;---
+;; more features
+;;---
+
+(defn markdown [txt]
+  {:dangerouslySetInnerHTML #js {:__html (marked (or txt ""))}})
+
+(defn rendered-markdown
+  [*form-buffer]
+  [:div "rendered markdown:"
+   [:div (markdown (:profile @*form-buffer))]])
+
 (defn form-example-more-features
   []
   (dfc/with-form [:put :user {:id 1}]
@@ -65,7 +83,9 @@
      [:div
       [:h2 "form example with less-common but still useful features"]
       [:div
-       [:p "you can create your own custom input elements"]]]]))
+       [:p "you can create your own custom input elements, like this markdown editor:"]
+       [*input :simplemde :profile]
+       [rendered-markdown *form-buffer]]]]))
 
 (defn examples
   []

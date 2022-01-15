@@ -1,4 +1,4 @@
-(ns donut.frontend.example.nav.flow-component
+(ns donut.frontend.reference.nav.examples
   (:require
    [donut.frontend.core.flow :as dcf]
    [donut.frontend.nav.components :as dnc]

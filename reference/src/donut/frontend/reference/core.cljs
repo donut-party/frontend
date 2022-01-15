@@ -1,11 +1,11 @@
-(ns donut.frontend.example.core
+(ns donut.frontend.reference.core
   (:require [reagent.dom :as rdom]
             [re-frame.core :as rf]
             [donut.frontend.config :as dconf]
             [donut.frontend.core.flow :as dcf]
             [donut.frontend.core.utils :as dcu]
-            [donut.frontend.example.app :as app]
-            [donut.frontend.example.frontend-routes :as frontend-routes]
+            [donut.frontend.reference.app :as app]
+            [donut.frontend.reference.frontend-routes :as frontend-routes]
             [donut.frontend.nav.flow :as dnf]
             [donut.frontend.sync.dispatch.echo :as dsde]
             [donut.system :as ds]

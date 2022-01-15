@@ -1,13 +1,15 @@
 (ns donut.frontend.core.flow
-  (:require [re-frame.core  :as rf]
-            [re-frame.db :as rfdb]
-            [re-frame.loggers :as rfl]
-            [donut.frontend.handlers :as dh]
-            [donut.frontend.path :as p]
-            [donut.sugar.utils :as dsu]
-            [donut.system :as ds]
-            [meta-merge.core :as meta-merge])
-  (:import #?(:cljs [goog.async Debouncer])))
+  (:require
+   [donut.frontend.handlers :as dh]
+   [donut.frontend.path :as p]
+   [donut.sugar.utils :as dsu]
+   [donut.system :as ds]
+   [meta-merge.core :as meta-merge]
+   [re-frame.core  :as rf]
+   [re-frame.db :as rfdb]
+   [re-frame.loggers :as rfl])
+  (:import
+   #?(:cljs [goog.async Debouncer])))
 
 (dh/rr rf/reg-sub ::get-in
   (fn [db [_ path]]

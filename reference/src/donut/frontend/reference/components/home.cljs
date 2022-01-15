@@ -1,4 +1,4 @@
-(ns donut.frontend.example.components.home
+(ns donut.frontend.reference.components.home
   (:require
    [donut.frontend.nav.components :as dnc]))
 

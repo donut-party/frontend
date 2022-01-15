@@ -1,4 +1,4 @@
-(ns donut.frontend.example.sync.flow-component
+(ns donut.frontend.reference.sync.examples
   (:require [re-frame.core :as rf]
             [donut.frontend.core.flow :as dcf]
             [donut.frontend.path :as p]

@@ -1,4 +1,4 @@
-(ns donut.frontend.example.app
+(ns donut.frontend.reference.app
   (:require
    [re-frame.core :as rf]
    [donut.frontend.nav.components :as dnc]

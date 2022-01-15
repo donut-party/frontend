@@ -1,11 +1,11 @@
-(ns donut.frontend.example.frontend-routes
+(ns donut.frontend.reference.frontend-routes
   (:require
    [re-frame.core :as rf]
-   [donut.frontend.example.components.home :as home]
-   [donut.frontend.example.core.flow-component :as decfc]
-   [donut.frontend.example.form.flow-component :as deffc]
-   [donut.frontend.example.nav.flow-component :as denfc]
-   [donut.frontend.example.sync.flow-component :as desfc]
+   [donut.frontend.reference.components.home :as home]
+   [donut.frontend.reference.core.examples :as dece]
+   [donut.frontend.reference.form.examples :as defe]
+   [donut.frontend.reference.nav.examples :as dene]
+   [donut.frontend.reference.sync.examples :as dese]
    [reitit.coercion.malli :as rm]))
 
 (rf/reg-event-fx ::param-change-example
@@ -14,7 +14,7 @@
 
 (defn nav-flow-can-exit?
   [db _old-route _new-route]
-  (not (get db ::denfc/prevent-change)))
+  (not (get db ::dene/prevent-change)))
 
 (def routes
   [["/"
@@ -24,45 +24,45 @@
 
    ["/core.flow"
     {:name       :core.flow
-     :components {:main [decfc/examples]}
+     :components {:main [dece/examples]}
      :title      "Donut Examples"}]
 
    ["/sync.flow"
     {:name       :sync.flow
-     :components {:main [desfc/examples]}
+     :components {:main [dese/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow"
     {:name       :nav.flow
      :lifecycle  {:param-change (fn [_ _ {:keys [params]}])
                   :can-exit?    nav-flow-can-exit?}
-     :components {:main [denfc/examples]}
+     :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/1"
     {:name       :nav.flow-1
-     :lifecycle  {:param-change [::denfc/inc-flow-1-lifecycle-fire-count]
+     :lifecycle  {:param-change [::dene/inc-flow-1-lifecycle-fire-count]
                   :can-exit?    nav-flow-can-exit?}
-     :components {:main [denfc/examples]}
+     :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/2"
     {:name       :nav.flow-2
      :lifecycle  {:param-change (fn [_ _ {:keys [params]}]
-                                  [::denfc/set-flow-2-val (str (random-uuid))])
+                                  [::dene/set-flow-2-val (str (random-uuid))])
                   :can-exit?    nav-flow-can-exit?}
-     :components {:main [denfc/examples]}
+     :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/routed-entity/{id}"
     {:name       :nav.routed-entity
      :lifecycle  {:can-exit? nav-flow-can-exit?}
-     :components {:main [denfc/examples]}
+     :components {:main [dene/examples]}
      :title      "Donut Examples"
      :coercion   rm/coercion
      :parameters {:path [:map [:id int?]]}}]
 
    ["/form.flow"
     {:name       :form.flow
-     :components {:main [deffc/examples]}
+     :components {:main [defe/examples]}
      :title      "Donut Examples"}]])
