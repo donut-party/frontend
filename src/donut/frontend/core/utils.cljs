@@ -1,7 +1,9 @@
 (ns donut.frontend.core.utils
   (:require
    [ajax.url :as url]
+
    [clojure.string :as str]
+   [donut.sugar.utils :as dsu]
    [goog.object :as go]
    [reagent.core :as r]
    [reagent.dom :as rdom]
@@ -42,10 +44,9 @@
 (defn params-to-str
   [m]
   (->> m
-       (map (fn [[k v]]
-              [(if (keyword? k) (subs (str k) 1) k)
-               (if (keyword? v) (subs (str v) 1) v)]))
-       (into {})
+       (reduce (fn [m [k v]]
+                 (assoc m (dsu/full-name k) (dsu/full-name v)))
+               {})
        (url/params-to-str :java)))
 
 (defn expiring-reaction
@@ -70,7 +71,8 @@
   (go-get e ["target" "value"]))
 
 (defn focus-component
-  "Causes component to receive focus on render"
+  "Causes component to receive focus on render. use like:
+  [(focus-component [*input :text :username])]"
   [component & [tag-name timeout]]
   (let [tag-name (or tag-name "input")]
     (with-meta (fn [] component)

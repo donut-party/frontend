@@ -18,7 +18,6 @@
    [:div (get @*form-buffer :example-attr)]
    [:div "(this is a separate component so that its rendering doesn't interfere with the input)"]])
 
-
 ;; Broken out into a separate component so that it can be updated with the
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
@@ -29,29 +28,47 @@
     :value    "submit"
     :on-click (*submit-fn
                ;; we have to use echo here because we don't actually have a backend
-               {:sync {::dsde/echo {:status        :success
-                                    :response-data {:id   (rand-int 1000)
-                                                    :name (:username @*form-buffer)}}}
+               {:sync    {::dsde/echo {:status        :success
+                                       :response-data {:id   (rand-int 1000)
+                                                       :name (:username @*form-buffer)}
+                                       :ms            1000}}
                 :success [::dff/clear *form-path]})}])
 
-(defn simple-form-example
+(defn submitting-indicator
+  [*sync-active?]
+  (when @*sync-active?
+    [:span "submitting..."]))
+
+(defn form-example-common-case-features
   []
   (dfc/with-form [:post :users]
     [:form
      [:div
-      [:h2 "simple form example"]
+      [:h2 "form example with common-case features"]
       [:div
        [:p "input helpers manage tracking state in the global app db"]
        [(dcu/focus-component
          [*input :text :username])]
        [read-form-buffer *form-buffer]
-       [:div [submit-button *form]]]
+       [:div
+        [submit-button *form]
+        [submitting-indicator *sync-active?]]]
       [:div "users:"
        (->> @(rf/subscribe [::dcf/entities :user :id])
             (map (fn [u] [:li (str u)]))
             (into [:ul]))]]]))
 
+(defn form-example-more-features
+  []
+  (dfc/with-form [:put :user {:id 1}]
+    [:form
+     [:div
+      [:h2 "form example with less-common but still useful features"]
+      [:div
+       [:p "you can create your own custom input elements"]]]]))
+
 (defn examples
   []
   [:div [:h1 "form examples"]
-   [simple-form-example]])
+   [form-example-common-case-features]
+   [form-example-more-features]])
