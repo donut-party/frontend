@@ -1,21 +1,23 @@
 (ns donut.frontend.nav.flow
   "Adapted from Accountant, https://github.com/venantius/accountant
   Accountant is licensed under the EPL v1.0."
-  (:require [goog.events :as events]
-            [goog.events.EventType]
-            [re-frame.core :as rf]
-            [re-frame.loggers :as rfl]
-            [medley.core :as medley]
-            [donut.frontend.nav.accountant :as accountant]
-            [donut.frontend.path :as p]
-            [donut.frontend.core.utils :as dcu]
-            [donut.frontend.handlers :as dh]
-            [donut.frontend.nav.utils :as dnu]
-            [donut.frontend.sync.flow :as dsf]
-            [donut.frontend.routes :as dfr]
-            [donut.frontend.routes.protocol :as drp]
-            [donut.sugar.utils :as dsu])
-  (:import [goog.history Html5History]))
+  (:require
+   [donut.frontend.core.utils :as dcu]
+   [donut.frontend.handlers :as dh]
+   [donut.frontend.nav.accountant :as accountant]
+   [donut.frontend.nav.utils :as dnu]
+   [donut.frontend.path :as p]
+   [donut.frontend.routes :as dfr]
+   [donut.frontend.routes.protocol :as drp]
+   [donut.frontend.sync.flow :as dsf]
+   [donut.sugar.utils :as dsu]
+   [goog.events :as events]
+   [goog.events.EventType]
+   [medley.core :as medley]
+   [re-frame.core :as rf]
+   [re-frame.loggers :as rfl])
+  (:import
+   [goog.history Html5History]))
 
 (defn- handle-unloading
   []
