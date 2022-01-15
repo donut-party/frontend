@@ -8,7 +8,9 @@
 (defn form-post-example
   []
   (dfc/with-form [:post :form-example]
-    [:h2 "form post example"]))
+    [:div
+     [:h2 "form post example"]
+     [*input :text :test]]))
 
 (defn examples
   []

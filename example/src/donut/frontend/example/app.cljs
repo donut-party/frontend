@@ -10,5 +10,12 @@
     [:div
      (let [route-name @(rf/subscribe [::dnf/route-name])]
        (when (not= :home route-name)
-         [:div [dnc/route-link :home "home"]]))
+         [:div
+          [dnc/route-link :home "home"]
+          " "
+          [dnc/route-link :core.flow "core"]
+          " "
+          [dnc/route-link :nav.flow "nav"]
+          " "
+          [dnc/route-link :form.flow "form"]]))
      main]))
