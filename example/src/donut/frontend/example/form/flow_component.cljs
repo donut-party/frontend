@@ -1,6 +1,7 @@
 (ns donut.frontend.example.form.flow-component
   (:require
    [donut.frontend.core.flow :as dcf]
+   [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.flow :as dff]
    [donut.frontend.sync.dispatch.echo :as dsde]
@@ -29,7 +30,7 @@
     :on-click (*submit-fn
                ;; we have to use echo here because we don't actually have a backend
                {:sync {::dsde/echo {:status        :success
-                                    :response-data {:id   (rand-int 20)
+                                    :response-data {:id   (rand-int 1000)
                                                     :name (:username @*form-buffer)}}}
                 :success [::dff/clear *form-path]})}])
 
@@ -41,7 +42,8 @@
       [:h2 "simple form example"]
       [:div
        [:p "input helpers manage tracking state in the global app db"]
-       [*input :text :username]
+       [(dcu/focus-component
+         [*input :text :username])]
        [read-form-buffer *form-buffer]
        [:div [submit-button *form]]]
       [:div "users:"

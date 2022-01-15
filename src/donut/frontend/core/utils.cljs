@@ -1,8 +1,10 @@
 (ns donut.frontend.core.utils
   (:require
    [ajax.url :as url]
+   [clojure.string :as str]
    [goog.object :as go]
    [reagent.core :as r]
+   [reagent.dom :as rdom]
    [reagent.ratom :as ratom])
   (:import
    [goog.async Debouncer]))
@@ -66,3 +68,19 @@
 (defn tv
   [e]
   (go-get e ["target" "value"]))
+
+(defn focus-component
+  "Causes component to receive focus on render"
+  [component & [tag-name timeout]]
+  (let [tag-name (or tag-name "input")]
+    (with-meta (fn [] component)
+      {:component-did-mount
+       (fn [el]
+         (let [dom-node (rdom/dom-node el)
+               node     (if (= (str/lower-case tag-name)
+                               (str/lower-case (go-get dom-node ["tagName"])))
+                          dom-node
+                          (first (.getElementsByTagName dom-node tag-name)))]
+           (if timeout
+             (js/setTimeout #(.focus node) timeout)
+             (.focus node))))})))

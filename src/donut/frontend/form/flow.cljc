@@ -227,7 +227,6 @@
 (dh/rr rf/reg-event-db ::clear
   [rf/trim-v]
   (fn [db [partial-form-path clear]]
-    (prn "clearing" partial-form-path)
     (clear-selected-keys db partial-form-path clear)))
 
 (dh/rr rf/reg-event-db ::keep
