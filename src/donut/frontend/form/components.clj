@@ -26,7 +26,7 @@
 (defn- let-bindings
   [initial-bindings m-sym ks]
   (reduce (fn [bindings k]
-            (into bindings [(symbol (str "*" (name k))) (list 'get m-sym k)]))
+            (into bindings [(symbol (name k)) (list 'get m-sym k)]))
           initial-bindings
           ks))
 
@@ -49,27 +49,58 @@
                                                         possible-form-options)]]
     `(let ~(let-bindings initial-sub-bindings
              subs-map-name
-             [:form-path
-              :form-state
-              :form-ui-state
-              :form-dscr
-              :form-errors
-              :form-buffer
-              :form-dirty?
+             [:*form-path
+              :*form-state
+              :*form-ui-state
+              :*form-dscr
+              :*form-errors
+              :*form-buffer
+              :*form-dirty?
 
-              :state-success?
+              :*state-success?
 
-              :sync-state
-              :sync-active?
-              :sync-success?
-              :sync-fail?])
+              :*sync-state
+              :*sync-active?
+              :*sync-success?
+              :*sync-fail?])
 
        (let ~(let-bindings initial-component-bindings
                form-components-map-name
-               [:on-submit
-                :submit-fn
-                :input-opts
-                :input
-                :field])
+               [:*on-submit
+                :*submit-fn
+                :*input-opts
+                :*input
+                :*field])
          (let [~'*form (merge ~'*form-subs ~'*form-components)]
            ~@(form-body body))))))
+
+
+(defmacro with-form
+  [partial-form-path & body]
+  (let [path                  (gensym :partial-form-path)
+        possible-form-options (first body)]
+    `(let [~path ~partial-form-path
+           {:keys [~'*form-path
+                   ~'*form-state
+                   ~'*form-ui-state
+                   ~'*form-dscr
+                   ~'*form-errors
+                   ~'*form-buffer
+                   ~'*form-dirty?
+
+                   ~'*state-success?
+
+                   ~'*sync-state
+                   ~'*sync-active?
+                   ~'*sync-success?
+                   ~'*sync-fail?]
+            :as ~'*form-subs}
+           ~(form-subs-form path possible-form-options)]
+       (let [{:keys [~'*submit-fn
+                     ~'*input-opts
+                     ~'*input
+                     ~'*field]
+              :as   ~'*form-components}
+             ~(form-components-form path possible-form-options)
+             ~'*form (merge ~'*form-subs ~'*form-components)]
+         ~@(form-body body)))))

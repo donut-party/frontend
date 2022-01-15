@@ -75,6 +75,12 @@
   (fn [db [_ ent-type id]]
     (p/get-path db :entity [ent-type id])))
 
+(dh/rr rf/reg-sub ::entities
+  (fn [db [_ ent-type & [sort-key]]]
+    (cond->> (p/get-path db :entity [ent-type])
+      true     vals
+      sort-key (sort-by sort-key))))
+
 ;;---
 ;; debouncing
 ;;---

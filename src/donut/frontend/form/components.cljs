@@ -32,7 +32,7 @@
                                           update-val? (merge {:val (format-write (dcu/tv event))}))]))
 
 (defn dispatch-new-val
-  "Helper when you want non-input elemnts to update a val"
+  "Helper when you want non-input elements to update a val"
   [form-path attr-path val & [opts]]
   (rf/dispatch-sync [::stff/input-event (merge {:partial-form-path form-path
                                                 :attr-path         attr-path
@@ -392,38 +392,33 @@
        (when-not (:prevent-submit? submit-opts)
          (rf/dispatch [::stff/submit-form partial-form-path submit-opts]))))))
 
-(defn on-submit
-  [partial-form-path & [submit-opts]]
-  {:on-submit (submit-fn partial-form-path submit-opts)})
-
 (defn form-sync-subs
   [partial-form-path]
-  {:sync-state    (rf/subscribe [::stff/sync-state partial-form-path])
-   :sync-active?  (rf/subscribe [::stff/sync-active? partial-form-path])
-   :sync-success? (rf/subscribe [::stff/sync-success? partial-form-path])
-   :sync-fail?    (rf/subscribe [::stff/sync-fail? partial-form-path])})
+  {:*sync-state    (rf/subscribe [::stff/sync-state partial-form-path])
+   :*sync-active?  (rf/subscribe [::stff/sync-active? partial-form-path])
+   :*sync-success? (rf/subscribe [::stff/sync-success? partial-form-path])
+   :*sync-fail?    (rf/subscribe [::stff/sync-fail? partial-form-path])})
 
 (defn form-subs
   [partial-form-path & [{:keys [dscr-sub]}]]
-  (merge {:form-path     partial-form-path
-          :form-state    (rf/subscribe [::stff/state partial-form-path])
-          :form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
-          :form-errors   (rf/subscribe [::stff/errors partial-form-path])
-          :form-dscr     (rf/subscribe [(or dscr-sub ::stfd/stored-errors) partial-form-path])
-          :form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
-          :form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
+  (merge {:*form-path     partial-form-path
+          :*form-state    (rf/subscribe [::stff/state partial-form-path])
+          :*form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
+          :*form-errors   (rf/subscribe [::stff/errors partial-form-path])
+          :*form-dscr     (rf/subscribe [(or dscr-sub ::stfd/stored-errors) partial-form-path])
+          :*form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
+          :*form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
 
-          :state-success? (rf/subscribe [::stff/state-success? partial-form-path])}
+          :*state-success? (rf/subscribe [::stff/state-success? partial-form-path])}
          (form-sync-subs partial-form-path)))
 
 (defn form-components
   [partial-form-path & [formwide-input-opts]]
   (let [input-opts-fn (partial all-input-opts partial-form-path formwide-input-opts)]
-    {:on-submit  (partial on-submit partial-form-path)
-     :submit-fn  (partial submit-fn partial-form-path)
-     :input-opts input-opts-fn
-     :input      (input-component input-opts-fn)
-     :field      (field-component input-opts-fn)}))
+    {:*submit-fn  (partial submit-fn partial-form-path)
+     :*input-opts input-opts-fn
+     :*input      (input-component input-opts-fn)
+     :*field      (field-component input-opts-fn)}))
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"

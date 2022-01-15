@@ -220,13 +220,14 @@
   (update-in db
              (p/path :form partial-form-path)
              select-keys
-             (if (= :all clear)
+             (if (or (= :all clear) (nil? clear))
                #{}
                (set/difference form-keys (set clear)))))
 
 (dh/rr rf/reg-event-db ::clear
   [rf/trim-v]
   (fn [db [partial-form-path clear]]
+    (prn "clearing" partial-form-path)
     (clear-selected-keys db partial-form-path clear)))
 
 (dh/rr rf/reg-event-db ::keep
@@ -275,9 +276,11 @@
                                :route-params (or route-params data)
                                :rules        #{:when-not-active}}
                               sync)
-        ;; custom req-path to handle the fact that form-handle can be
+        ;; custom req-key to handle the fact that form-handle can be
         ;; different from the route name
-        sync-opts (update sync-opts ::dsf/req-key #(or % (dsf/req-key [method form-handle sync-opts])))]
+        sync-opts (update sync-opts
+                          ::dsf/req-key
+                          #(or % (dsf/req-key [method form-handle sync-opts])))]
     [method route-name sync-opts]))
 
 (defn submit-form
