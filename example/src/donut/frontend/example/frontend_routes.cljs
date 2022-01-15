@@ -12,7 +12,7 @@
     (js/console.log "param change example!")))
 
 (defn nav-flow-can-exit?
-  [db old-route new-route]
+  [db _old-route _new-route]
   (not (get db ::denfc/prevent-change)))
 
 (def routes
