@@ -49,9 +49,19 @@
     [:li [dnc/route-link :nav.flow-1 ":nav.flow-1"]]
     [:li [dnc/route-link :nav.flow-2 ":nav.flow-2"]]]])
 
+(defn buffer
+  []
+  [:div
+   [:h3 "buffer"]
+   [:p "you can associate values with navigation so that they're cleared on navigation events"]
+   [:div [:button {:on-click #(rf/dispatch [::dnf/assoc-in-buffer [:params] "foo"])} "populate buffer"]]
+   [:div "buffer val: "
+    @(rf/subscribe [::dnf/buffer])]])
+
 (defn examples
   []
   [:div
    [links]
    [route-subs]
-   [lifecycle-handlers]])
+   [lifecycle-handlers]
+   [buffer]])
