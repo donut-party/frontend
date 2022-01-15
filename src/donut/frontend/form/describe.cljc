@@ -3,7 +3,7 @@
   Very alpha."
   (:require
    [clojure.set :as set]
-   [donut.frontend.form.flow :as stff]
+   [donut.frontend.form.flow :as dff]
    [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
@@ -14,8 +14,8 @@
 (rf/reg-sub ::stored-errors
   (fn [[_ partial-form-path attr-path]]
     (if attr-path
-      (rf/subscribe [::stff/attr-errors partial-form-path attr-path])
-      (rf/subscribe [::stff/errors partial-form-path])))
+      (rf/subscribe [::dff/attr-errors partial-form-path attr-path])
+      (rf/subscribe [::dff/errors partial-form-path])))
   (fn [errors _]
     {:errors errors}))
 
@@ -39,10 +39,10 @@
   [sub-name rules & [{:keys [submit-events show-attr]}]]
   (rf/reg-sub sub-name
     (fn [[_ partial-form-path]]
-      (rf/subscribe [::stff/form partial-form-path]))
+      (rf/subscribe [::dff/form partial-form-path]))
     (fn [{:keys [buffer input-events] :as form} [_ _ attr-path]]
       (let [errors            (errors-map buffer rules)
-            submit-attempted? (received-events? (::stff/form input-events)
+            submit-attempted? (received-events? (::dff/form input-events)
                                                 (or submit-events #{:submit :attempt-submit}))
             show-attr         (or show-attr (constantly submit-attempted?))]
         (if attr-path
