@@ -10,6 +10,10 @@
   (fn [_ _]
     (js/console.log "param change example!")))
 
+(defn nav-flow-can-exit?
+  [db old-route new-route]
+  (not (get db ::denfc/prevent-change)))
+
 (def routes
   [["/"
     {:name       :home
@@ -28,20 +32,23 @@
 
    ["/nav.flow"
     {:name       :nav.flow
-     :lifecycle  {:param-change (fn [_ _ {:keys [params]}])}
+     :lifecycle  {:param-change (fn [_ _ {:keys [params]}])
+                  :can-exit?    nav-flow-can-exit?}
      :components {:main [denfc/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/1"
     {:name       :nav.flow-1
-     :lifecycle  {:param-change [::denfc/inc-flow-1-lifecycle-fire-count]}
+     :lifecycle  {:param-change [::denfc/inc-flow-1-lifecycle-fire-count]
+                  :can-exit?    nav-flow-can-exit?}
      :components {:main [denfc/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/2"
     {:name       :nav.flow-2
      :lifecycle  {:param-change (fn [_ _ {:keys [params]}]
-                                  [::denfc/set-flow-2-val (str (random-uuid))])}
+                                  [::denfc/set-flow-2-val (str (random-uuid))])
+                  :can-exit?    nav-flow-can-exit?}
      :components {:main [denfc/examples]}
      :title      "Donut Examples"}]
    ])

@@ -58,10 +58,26 @@
    [:div "buffer val: "
     @(rf/subscribe [::dnf/buffer])]])
 
+(defn prevent-nav-change
+  []
+  [:div
+   [:h3 "prevent nav change"]
+   [:p "you can use a lifecycle handler to prevent nav changes"]
+   [:div
+    [:button
+     {:on-click #(rf/dispatch [::dcf/update-in [::prevent-change] not])}
+     "toggle nav change prevention"]
+    " "
+    [:span "preventing change? "
+     (-> @(rf/subscribe [::dcf/get-in [::prevent-change]])
+         boolean
+         str)]]])
+
 (defn examples
   []
   [:div
    [links]
    [route-subs]
    [lifecycle-handlers]
-   [buffer]])
+   [buffer]
+   [prevent-nav-change]])
