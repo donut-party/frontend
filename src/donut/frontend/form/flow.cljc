@@ -277,7 +277,7 @@
                               sync)
         ;; custom req-path to handle the fact that form-handle can be
         ;; different from the route name
-        sync-opts (update sync-opts ::dsf/req-path #(or % (dsf/req-path [method form-handle sync-opts])))]
+        sync-opts (update sync-opts ::dsf/req-key #(or % (dsf/req-key [method form-handle sync-opts])))]
     [method route-name sync-opts]))
 
 (defn submit-form

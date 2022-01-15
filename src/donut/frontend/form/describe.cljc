@@ -3,8 +3,8 @@
   Very alpha."
   (:require
    [clojure.set :as set]
-   [donut.frontend.core.utils :as u]
    [donut.frontend.form.flow :as stff]
+   [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
    [sweet-tooth.describe :as d]))
@@ -31,7 +31,7 @@
 
 (defn show-attr-on-blur
   [{:keys [input-events]} attr-path]
-  (received-events? (get-in input-events (u/flatv attr-path))
+  (received-events? (get-in input-events (dsu/flatv attr-path))
                     #{:blur}))
 
 (defn reg-describe-validation-sub
@@ -48,7 +48,7 @@
         (if attr-path
           ;; error messages for a specific attribute
           (when (show-attr form attr-path)
-            (get-in errors (u/flatv attr-path)))
+            (get-in errors (dsu/flatv attr-path)))
           ;; validation description for form as a whole
           (let [errors-seq (seq errors)]
             {:prevent-submit?   errors-seq

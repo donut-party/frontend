@@ -57,7 +57,7 @@
 ;; request tracking
 ;;--------------------
 (defn req-key
-  "returns a 'normalized' req path for a request.
+  "returns a 'normalized' req key for a request.
 
   normalized in the sense that when it comes to distinguishing requests in order
   to track them, some of the variations between requests are significant, and

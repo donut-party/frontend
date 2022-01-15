@@ -3,6 +3,7 @@
    [re-frame.core :as rf]
    [donut.frontend.example.components.home :as home]
    [donut.frontend.example.core.flow-component :as decfc]
+   [donut.frontend.example.form.flow-component :as deffc]
    [donut.frontend.example.nav.flow-component :as denfc]
    [donut.frontend.example.sync.flow-component :as desfc]
    [reitit.coercion.malli :as rm]))
@@ -52,10 +53,16 @@
                   :can-exit?    nav-flow-can-exit?}
      :components {:main [denfc/examples]}
      :title      "Donut Examples"}]
+
    ["/nav.flow/routed-entity/{id}"
     {:name       :nav.routed-entity
      :lifecycle  {:can-exit? nav-flow-can-exit?}
      :components {:main [denfc/examples]}
      :title      "Donut Examples"
      :coercion   rm/coercion
-     :parameters {:path [:map [:id int?]]}}]])
+     :parameters {:path [:map [:id int?]]}}]
+
+   ["/form.flow"
+    {:name       :form.flow
+     :components {:main [deffc/examples]}
+     :title      "Donut Examples"}]])

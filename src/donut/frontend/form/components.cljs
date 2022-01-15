@@ -3,7 +3,7 @@
    [cljs-time.core :as ct]
    [cljs-time.format :as tf]
    [clojure.string :as str]
-   [donut.frontend.core.utils :as u]
+   [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.describe :as stfd]
    [donut.frontend.form.flow :as stff]
    [donut.sugar.utils :as dsu]
@@ -28,8 +28,8 @@
   [event {:keys [format-write] :as input-opts} & [update-val?]]
   (rf/dispatch-sync [::stff/input-event (cond-> (select-keys input-opts [:partial-form-path
                                                                          :attr-path])
-                                          true        (merge {:event-type (keyword (u/go-get event ["type"]))})
-                                          update-val? (merge {:val (format-write (u/tv event))}))]))
+                                          true        (merge {:event-type (keyword (dcu/go-get event ["type"]))})
+                                          update-val? (merge {:val (format-write (dcu/tv event))}))]))
 
 (defn dispatch-new-val
   "Helper when you want non-input elemnts to update a val"
@@ -265,7 +265,7 @@
 
 (defn field-classes
   [{:keys [attr-path attr-dscr]}]
-  (cond->> [(u/kebab (attr-path-str attr-path))]
+  (cond->> [(dsu/kebab (attr-path-str attr-path))]
     attr-dscr (into [(dscr-classes @attr-dscr)])
     true      (str/join " ")))
 
@@ -387,7 +387,7 @@
 (defn submit-fn
   [partial-form-path & [submit-opts]]
   (let [submit-opts (sugar-submit-opts submit-opts)]
-    (u/prevent-default
+    (dcu/prevent-default
      (fn [_]
        (when-not (:prevent-submit? submit-opts)
          (rf/dispatch [::stff/submit-form partial-form-path submit-opts]))))))
