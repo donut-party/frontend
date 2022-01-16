@@ -9,9 +9,31 @@
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]))
 
-;;------
+
+;;--------------------
+;; specs
+;;--------------------
+
+(def FormBuffer [:map])
+(def FormErrors [:map
+                 [:attrs any?]
+                 [:form any?]])
+(def FormInputEvents [:map])
+(def FormBufferInitVal [:map])
+(def FormUIState any?)
+
+(def Form
+  [:map
+   [:buffer FormBuffer]
+   [:errors {:optional true} FormErrors]
+   [:input-events {:optional true} FormInputEvents]
+   [:buffer-init-val FormBufferInitVal]
+   [:ui-state {:optional true} FormUIState]])
+
+;;--------------------
 ;; helpers
-;;------
+;;--------------------
+
 (defn assoc-in-form
   [db partial-form-path ks v]
   (assoc-in db (p/path :form (into partial-form-path ks)) v))
@@ -20,9 +42,9 @@
   [db partial-form-path ks f & args]
   (apply update-in db (p/path :form (into partial-form-path ks)) f args))
 
-;;------
+;;--------------------
 ;; Form subs
-;;------
+;;--------------------
 
 (rf/reg-sub ::form
   (fn [db [_ partial-form-path]]
@@ -33,16 +55,15 @@
   (rf/subscribe [::form partial-form-path]))
 
 (def sub-name->form-key
-  {::state        :state
-   ::ui-state     :ui-state
-   ::errors       :errors
-   ::buffer       :buffer
-   ::base         :base
-   ::input-events :input-events})
+  {::buffer          :buffer
+   ::errors          :errors
+   ::input-events    :input-events
+   ::buffer-init-val :buffer-init-val
+   ::ui-state        :ui-state})
 
 (def form-keys (set (vals sub-name->form-key)))
 
-;; regsiter these subscriptions
+;; register these subscriptions
 (doseq [[sub-name attr] sub-name->form-key]
   (rf/reg-sub sub-name
     form-signal
@@ -68,21 +89,25 @@
 (rf/reg-sub ::attr-errors
   (attr-facet-sub ::errors)
   (fn [errors [_ _partial-form-path attr-path]]
-    (get-in errors (dsu/vectorize attr-path))))
+    (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
+
+(rf/reg-sub ::form-errors
+  (attr-facet-sub ::errors)
+  (fn [errors _]
+    (:form errors)))
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
   (fn [input-events [_ _partial-form-path attr-path]]
     (get-in input-events (dsu/vectorize attr-path))))
 
-;; Has the user interacted with the input that corresponds to this
-;; attr?
+;; Has the user modified the buffer?
 (rf/reg-sub ::form-dirty?
   (fn [[_ partial-form-path]]
-    [(rf/subscribe [::base partial-form-path])
+    [(rf/subscribe [::buffer-init-val partial-form-path])
      (rf/subscribe [::buffer partial-form-path])])
-  (fn [[base data]]
-    (not= base data)))
+  (fn [[buffer-init-val buffer]]
+    (not= buffer-init-val buffer)))
 
 ;; sync states
 (defn sync-state
@@ -168,8 +193,10 @@
 (defn reset-form-buffer
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
   [db [partial-form-path]]
-  (update-in db (p/path :form partial-form-path) (fn [{:keys [base] :as form}]
-                                                   (assoc form :buffer base))))
+  (update-in db
+             (p/path :form partial-form-path)
+             (fn [{:keys [buffer-init-val] :as form}]
+               (assoc form :buffer buffer-init-val))))
 
 (dh/rr rf/reg-event-db ::reset-form-buffer
   [rf/trim-v]
@@ -179,7 +206,7 @@
   [db [partial-form-path {:keys [buffer] :as form}]]
   (assoc-in db
             (p/path :form partial-form-path)
-            (update form :base #(or % buffer))))
+            (update form :buffer-init-val #(or % buffer))))
 
 ;; Populate form initial state
 (dh/rr rf/reg-event-db ::initialize-form
@@ -239,7 +266,7 @@
   (fn [db [{:keys [partial-form-path] :as ctx}]]
     (let [data  (dsf/single-entity ctx)]
       (-> db
-          (assoc-in (p/path :form partial-form-path :base) data)
+          (assoc-in (p/path :form partial-form-path :buffer-init-val) data)
           (assoc-in (p/path :form partial-form-path :buffer) data)))))
 
 ;; TODO spec set of possible actions
@@ -330,12 +357,21 @@
   (fn [db [{:keys [full-form-path]}]]
     (assoc-in db (conj full-form-path :state) :success)))
 
+(defn response-error
+  [$ctx]
+  ;; assumes response-data is something like [:errors {}]
+  (get-in $ctx [:resp :response-data 0 1]))
+
 (defn submit-form-fail
   [db [{:keys [full-form-path resp]
-        {:keys [response-data]} :resp}]]
+        :as $ctx}]]
   (rfl/console :info "form submit fail:" resp full-form-path)
-  (-> (assoc-in db (conj full-form-path :errors) (or (get-in response-data [0 1]) {:cause :unknown}))
-      (assoc-in (conj full-form-path :state) :sleeping)))
+  (-> db
+      (assoc-in (conj full-form-path :errors)
+                (or (response-error $ctx)
+                    {:cause :unknown}))
+      (assoc-in (conj full-form-path :state)
+                :sleeping)))
 
 (dh/rr rf/reg-event-db ::submit-form-fail
   [rf/trim-v]
@@ -352,9 +388,9 @@
                (let [{:keys [ui-state]} form]
                  (if ui-state
                    nil
-                   {:buffer data
-                    :base data
-                    :ui-state true})))))
+                   {:buffer          data
+                    :buffer-init-val data
+                    :ui-state        true})))))
 
 (rf/reg-event-db ::toggle-form
   [rf/trim-v]
