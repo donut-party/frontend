@@ -38,6 +38,7 @@
                                        :response-data {:id   (rand-int 1000)
                                                        :name (:username @*form-buffer)}
                                        :ms            1000}}
+                ;; removes form data after success
                 :success [::dff/clear *form-path]})}])
 
 (defn submitting-indicator
@@ -52,7 +53,18 @@
      [:div
       [:h2 "form example with common-case features"]
       [:div
-       [:p "input helpers manage tracking state in the global app db"]
+       [:div
+        [:button {:on-click
+                  ;; use prevent-default here to prevent the enclosing form from
+                  ;; submitting.
+                  ;; another option is to just not have an enclosing form
+                  (dcu/prevent-default
+                   #(rf/dispatch [::dff/initialize-form
+                                  *form-path
+                                  {:buffer {:username "marcy"}}]))}
+         "populate form"]
+        " sets the input value to 'marcy'"]
+       [:p "input components manage tracking state in the global app db"]
        [(dcu/focus-component
          [*input :text :username])]
        [read-form-buffer *form-buffer]

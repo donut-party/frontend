@@ -29,15 +29,15 @@
                                                   (when-let [text @markdown-text]
                                                     (set-change-obj-text change-obj text)
                                                     (reset! markdown-text nil)))}
-                   :options   {:toolbar                 ["heading"
-                                                         "bold"
-                                                         "italic"
-                                                         "quote"
-                                                         "unordered-list"
-                                                         "ordered-list"]
-                               :autofocus               false
-                               :status                  false
-                               :spellChecker            false}
+                   :options   {:toolbar      ["heading"
+                                              "bold"
+                                              "italic"
+                                              "quote"
+                                              "unordered-list"
+                                              "ordered-list"]
+                               :autofocus    false
+                               :status       false
+                               :spellChecker false}
                    :extraKeys {:Tab (fn [cm]
                                       (-> cm
                                           .getTextArea
