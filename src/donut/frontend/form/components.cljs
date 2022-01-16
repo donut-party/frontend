@@ -75,10 +75,10 @@
 ;;~~~~~~~~~~~~~~~~~~
 
 ;; used in the field component below
-(def field-opts #{:tip :before-input :after-input :after-dscr :label :no-label})
+(def field-opts #{:tip :before-input :after-input :after-feedback :label :no-label})
 
 ;; react doesn't recognize these and hates them
-(def input-opts #{:attr-buffer :attr-path :attr-input-events :attr-dscr :dscr-sub
+(def input-opts #{:attr-buffer :attr-path :attr-input-events :attr-feedback :feedback-sub
                   :label :no-label :options
                   :partial-form-path :input-type
                   :format-read :format-write})
@@ -92,9 +92,9 @@
   (apply dissoc x field-opts))
 
 (defn framework-input-opts
-  [{:keys [partial-form-path attr-path dscr-sub] :as opts}]
+  [{:keys [partial-form-path attr-path feedback-sub] :as opts}]
   (merge {:attr-buffer       (rf/subscribe [::stff/attr-buffer partial-form-path attr-path])
-          :attr-dscr         (rf/subscribe [(or dscr-sub ::stfd/stored-errors) partial-form-path attr-path])
+          :attr-feedback     (rf/subscribe [(or feedback-sub ::stfd/stored-errors) partial-form-path attr-path])
           :attr-input-events (rf/subscribe [::stff/attr-input-events partial-form-path attr-path])}
          opts))
 
@@ -236,45 +236,45 @@
 ;; 'field' interface, wraps inputs with messages and labels
 ;;~~~~~~~~~~~~~~~~~~
 
-(defn dscr-classes
-  [dscr]
-  (if (or (nil? dscr) (map? dscr))
-    (->> dscr
+(defn feedback-classes
+  [feedback]
+  (if (or (nil? feedback) (map? feedback))
+    (->> feedback
          (medley/filter-vals seq)
          keys
          (map name)
          (str/join " ")
          (str " "))
-    (rfl/console :warn ::invalid-type (str dscr "should be nil or a map"))))
+    (rfl/console :warn ::invalid-type (str feedback "should be nil or a map"))))
 
-(defmulti format-attr-dscr (fn [k _v] k))
-(defmethod format-attr-dscr :errors
+(defmulti format-attr-feedback (fn [k _v] k))
+(defmethod format-attr-feedback :errors
   [_ errors]
   (->> errors
        (map (fn [x] ^{:key (str "error-" x)} [:li x]))
        (into [:ul {:class "error-messages"}])))
-(defmethod format-attr-dscr :default [_ _] nil)
+(defmethod format-attr-feedback :default [_ _] nil)
 
 (defn attr-description
-  [dscr]
-  (some->> dscr
-           (map (fn [[k v]] (format-attr-dscr k v)))
+  [feedback]
+  (some->> feedback
+           (map (fn [[k v]] (format-attr-feedback k v)))
            (filter identity)
            seq
            (into [:div.description])))
 
 (defn field-classes
-  [{:keys [attr-path attr-dscr]}]
+  [{:keys [attr-path attr-feedback]}]
   (cond->> [(dsu/kebab (attr-path-str attr-path))]
-    attr-dscr (into [(dscr-classes @attr-dscr)])
+    attr-feedback (into [(feedback-classes @attr-feedback)])
     true      (str/join " ")))
 
 (defmulti field :input-type)
 
 (defmethod field :default
-  [{:keys [form-id attr-path attr-dscr
+  [{:keys [form-id attr-path attr-feedback
            tip required label no-label
-           before-input after-input after-dscr]
+           before-input after-input after-feedback]
     :as opts}]
   [:div.field {:class (field-classes opts)}
    (when (or tip (not no-label))
@@ -288,11 +288,11 @@
     before-input
     [input (dissoc-field-opts opts)]
     after-input
-    (when attr-dscr (attr-description @attr-dscr))
-    after-dscr]])
+    (when attr-feedback (attr-description @attr-feedback))
+    after-feedback]])
 
 (defn checkbox-field
-  [{:keys [tip required label no-label attr-path attr-dscr]
+  [{:keys [tip required label no-label attr-path attr-feedback]
     :as opts}]
   [:div.field {:class (field-classes opts)}
    [:div
@@ -304,7 +304,7 @@
        (or label (label-text attr-path))
        (when required [:span {:class "required"} "*"])])
     (when tip [:div.tip tip])
-    (when attr-dscr (attr-description @attr-dscr))]])
+    (when attr-feedback (attr-description @attr-feedback))]])
 
 (defmethod field :checkbox
   [opts]
@@ -341,9 +341,9 @@
 ;; interface fns
 ;;~~~~~~~~~~~~~~~~~~
 (defn submit-when-ready
-  [on-submit-handler form-dscr]
+  [on-submit-handler form-feedback]
   (fn [e]
-    (if-not (:prevent-submit? @form-dscr)
+    (if-not (:prevent-submit? @form-feedback)
       (on-submit-handler e)
       (.preventDefault e))))
 
@@ -403,12 +403,12 @@
    :*sync-fail?    (rf/subscribe [::stff/sync-fail? partial-form-path])})
 
 (defn form-subs
-  [partial-form-path & [{:keys [dscr-sub]}]]
+  [partial-form-path & [{:keys [feedback-sub]}]]
   (merge {:*form-path     partial-form-path
           :*form-state    (rf/subscribe [::stff/state partial-form-path])
           :*form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
           :*form-errors   (rf/subscribe [::stff/errors partial-form-path])
-          :*form-dscr     (rf/subscribe [(or dscr-sub ::stfd/stored-errors) partial-form-path])
+          :*form-feedback (rf/subscribe [(or feedback-sub ::stfd/stored-errors) partial-form-path])
           :*form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
           :*form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
 

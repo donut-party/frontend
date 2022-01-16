@@ -136,7 +136,18 @@
             (map (fn [u] [:li (str u)]))
             (into [:ul]))]]]))
 
+;;---
+;; validation example
+;;---
+
+(defn validation-example
+  []
+  [:div
+   [:h2 "Validation Example"]
+   ])
+
 (defn examples
   []
   [:div [:h1 "form examples"]
-   [form-example-features]])
+   [form-example-features]
+   [validation-example]])

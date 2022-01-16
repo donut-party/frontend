@@ -52,7 +52,7 @@
              [:*form-path
               :*form-state
               :*form-ui-state
-              :*form-dscr
+              :*form-feedback
               :*form-errors
               :*form-buffer
               :*form-dirty?
@@ -83,7 +83,7 @@
            {:keys [~'*form-path
                    ~'*form-state
                    ~'*form-ui-state
-                   ~'*form-dscr
+                   ~'*form-feedback
                    ~'*form-errors
                    ~'*form-buffer
                    ~'*form-dirty?
