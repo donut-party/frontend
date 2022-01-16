@@ -20,7 +20,7 @@
 (defn read-form-buffer
   [*form-buffer attr-name]
   [:div
-   [:div (get @*form-buffer attr-name)]])
+   [:div (str (get @*form-buffer attr-name))]])
 
 ;; Broken out into a separate component so that it can be updated with the
 ;; username without causing the *input component to re-render and thus lose
@@ -49,7 +49,7 @@
   [:tr
    [:td (str attr-name)]
    [:td input-component]
-   [:td (read-form-buffer (:*form-buffer *form) attr-name)]])
+   [:td [read-form-buffer (:*form-buffer *form) attr-name]]])
 
 (defn form-example-common-case-features
   []
@@ -80,7 +80,7 @@
             [(dcu/focus-component
               [*input :text :username])]
             "(this automatically gains focus)"]]
-          [input-example-row *form :active? [*input :checkbox :active?]]
+          [input-example-row *form :active? [*input :checkbox :active? {:value true}]]
           [input-example-row *form :remind-on [*input :date :remind-on]]
           [input-example-row *form :score [*input :number :score]]
           [input-example-row

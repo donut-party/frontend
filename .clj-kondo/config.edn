@@ -1,0 +1,33 @@
+{:linters
+ {:unresolved-symbol
+  ;; this macro binds these symbols as a convenience
+  {:exclude [(donut.frontend.form.components/with-form
+               [*form-path
+                *form-state
+                *form-subs
+                *form-ui-state
+                *form-dscr
+                *form-errors
+                *form-buffer
+                *form-dirty?
+
+                *state-success?
+
+                *sync-state
+                *sync-active?
+                *sync-success?
+                *sync-fail?
+
+                *on-submit
+                *submit-fn
+                *input-opts
+                *input
+                *field
+
+                *form-state
+                *form-components
+                *form])]}
+
+  :unresolved-var
+  ;; this erroneously shows up as unresolved. why???
+  {:exclude [donut.frontend.handlers/rr]}}}
