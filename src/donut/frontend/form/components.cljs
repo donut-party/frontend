@@ -314,6 +314,9 @@
   [opts]
   (checkbox-field opts))
 
+(defmethod field :radio
+  [opts]
+  (checkbox-field opts))
 
 (defn field-component
   "Adapts the interface to `field` so that the caller can supply either

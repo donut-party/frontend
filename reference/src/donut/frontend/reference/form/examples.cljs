@@ -18,11 +18,9 @@
 ;;---
 
 (defn read-form-buffer
-  [*form-buffer]
+  [*form-buffer attr-name]
   [:div
-   [:div "you can easily access the stored value associated with an input:"]
-   [:div (get @*form-buffer :example-attr)]
-   [:div "(this is a separate component so that its rendering doesn't interfere with the input)"]])
+   [:div (get @*form-buffer attr-name)]])
 
 ;; Broken out into a separate component so that it can be updated with the
 ;; username without causing the *input component to re-render and thus lose
@@ -46,6 +44,13 @@
   (when @*sync-active?
     [:span "submitting..."]))
 
+(defn input-example-row
+  [*form attr-name input-component]
+  [:tr
+   [:td (str attr-name)]
+   [:td input-component]
+   [:td (read-form-buffer (:*form-buffer *form) attr-name)]])
+
 (defn form-example-common-case-features
   []
   (dfc/with-form [:post :users]
@@ -63,14 +68,54 @@
                                   *form-path
                                   {:buffer {:username "marcy"}}]))}
          "populate form"]
-        " sets the input value to 'marcy'"]
-       [:p "input components manage tracking state in the global app db"]
-       [(dcu/focus-component
-         [*input :text :username])]
-       [read-form-buffer *form-buffer]
+        " sets the username to 'marcy'"]
        [:div
+        [:p "input components manage state in the global app db:"]
+        [:table
+         [:tbody
+          [input-example-row
+           *form
+           :username
+           [:div
+            [(dcu/focus-component
+              [*input :text :username])]
+            "(this automatically gains focus)"]]
+          [input-example-row *form :active? [*input :checkbox :active?]]
+          [input-example-row *form :remind-on [*input :date :remind-on]]
+          [input-example-row *form :score [*input :number :score]]
+          [input-example-row
+           *form
+           :email-preferences
+           [:div
+            [:div
+             [*field :checkbox-set :email-preferences {:label "gimme marketing emails, i am a weirdo"
+                                                       :value :marketing}]
+             [*field :checkbox-set :email-preferences {:label "gimme service emails"
+                                                       :value :service}]]]]
+          [input-example-row
+           *form
+           :favorite-pet
+           [*input :select :favorite-pet {:options [[nil "Select one"]
+                                                    [:dozer "Dozer"]
+                                                    [:janie "Janie"]
+                                                    [:cloud "Cloud"]
+                                                    [:link "Link"]
+                                                    [:rory "Rory"]]}]]
+          [input-example-row
+           *form
+           :dream-vacation
+           [:div
+            [:div
+             [*field :radio :dream-vacation {:label "mountains"
+                                             :value :mountains}]
+             [*field :radio :dream-vacation {:label "beach"
+                                             :value :beach}]]]]]]]
+
+       [:div
+        [:p "with-form includes a helper function for submitting the form"]
         [submit-button *form]
-        [submitting-indicator *sync-active?]]]
+        [submitting-indicator *sync-active?]
+        [:span " <- a submitting indicator will show up here when you hit submit"]]]
       [:div "users:"
        (->> @(rf/subscribe [::dcf/entities :user :id])
             (map (fn [u] [:li (str u)]))
