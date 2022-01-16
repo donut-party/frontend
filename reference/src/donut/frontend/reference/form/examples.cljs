@@ -33,8 +33,7 @@
     :on-click (*submit-fn
                ;; we have to use echo here because we don't actually have a backend
                {:sync    {::dsde/echo {:status        :success
-                                       :response-data {:id   (rand-int 1000)
-                                                       :name (:username @*form-buffer)}
+                                       :response-data (assoc @*form-buffer :id (rand-int 1000))
                                        :ms            1000}}
                 ;; removes form data after success
                 :success [::dff/clear *form-path]})}])
@@ -44,6 +43,14 @@
   (when @*sync-active?
     [:span "submitting..."]))
 
+(defn markdown [txt]
+  {:dangerouslySetInnerHTML #js {:__html (marked (or txt ""))}})
+
+(defn rendered-markdown
+  [*form-buffer]
+  [:div "rendered markdown:"
+   [:div (markdown (:profile @*form-buffer))]])
+
 (defn input-example-row
   [*form attr-name input-component]
   [:tr
@@ -51,13 +58,13 @@
    [:td input-component]
    [:td [read-form-buffer (:*form-buffer *form) attr-name]]])
 
-(defn form-example-common-case-features
+(defn form-example-features
   []
   (dfc/with-form [:post :users]
     [:form
      [:div
-      [:h2 "form example with common-case features"]
       [:div
+       [:h2 "user form"]
        [:div
         [:button {:on-click
                   ;; use prevent-default here to prevent the enclosing form from
@@ -109,43 +116,27 @@
              [*field :radio :dream-vacation {:label "mountains"
                                              :value :mountains}]
              [*field :radio :dream-vacation {:label "beach"
-                                             :value :beach}]]]]]]]
+                                             :value :beach}]]]]
+          [:tr
+           [:td ":profile"]
+           [:td
+            [:div
+             [:p "you can create custom input elements, like this markdown editor"]
+             [*input :simplemde :profile]]]
+           [:td [rendered-markdown *form-buffer]]]]]]
 
        [:div
         [:p "with-form includes a helper function for submitting the form"]
         [submit-button *form]
         [submitting-indicator *sync-active?]
         [:span " <- a submitting indicator will show up here when you hit submit"]]]
-      [:div "users:"
+      [:div
+       [:h2 "submitted users"]
        (->> @(rf/subscribe [::dcf/entities :user :id])
             (map (fn [u] [:li (str u)]))
             (into [:ul]))]]]))
 
-;;---
-;; more features
-;;---
-
-(defn markdown [txt]
-  {:dangerouslySetInnerHTML #js {:__html (marked (or txt ""))}})
-
-(defn rendered-markdown
-  [*form-buffer]
-  [:div "rendered markdown:"
-   [:div (markdown (:profile @*form-buffer))]])
-
-(defn form-example-more-features
-  []
-  (dfc/with-form [:put :user {:id 1}]
-    [:form
-     [:div
-      [:h2 "form example with less-common but still useful features"]
-      [:div
-       [:p "you can create your own custom input elements, like this markdown editor:"]
-       [*input :simplemde :profile]
-       [rendered-markdown *form-buffer]]]]))
-
 (defn examples
   []
   [:div [:h1 "form examples"]
-   [form-example-common-case-features]
-   [form-example-more-features]])
+   [form-example-features]])
