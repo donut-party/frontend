@@ -56,7 +56,7 @@
 ;;--------------------
 ;; request tracking
 ;;--------------------
-(defn req-key
+(defn sync-key
   "returns a 'normalized' req key for a request.
 
   normalized in the sense that when it comes to distinguishing requests in order
@@ -76,9 +76,9 @@
   `:id-key`, a keyword like `:id` or `:db/id` that identifies an entity.
   `dfr/req-id` will use that value if present.
 
-  It's also possible to completely specify the req-key with `::req-key`."
+  It's also possible to completely specify the sync-key with `::sync-key`."
   [[method route opts]]
-  (or (::req-key opts)
+  (or (::sync-key opts)
       (let [req-id (dfr/req-id route opts)]
         (if (empty? req-id)
           [method route]
@@ -89,7 +89,7 @@
   count"
   [db req]
   (-> db
-      (update-in (p/reqs [(req-key req)])
+      (update-in (p/reqs [(sync-key req)])
                  merge
                  {:state            :active
                   :active-nav-route (p/get-path db :nav [:route])})
@@ -97,7 +97,7 @@
 
 (defn remove-req
   [db req]
-  (update-in db [:donut :reqs] dissoc (req-key req)))
+  (update-in db [:donut :reqs] dissoc (sync-key req)))
 
 ;;------
 ;; dispatch handler wrappers
@@ -106,7 +106,7 @@
   "Update sync bookkeeping"
   [db [_ req resp]]
   (-> db
-      (assoc-in (p/reqs [(req-key req) :state]) (:status resp))
+      (assoc-in (p/reqs [(sync-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
 (dh/rr rf/reg-event-db ::sync-finished
@@ -275,11 +275,11 @@
 
 (defn sync-state
   [db req]
-  (p/get-path db :reqs [(req-key req) :state]))
+  (p/get-path db :reqs [(sync-key req) :state]))
 
 (rf/reg-sub ::req
   (fn [db [_ req]]
-    (p/get-path db :reqs [(req-key req)])))
+    (p/get-path db :reqs [(sync-key req)])))
 
 (rf/reg-sub ::sync-state
   (fn [db [_ req comparison]]
