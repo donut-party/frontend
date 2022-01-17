@@ -12,6 +12,9 @@
    [re-frame.loggers :as rfl])
   (:require-macros [donut.frontend.form.components]))
 
+;; TODO make class prefix configurable, e.g. "donut-required" can be
+;; "x-required" or just "required"
+
 (defn dispatch-form-input-event
   [form-path event-type]
   (rf/dispatch [::stff/form-input-event {:partial-form-path form-path
@@ -119,7 +122,7 @@
     (-> {:type      (name (or input-type :text))
          :value     (format-read @attr-buffer)
          :id        (label-for form-id attr-path)
-         :class     (str "input " (attr-path-str attr-path))}
+         :class     (str "donut-input " (attr-path-str attr-path))}
         (merge opts)
         (merge-event-handlers))))
 
@@ -240,7 +243,7 @@
     (->> feedback
          (medley/filter-vals seq)
          keys
-         (map name)
+         (map (comp #(str "donut-" %) name))
          (str/join " ")
          (str " "))
     (rfl/console :warn ::invalid-type (str feedback "should be nil or a map"))))
@@ -249,8 +252,8 @@
 (defmethod format-attr-feedback :errors
   [_ errors]
   (->> errors
-       (map (fn [x] ^{:key (str "error-" x)} [:li x]))
-       (into [:ul {:class "error-messages"}])))
+       (map (fn [x] ^{:key (str "donut-error-" x)} [:li x]))
+       (into [:ul {:class "donut-error-messages"}])))
 (defmethod format-attr-feedback :default [_ _] nil)
 
 (defn attr-description
@@ -278,9 +281,9 @@
    (when (or tip (not no-label))
      [:div.field-label
       (when-not no-label
-        [:label {:for (label-for form-id attr-path) :class "label"}
+        [:label {:for (label-for form-id attr-path) :class "donut-label"}
          (or label (label-text attr-path))
-         (when required [:span {:class "required"} "*"])])
+         (when required [:span {:class "donut-required"} "*"])])
       (when tip [:div.tip tip])])
    [:div
     before-input
@@ -296,11 +299,11 @@
    [:div
     (if no-label
       [:span [input (apply dissoc opts field-opts)] [:i]]
-      [:label {:class "label"}
+      [:label {:class "donut-label"}
        [input (dissoc-field-opts opts)]
        [:i]
        (or label (label-text attr-path))
-       (when required [:span {:class "required"} "*"])])
+       (when required [:span {:class "donut-required"} "*"])])
     (when tip [:div.tip tip])
     (when attr-feedback (attr-description @attr-feedback))]])
 

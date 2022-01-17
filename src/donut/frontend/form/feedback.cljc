@@ -40,7 +40,6 @@
    [re-frame.core :as rf]
    [sweet-tooth.describe :as d]))
 
-
 ;; A simple subscription that simply returns
 (rf/reg-sub ::stored-errors
   (fn [[_ partial-form-path attr-path]]
@@ -49,3 +48,7 @@
       (rf/subscribe [::dff/errors partial-form-path])))
   (fn [errors _]
     {:errors errors}))
+
+(defn received-events?
+  [input-events pred-events]
+  (seq (set/intersection input-events pred-events)))

@@ -11,7 +11,7 @@
   (:import
    #?(:cljs [goog.async Debouncer])))
 
-(dh/rr rf/reg-event-db ::get-in
+(rf/reg-sub ::get-in
   (fn [db [_ path]]
     (get-in db path)))
 
