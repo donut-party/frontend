@@ -20,19 +20,21 @@
 (defn dispatch-attr-input-event
   [dom-event {:keys [format-write] :as input-opts} & [update-val?]]
   (rf/dispatch-sync
-   [::stff/input-event (cond-> (select-keys input-opts [:partial-form-path
-                                                        :attr-path])
-                         true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
-                         update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
+   [::stff/attr-input-event
+    (cond-> (select-keys input-opts [:partial-form-path
+                                     :attr-path])
+      true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
+      update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
 
 (defn dispatch-new-val
   "Helper when you want non-input elements to update a val"
   [form-path attr-path val & [opts]]
-  (rf/dispatch-sync [::stff/input-event (merge {:partial-form-path form-path
-                                                :attr-path         attr-path
-                                                :event-type        nil
-                                                :val               val}
-                                               opts)]))
+  (rf/dispatch-sync
+   [::stff/attr-input-event (merge {:partial-form-path form-path
+                                    :attr-path         attr-path
+                                    :event-type        nil
+                                    :val               val}
+                                   opts)]))
 
 (defn attr-path-str
   [attr-path]
