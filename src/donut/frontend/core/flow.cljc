@@ -11,7 +11,7 @@
   (:import
    #?(:cljs [goog.async Debouncer])))
 
-(dh/rr rf/reg-sub ::get-in
+(dh/rr rf/reg-event-db ::get-in
   (fn [db [_ path]]
     (get-in db path)))
 
@@ -73,11 +73,11 @@
   (fn [db [entity-type id]]
     (update-in db [:entity entity-type] dissoc id)))
 
-(dh/rr rf/reg-sub ::entity
+(rf/reg-sub ::entity
   (fn [db [_ ent-type id]]
     (p/get-path db :entity [ent-type id])))
 
-(dh/rr rf/reg-sub ::entities
+(rf/reg-sub ::entities
   (fn [db [_ ent-type & [sort-key]]]
     (cond->> (p/get-path db :entity [ent-type])
       true     vals
