@@ -18,18 +18,12 @@
                                          :event-type        event-type}]))
 
 (defn dispatch-attr-input-event
-  "an event without an associated value"
-  [form-path attr-path event-type]
-  (rf/dispatch [::stff/attr-input-event {:partial-form-path form-path
-                                         :attr-path         attr-path
-                                         :event-type        event-type}]))
-
-(defn dispatch-input-event
-  [event {:keys [format-write] :as input-opts} & [update-val?]]
-  (rf/dispatch-sync [::stff/input-event (cond-> (select-keys input-opts [:partial-form-path
-                                                                         :attr-path])
-                                          true        (merge {:event-type (keyword (dcu/go-get event ["type"]))})
-                                          update-val? (merge {:val (format-write (dcu/tv event))}))]))
+  [dom-event {:keys [format-write] :as input-opts} & [update-val?]]
+  (rf/dispatch-sync
+   [::stff/input-event (cond-> (select-keys input-opts [:partial-form-path
+                                                        :attr-path])
+                         true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
+                         update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
 
 (defn dispatch-new-val
   "Helper when you want non-input elements to update a val"
@@ -102,9 +96,9 @@
 
 (defn default-event-handlers
   [opts]
-  {:on-change #(dispatch-input-event % opts true)
-   :on-blur   #(dispatch-input-event % opts false)
-   :on-focus  #(dispatch-input-event % opts false)})
+  {:on-change #(dispatch-attr-input-event % opts true)
+   :on-blur   #(dispatch-attr-input-event % opts false)
+   :on-focus  #(dispatch-attr-input-event % opts false)})
 
 (defn merge-event-handlers
   [opts]
@@ -162,7 +156,7 @@
         format-write (or format-write (constantly (not value)))]
     (-> (input-type-opts-default opts)
         (merge {:checked         (boolean value)
-                :on-change       #(dispatch-input-event % (merge opts {:format-write format-write}) true)})
+                :on-change       #(dispatch-attr-input-event % (merge opts {:format-write format-write}) true)})
         (dissoc :value))))
 
 (defn toggle-set-membership
@@ -178,7 +172,7 @@
     (merge (input-type-opts-default opts)
            {:type      "checkbox"
             :checked   (boolean (checkbox-set value))
-            :on-change #(dispatch-input-event % (merge opts {:format-write format-write}) true)})))
+            :on-change #(dispatch-attr-input-event % (merge opts {:format-write format-write}) true)})))
 
 ;; date handling
 (defn unparse [fmt x]
@@ -197,7 +191,7 @@
   [{:keys [attr-buffer] :as opts}]
   (assoc (input-type-opts-default opts)
          :value (unparse date-fmt @attr-buffer)
-         :on-change #(dispatch-input-event % (merge {:format-write format-write-date} opts) true)))
+         :on-change #(dispatch-attr-input-event % (merge {:format-write format-write-date} opts) true)))
 
 (defn format-write-number
   [v]
@@ -207,7 +201,7 @@
 (defmethod input-type-opts :number
   [opts]
   (assoc (input-type-opts-default opts)
-         :on-change #(dispatch-input-event % (merge {:format-write format-write-number} opts) true)))
+         :on-change #(dispatch-attr-input-event % (merge {:format-write format-write-number} opts) true)))
 
 ;;~~~~~~~~~~~~~~~~~~
 ;; input components

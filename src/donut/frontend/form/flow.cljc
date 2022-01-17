@@ -115,7 +115,12 @@
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
   (fn [input-events [_ _partial-form-path attr-path]]
-    (get-in input-events (dsu/vectorize attr-path))))
+    (get-in input-events (into [:attrs] (dsu/vectorize attr-path)))))
+
+(rf/reg-sub ::form-input-events
+  (attr-facet-sub ::input-events)
+  (fn [input-events _]
+    (:form input-events)))
 
 ;; Has the user modified the buffer?
 (rf/reg-sub ::form-dirty?
@@ -154,53 +159,50 @@
 (rf/reg-sub ::attr-visible-errors
   (fn [[_ & args]]
     [(rf/subscribe (into [::attr-input-events] args))
-     (rf/subscribe (into [::input-events] args))
+     (rf/subscribe (into [::form-input-events] args))
      (rf/subscribe (into [::attr-errors] args))])
-  (fn [[attr-input-events input-events attr-errors] [_ _ _ show-errors-on]]
-    (when (not-empty (set/intersection show-errors-on (set (into attr-input-events (::form input-events)))))
+  (fn [[attr-input-events form-input-events attr-errors] [_ _ _ show-errors-on]]
+    (when (->> form-input-events
+               (into attr-input-events)
+               set
+               (set/intersection show-errors-on)
+               not-empty)
       attr-errors)))
 
 ;;------
 ;; Interacting with forms
 ;;------
 
-(defn input-event
+(defn attr-input-event
   "Meant to handle all input events: focus, blur, change, etc"
   [db [{:keys [partial-form-path attr-path val event-type] :as opts}]]
   (update-in db
              (p/path :form partial-form-path)
              (fn [form]
                (cond-> form
-                 event-type            (update-in (dsu/flatv :input-events attr-path) (fnil conj #{}) event-type)
-                 (contains? opts :val) (assoc-in (dsu/flatv :buffer attr-path) val)))))
+                 event-type
+                 (update-in (dsu/flatv :input-events :attrs attr-path)
+                            (fnil conj #{})
+                            event-type)
 
-(dh/rr rf/reg-event-db ::input-event
+                 (contains? opts :val)
+                 (assoc-in (dsu/flatv :buffer attr-path) val)))))
+
+(dh/rr rf/reg-event-db ::attr-input-event
   [rf/trim-v]
-  input-event)
+  attr-input-event)
 
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
   [db [{:keys [partial-form-path event-type]}]]
   (update-in db
-             (p/path :form (into partial-form-path [:input-events ::form]))
+             (p/path :form (into partial-form-path [:input-events :form]))
              (fnil conj #{})
              event-type))
 
 (dh/rr rf/reg-event-db ::form-input-event
   [rf/trim-v]
   form-input-event)
-
-(defn attr-input-event
-  "conj an event-type onto the attr's `:input-events`"
-  [db [{:keys [partial-form-path attr-path event-type]}]]
-  (update-in db
-             (p/path :form (into partial-form-path [:input-events attr-path]))
-             (fnil conj #{})
-             event-type))
-
-(dh/rr rf/reg-event-db ::attr-input-event
-  [rf/trim-v]
-  attr-input-event)
 
 ;;---------------------
 ;; Setting form data

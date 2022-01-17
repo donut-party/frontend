@@ -23,7 +23,7 @@
   (let [markdown-text (atom nil)]
     [:div.simple-mde-wrapper]
     [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-val partial-form-path attr-path val))
-                   :onBlur    #(dfc/dispatch-input-event % opts false)
+                   :onBlur    #(dfc/dispatch-attr-input-event % opts false)
                    :value     value
                    :events    #js{:beforeChange (fn [_ change-obj]
                                                   (when-let [text @markdown-text]
