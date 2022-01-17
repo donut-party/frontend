@@ -17,9 +17,10 @@
                 *sync-active?
                 *sync-success?
                 *sync-fail?
+                *sync-key
 
                 *on-submit
-                *submit-fn
+                *submit
                 *input-opts
                 *input
                 *field

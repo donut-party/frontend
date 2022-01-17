@@ -1,6 +1,4 @@
-(ns donut.frontend.form.components
-  (:require
-   [donut.frontend.sync.flow :as dsf]))
+(ns donut.frontend.form.components)
 
 (defn- form-body
   "If the first element in the body is a map, that means it's form
@@ -15,13 +13,13 @@
   (let [path                   (gensym :partial-form-path)
         possible-formwide-opts (first body)
         possible-formwide-opts (when (map? possible-formwide-opts)
-                                 (update possible-formwide-opts :*sync-key #(or % path)))]
+                                 possible-formwide-opts)]
     `(let [~path            ~partial-form-path
-           ~'*formwide-opts ~possible-formwide-opts
-           ;; every form has its sync-key set explicitly, either passed or using
-           ;; a default
-           ~'*sync-key      (or (:*sync-key ~'*formwide-opts)
-                                (dsf/sync-key ~path))
+           ~'*formwide-opts (update ~possible-formwide-opts
+                                    :*sync-key
+                                    #(or % (donut.frontend.sync.flow/sync-key ~path)))
+           ~'*sync-key      (:*sync-key ~'*formwide-opts)
+
            {:keys [~'*form-path
                    ~'*form-ui-state
                    ~'*form-feedback

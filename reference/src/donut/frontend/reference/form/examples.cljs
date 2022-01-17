@@ -26,17 +26,18 @@
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
 (defn submit-button
-  [{:keys [*submit-fn *form-buffer *form-path]}]
+  [{:keys [*submit *form-buffer *form-path]}]
   [:input
    {:type     "submit"
     :value    "submit"
-    :on-click (*submit-fn
-               ;; we have to use echo here because we don't actually have a backend
-               {:sync    {::dsde/echo {:status        :success
-                                       :response-data (assoc @*form-buffer :id (rand-int 1000))
-                                       :ms            1000}}
-                ;; removes form data after success
-                :success [::dff/clear *form-path]})}])
+    :on-click (dcu/prevent-default
+               #(*submit
+                 ;; we have to use echo here because we don't actually have a backend
+                 {::dsde/echo {:status        :success
+                               :response-data (assoc @*form-buffer :id (rand-int 1000))
+                               :ms            1000}
+                  ;; removes form data after success
+                  :success [::dff/clear *form-path]}))}])
 
 (defn submitting-indicator
   [*sync-active?]

@@ -383,7 +383,7 @@
 (defn submit-form-fail
   [db [{:keys [full-form-path resp]
         :as $ctx}]]
-  (rfl/console :info "form submit fail:" resp full-form-path)
+  (rfl/console :log "form submit fail:" resp full-form-path)
   (-> db
       (assoc-in (conj full-form-path :errors)
                 (or (response-error $ctx)
