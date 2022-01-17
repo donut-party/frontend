@@ -383,15 +383,16 @@
 
 (defn sugar-submit-opts
   "support a couple submit shorthands"
-  [submit-opts]
+  [submit-opts sync-key]
   (-> (if (vector? submit-opts)
-        {:sync {:on {:success submit-opts}}}
+        {:on {:success submit-opts}}
         submit-opts)
-      (dsu/move-keys #{:success :fail} [:sync :on])))
+      (dsu/move-keys #{:success :fail} [:on])
+      (update :sync-key #(or % sync-key))))
 
 (defn submit-fn
-  [partial-form-path & [submit-opts]]
-  (let [submit-opts (sugar-submit-opts submit-opts)]
+  [partial-form-path sync-key & [submit-opts]]
+  (let [submit-opts (sugar-submit-opts submit-opts sync-key)]
     (dcu/prevent-default
      (fn [_]
        (when-not (:prevent-submit? submit-opts)
@@ -418,9 +419,9 @@
          (form-sync-subs *sync-key)))
 
 (defn form-components
-  [partial-form-path & [formwide-opts]]
+  [partial-form-path & [formwide-opts *sync-key]]
   (let [input-opts-fn (partial all-input-opts partial-form-path formwide-opts)]
-    {:*submit-fn  (partial submit-fn partial-form-path)
+    {:*submit-fn  (partial submit-fn partial-form-path *sync-key)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
      :*field      (field-component input-opts-fn)}))

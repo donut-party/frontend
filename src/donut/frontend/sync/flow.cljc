@@ -76,9 +76,9 @@
   `:id-key`, a keyword like `:id` or `:db/id` that identifies an entity.
   `dfr/req-id` will use that value if present.
 
-  It's also possible to completely specify the sync-key with `::sync-key`."
+  It's also possible to completely specify the sync-key with `:sync-key`."
   [[method route opts]]
-  (or (::sync-key opts)
+  (or (:sync-key opts)
       (let [req-id (dfr/req-id route opts)]
         (if (empty? req-id)
           [method route]

@@ -307,26 +307,23 @@
     completion handler.
   - the `:sync` key of form spec can customize the sync request"
   [[method form-handle route-params :as partial-form-path]
-   data
-   {:keys [sync] :as form-spec}]
-  (let [route-name (get sync :route-name form-handle)
-        method     (get sync :method method)
+   buffer-data
+   sync-opts]
+  (let [route-name (get sync-opts :sync-route-name form-handle)
+        method     (get sync-opts :method method)
+        params     (merge (:params sync-opts) buffer-data)
 
         sync-opts (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
                                                         [::dsf/default-sync-success :$ctx]]
                                               :fail    [[::submit-form-fail :$ctx]]}
                                :$ctx         {:full-form-path    (p/path :form partial-form-path)
-                                              :partial-form-path partial-form-path
-                                              :form-spec         form-spec}
-                               :params       data
-                               :route-params (or route-params data)
+                                              :partial-form-path partial-form-path}
+                               :params       params
+                               :route-params (or route-params params)
+                               ;; by default don't allow a form to be submitted
+                               ;; when we're waiting for a response
                                :rules        #{:when-not-active}}
-                              sync)
-        ;; custom sync-key to handle the fact that form-handle can be
-        ;; different from the route name
-        sync-opts (update sync-opts
-                          ::dsf/sync-key
-                          #(or % (dsf/sync-key [method form-handle sync-opts])))]
+                              sync-opts)]
     [method route-name sync-opts]))
 
 (defn submit-form
@@ -340,8 +337,7 @@
                               (fnil conj #{})
                               "submit"))
      :dispatch [::dsf/sync (form-sync-opts partial-form-path
-                                           (merge (:data form-spec)
-                                                  (get-in db (conj full-form-path :buffer)))
+                                           (get-in db (conj full-form-path :buffer))
                                            form-spec)]}))
 
 (dh/rr rf/reg-event-fx ::submit-form
