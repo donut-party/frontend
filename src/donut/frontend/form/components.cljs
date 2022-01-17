@@ -78,7 +78,7 @@
 (def field-opts #{:tip :before-input :after-input :after-feedback :label :no-label})
 
 ;; react doesn't recognize these and hates them
-(def input-opts #{:attr-buffer :attr-path :attr-input-events :attr-feedback :feedback-sub
+(def input-opts #{:attr-buffer :attr-path :attr-input-events :attr-feedback :feedback-sub-name
                   :label :no-label :options
                   :partial-form-path :input-type
                   :format-read :format-write})
@@ -92,9 +92,11 @@
   (apply dissoc x field-opts))
 
 (defn framework-input-opts
-  [{:keys [partial-form-path attr-path feedback-sub] :as opts}]
+  [{:keys [partial-form-path attr-path feedback-sub-name] :as opts}]
   (merge {:attr-buffer       (rf/subscribe [::stff/attr-buffer partial-form-path attr-path])
-          :attr-feedback     (rf/subscribe [(or feedback-sub ::stfd/stored-errors) partial-form-path attr-path])
+          :attr-feedback     (rf/subscribe [(or feedback-sub-name ::stfd/stored-errors)
+                                            partial-form-path
+                                            attr-path])
           :attr-input-events (rf/subscribe [::stff/attr-input-events partial-form-path attr-path])}
          opts))
 
@@ -348,11 +350,11 @@
       (.preventDefault e))))
 
 (defn all-input-opts
-  [partial-form-path formwide-input-opts input-type attr-path & [opts]]
+  [partial-form-path formwide-opts input-type attr-path & [opts]]
   (-> {:partial-form-path partial-form-path
        :input-type        input-type
        :attr-path         attr-path}
-      (merge formwide-input-opts)
+      (merge (:input-opts formwide-opts))
       (merge opts)
       (framework-input-opts)
       (input-type-opts)))
@@ -396,28 +398,28 @@
          (rf/dispatch [::stff/submit-form partial-form-path submit-opts]))))))
 
 (defn form-sync-subs
-  [partial-form-path]
-  {:*sync-state    (rf/subscribe [::stff/sync-state partial-form-path])
-   :*sync-active?  (rf/subscribe [::stff/sync-active? partial-form-path])
-   :*sync-success? (rf/subscribe [::stff/sync-success? partial-form-path])
-   :*sync-fail?    (rf/subscribe [::stff/sync-fail? partial-form-path])})
+  [sync-key]
+  {:*sync-state    (rf/subscribe [::stff/sync-state sync-key])
+   :*sync-active?  (rf/subscribe [::stff/sync-active? sync-key])
+   :*sync-success? (rf/subscribe [::stff/sync-success? sync-key])
+   :*sync-fail?    (rf/subscribe [::stff/sync-fail? sync-key])})
 
 (defn form-subs
-  [partial-form-path & [{:keys [feedback-sub]}]]
+  [partial-form-path & [{:keys [feedback-sub-name *sync-key]}]]
   (merge {:*form-path     partial-form-path
-          :*form-state    (rf/subscribe [::stff/state partial-form-path])
           :*form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
           :*form-errors   (rf/subscribe [::stff/errors partial-form-path])
-          :*form-feedback (rf/subscribe [(or feedback-sub ::stfd/stored-errors) partial-form-path])
+          :*form-feedback (rf/subscribe [(or feedback-sub-name ::stfd/stored-errors)
+                                         partial-form-path])
           :*form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
           :*form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
 
           :*state-success? (rf/subscribe [::stff/state-success? partial-form-path])}
-         (form-sync-subs partial-form-path)))
+         (form-sync-subs *sync-key)))
 
 (defn form-components
-  [partial-form-path & [formwide-input-opts]]
-  (let [input-opts-fn (partial all-input-opts partial-form-path formwide-input-opts)]
+  [partial-form-path & [formwide-opts]]
+  (let [input-opts-fn (partial all-input-opts partial-form-path formwide-opts)]
     {:*submit-fn  (partial submit-fn partial-form-path)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
@@ -425,6 +427,6 @@
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
-  [partial-form-path & [formwide-input-opts]]
-  (merge (form-subs partial-form-path formwide-input-opts)
-         (form-components partial-form-path formwide-input-opts)))
+  [partial-form-path & [formwide-opts]]
+  (merge (form-subs partial-form-path formwide-opts)
+         (form-components partial-form-path formwide-opts)))

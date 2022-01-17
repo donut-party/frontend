@@ -14,11 +14,17 @@
 ;; specs
 ;;--------------------
 
+;;---
+;; form buffer
+;;---
+
 (def FormBuffer [:map])
 (def FormErrors [:map
                  [:attrs any?]
                  [:form any?]])
-(def FormInputEvents [:map])
+(def FormInputEvents [:map
+                      [:attrs any?]
+                      [:form any?]])
 (def FormBufferInitVal [:map])
 (def FormUIState any?)
 
@@ -29,6 +35,16 @@
    [:input-events {:optional true} FormInputEvents]
    [:buffer-init-val FormBufferInitVal]
    [:ui-state {:optional true} FormUIState]])
+
+
+;;---
+;; form submitting options
+;;---
+
+(def FormSubmitOpts
+  [:map
+   [:sync]
+   [:data]])
 
 ;;--------------------
 ;; helpers
@@ -186,9 +202,9 @@
   [rf/trim-v]
   attr-input-event)
 
-;;------
-;; Building and submitting forms
-;;------
+;;---------------------
+;; Setting form data
+;;---------------------
 
 (defn reset-form-buffer
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
@@ -269,9 +285,11 @@
           (assoc-in (p/path :form partial-form-path :buffer-init-val) data)
           (assoc-in (p/path :form partial-form-path :buffer) data)))))
 
+;;---------------------
+;; submitting a form
+;;---------------------
+
 ;; TODO spec set of possible actions
-;; TODO spec out form map, keys :buffer :state :ui-state etc
-(def form-states #{nil :submitting :success :sleeping})
 
 (defn form-sync-opts
   "Returns a request that the sync handler can use
@@ -288,7 +306,9 @@
   - `form-spec` is a way to pass on whatevs data to the request
     completion handler.
   - the `:sync` key of form spec can customize the sync request"
-  [[method form-handle route-params :as partial-form-path], data, {:keys [sync] :as form-spec}]
+  [[method form-handle route-params :as partial-form-path]
+   data
+   {:keys [sync] :as form-spec}]
   (let [route-name (get sync :route-name form-handle)
         method     (get sync :method method)
 
@@ -315,8 +335,10 @@
   [{:keys [db]} [partial-form-path & [form-spec]]]
   (let [full-form-path (p/path :form partial-form-path)]
     {:db       (-> db
-                   (update-in full-form-path merge {:state :submitting, :errors nil})
-                   (update-in (into full-form-path [:input-events ::form]) (fnil conj #{}) "submit"))
+                   (update-in full-form-path merge {:errors nil})
+                   (update-in (into full-form-path [:input-events ::form])
+                              (fnil conj #{})
+                              "submit"))
      :dispatch [::dsf/sync (form-sync-opts partial-form-path
                                            (merge (:data form-spec)
                                                   (get-in db (conj full-form-path :buffer)))
