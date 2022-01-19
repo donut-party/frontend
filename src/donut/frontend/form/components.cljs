@@ -86,12 +86,14 @@
                   :attr-path
                   :attr-input-events
                   :attr-feedback
-                  :feedback-sub-name
+                  :attr-feedback-sub-name
                   :options
                   :partial-form-path
                   :input-type
                   :format-read
                   :format-write})
+
+(def form-opts #{:form-feedback-sub-name})
 
 (defn dissoc-input-opts
   [x]
@@ -102,9 +104,11 @@
   (apply dissoc x field-opts))
 
 (defn framework-input-opts
-  [{:keys [partial-form-path attr-path feedback-sub-name] :as opts}]
+  [{:keys [attr-path
+           attr-feedback-sub-name
+           partial-form-path] :as opts}]
   (merge {:attr-buffer       (rf/subscribe [::stff/attr-buffer partial-form-path attr-path])
-          :attr-feedback     (rf/subscribe [(or feedback-sub-name ::stfd/stored-errors)
+          :attr-feedback     (rf/subscribe [(or attr-feedback-sub-name ::stfd/stored-errors)
                                             partial-form-path
                                             attr-path])
           :attr-input-events (rf/subscribe [::stff/attr-input-events partial-form-path attr-path])}
@@ -414,11 +418,11 @@
    :*sync-fail?    (rf/subscribe [::stff/sync-fail? sync-key])})
 
 (defn form-subs
-  [partial-form-path & [{:keys [feedback-sub-name *sync-key]}]]
+  [partial-form-path & [{:keys [form-feedback-sub-name *sync-key]}]]
   (merge {:*form-path     partial-form-path
           :*form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
           :*form-errors   (rf/subscribe [::stff/errors partial-form-path])
-          :*form-feedback (rf/subscribe [(or feedback-sub-name ::stfd/stored-errors)
+          :*form-feedback (rf/subscribe [(or form-feedback-sub-name ::stfd/stored-errors)
                                          partial-form-path])
           :*form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
           :*form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
@@ -428,7 +432,9 @@
 
 (defn form-components
   [partial-form-path & [formwide-opts *sync-key]]
-  (let [input-opts-fn (partial all-input-opts partial-form-path formwide-opts)]
+  (let [input-opts-fn (partial all-input-opts
+                               partial-form-path
+                               (apply dissoc formwide-opts form-opts))]
     {:*submit     (partial submit partial-form-path *sync-key)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
