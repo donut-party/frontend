@@ -175,8 +175,8 @@
         value        (format-read @attr-buffer)
         format-write (or format-write (constantly (not value)))]
     (-> (input-type-opts-default opts)
-        (merge {:checked         (boolean value)
-                :on-change       #(dispatch-attr-input-event % (merge opts {:format-write format-write}) true)})
+        (merge {:checked   (boolean value)
+                :on-change #(dispatch-attr-input-event % (merge opts {:format-write format-write}) true)})
         (dissoc :value))))
 
 (defn toggle-set-membership

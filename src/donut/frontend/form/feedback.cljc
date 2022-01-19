@@ -52,3 +52,15 @@
 (defn received-events?
   [input-events pred-events]
   (seq (set/intersection input-events pred-events)))
+
+(rf/reg-sub ::derived-feedback
+  (fn [[_ partial-form-path]]
+    (rf/subscribe [::dff/form partial-form-path]))
+  (fn [form [_ _ feedback-fns]]
+    (reduce-kv (fn [feedback feedback-type feedback-fn]
+                 (assoc feedback feedback-type (feedback-fn form)))
+               {}
+               feedback-fns)))
+
+(rf/reg-sub ::attr-derived-errors
+  (fn []))
