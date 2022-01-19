@@ -17,5 +17,7 @@
           " "
           [dnc/route-link :nav.flow "nav"]
           " "
+          [dnc/route-link :sync.flow "sync"]
+          " "
           [dnc/route-link :form.flow "form"]]))
      main]))
