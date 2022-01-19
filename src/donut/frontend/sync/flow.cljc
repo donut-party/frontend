@@ -41,7 +41,7 @@
               [:route-params {:optional true} RouteParams]
               [:query-params {:optional true} QueryParams]
               [:params {:optional true} Params]
-              [::req-id {:optional true} some?]])
+              [:sync-key {:optional true} some?]])
 
 (def Req [:cat
           [:req-method ReqMethod]

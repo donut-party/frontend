@@ -74,13 +74,24 @@
 ;;~~~~~~~~~~~~~~~~~~
 
 ;; used in the field component below
-(def field-opts #{:tip :before-input :after-input :after-feedback :label :no-label})
+(def field-opts #{:tip
+                  :before-input
+                  :after-input
+                  :after-feedback
+                  :label
+                  :no-label?})
 
 ;; react doesn't recognize these and hates them
-(def input-opts #{:attr-buffer :attr-path :attr-input-events :attr-feedback :feedback-sub-name
-                  :label :no-label :options
-                  :partial-form-path :input-type
-                  :format-read :format-write})
+(def input-opts #{:attr-buffer
+                  :attr-path
+                  :attr-input-events
+                  :attr-feedback
+                  :feedback-sub-name
+                  :options
+                  :partial-form-path
+                  :input-type
+                  :format-read
+                  :format-write})
 
 (defn dissoc-input-opts
   [x]
@@ -274,13 +285,13 @@
 
 (defmethod field :default
   [{:keys [form-id attr-path attr-feedback
-           tip required label no-label
+           tip required label no-label?
            before-input after-input after-feedback]
     :as opts}]
   [:div.field {:class (field-classes opts)}
-   (when (or tip (not no-label))
+   (when (or tip (not no-label?))
      [:div.field-label
-      (when-not no-label
+      (when-not no-label?
         [:label {:for (label-for form-id attr-path) :class "donut-label"}
          (or label (label-text attr-path))
          (when required [:span {:class "donut-required"} "*"])])
@@ -293,11 +304,11 @@
     after-feedback]])
 
 (defn checkbox-field
-  [{:keys [tip required label no-label attr-path attr-feedback]
+  [{:keys [tip required label no-label? attr-path attr-feedback]
     :as opts}]
   [:div.field {:class (field-classes opts)}
    [:div
-    (if no-label
+    (if no-label?
       [:span [input (apply dissoc opts field-opts)] [:i]]
       [:label {:class "donut-label"}
        [input (dissoc-field-opts opts)]
