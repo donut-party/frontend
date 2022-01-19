@@ -35,7 +35,7 @@
                    ~'*sync-fail?]
             :as ~'*form-subs}
            (form-subs ~path ~'*formwide-opts)]
-       (let [{:keys [~'*submit-fn
+       (let [{:keys [~'*submit
                      ~'*input-opts
                      ~'*input
                      ~'*field]

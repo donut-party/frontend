@@ -34,10 +34,10 @@
   [form-path attr-path val & [opts]]
   (rf/dispatch-sync
    [::dff/attr-input-event (merge {:partial-form-path form-path
-                                    :attr-path         attr-path
-                                    :event-type        nil
-                                    :val               val}
-                                   opts)]))
+                                   :attr-path         attr-path
+                                   :event-type        nil
+                                   :val               val}
+                                  opts)]))
 
 (defn attr-path-str
   [attr-path]
@@ -366,7 +366,8 @@
   [partial-form-path formwide-opts input-type attr-path & [opts]]
   (-> {:partial-form-path partial-form-path
        :input-type        input-type
-       :attr-path         attr-path}
+       :attr-path         attr-path
+       :feedback-fns      (:feedback-fns formwide-opts)}
       (merge (:input-opts formwide-opts))
       (merge opts)
       (framework-input-opts)

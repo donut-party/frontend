@@ -18,9 +18,7 @@
   - a `::form-feedback` subscription that takes a `partial-form-path` and
     `feedback-fns` to produce form-wide feedback. can be used to e.g. prevent
     form submission
-  - an `::attr-feedback` subscription that produces feedback for a specific attr.
-  "
-
+  - an `::attr-feedback` subscription that produces feedback for a specific attr."
   (:require
    [clojure.set :as set]
    [donut.frontend.form.flow :as dff]
@@ -67,7 +65,7 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::form-feedback
-  (fn [[_ partial-form-path feedback-fns]]
+  (fn [[partial-form-path feedback-fns]]
     (rf/subscribe [::feedback partial-form-path feedback-fns]))
   (fn [feedback]
     (reduce-kv (fn [form-feedback feedback-type all-feedback]
@@ -85,30 +83,20 @@
     (rf/subscribe [::feedback partial-form-path feedback-fns]))
   (fn [feedback [_ _partial-form-path attr-path]]
     (reduce-kv (fn [attr-feedback feedback-type all-feedback]
-                 (if-let [feedback (-> (:attrs all-feedback)
-                                       (get-in (dsu/vectorize attr-path)))]
+                 (if-let [feedback (get (:attrs all-feedback)
+                                        (dsu/vectorize attr-path))]
                    (assoc attr-feedback feedback-type feedback)
                    attr-feedback))
                {}
                feedback)))
 
-(defn- leaf-paths
-  [m]
-  (cond
-    (map? m) (mapcat
-              (fn [[k v]]
-                (map #(cons k %) (filter some? (leaf-paths v)))) m)
-    (set? m) [[]]))
-
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
-  (let [input-event-paths (map vec (leaf-paths input-events))]
-    {:attrs (reduce (fn [visible-errors input-event-path]
-                      (if (contains? (get-in input-events input-event-path)
-                                     "focus")
-                        (assoc-in visible-errors input-event-path nil)
-                        visible-errors))
-                    (:attrs errors)
-                    input-event-paths)
-     :form (:form errors)}))
+  {:attrs (reduce-kv (fn [visible-errors attr-path attr-input-events]
+                       (if (contains? attr-input-events "focus")
+                         (assoc visible-errors attr-path nil)
+                         visible-errors))
+                     (:attrs errors)
+                     input-events)
+   :form (:form errors)})

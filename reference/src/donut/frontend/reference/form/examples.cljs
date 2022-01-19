@@ -4,6 +4,7 @@
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.flow :as dff]
+   [donut.frontend.form.feedback :as dffk]
    [donut.frontend.reference.form.simplemde]
    [donut.frontend.sync.dispatch.echo :as dsde]
    ["marked" :as marked]
@@ -144,8 +145,16 @@
 (defn validation-example
   []
   [:div
-   [:h2 "Validation Example"]
-   ])
+   [:h2 "Validation Example 1: Server returns errors"]
+   (dfc/with-form [:post :users]
+     {:feedback-fns {:errors dffk/stored-error-feedback}}
+     [:div
+      [*field :text :username]
+      [:input {:type     "submit"
+               :value    "populate errors"
+               :on-click #(*submit {::dsde/echo {:status        :fail
+                                                 :response-data [[:errors {:form  "bad form"
+                                                                           :attrs {[:username] ["bad username"]}}]]}})}]])])
 
 (defn examples
   []

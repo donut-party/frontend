@@ -18,13 +18,15 @@
 ;; form buffer
 ;;---
 
+(def BufferViewAttrKey [:vector any?])
+(def BufferViewMap [:map-of BufferViewAttrKey any?])
+(def BufferView [:map
+                 [:attrs {:optional true} BufferViewMap]
+                 [:form {:optional true} any?]])
+
 (def FormBuffer [:map])
-(def FormErrors [:map
-                 [:attrs any?]
-                 [:form any?]])
-(def FormInputEvents [:map
-                      [:attrs any?]
-                      [:form any?]])
+(def FormErrors BufferViewMap)
+(def FormInputEvents BufferViewMap)
 (def FormBufferInitVal [:map])
 (def FormUIState any?)
 
