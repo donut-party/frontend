@@ -4,8 +4,8 @@
    [cljs-time.format :as tf]
    [clojure.string :as str]
    [donut.frontend.core.utils :as dcu]
-   [donut.frontend.form.describe :as stfd]
-   [donut.frontend.form.flow :as stff]
+   [donut.frontend.form.feedback :as dffk]
+   [donut.frontend.form.flow :as dff]
    [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
@@ -17,13 +17,13 @@
 
 (defn dispatch-form-input-event
   [form-path event-type]
-  (rf/dispatch [::stff/form-input-event {:partial-form-path form-path
-                                         :event-type        event-type}]))
+  (rf/dispatch [::dff/form-input-event {:partial-form-path form-path
+                                        :event-type        event-type}]))
 
 (defn dispatch-attr-input-event
   [dom-event {:keys [format-write] :as input-opts} & [update-val?]]
   (rf/dispatch-sync
-   [::stff/attr-input-event
+   [::dff/attr-input-event
     (cond-> (select-keys input-opts [:partial-form-path
                                      :attr-path])
       true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
@@ -33,7 +33,7 @@
   "Helper when you want non-input elements to update a val"
   [form-path attr-path val & [opts]]
   (rf/dispatch-sync
-   [::stff/attr-input-event (merge {:partial-form-path form-path
+   [::dff/attr-input-event (merge {:partial-form-path form-path
                                     :attr-path         attr-path
                                     :event-type        nil
                                     :val               val}
@@ -86,14 +86,12 @@
                   :attr-path
                   :attr-input-events
                   :attr-feedback
-                  :attr-feedback-sub-name
                   :options
                   :partial-form-path
                   :input-type
+                  :feedback-fns
                   :format-read
                   :format-write})
-
-(def form-opts #{:form-feedback-sub-name})
 
 (defn dissoc-input-opts
   [x]
@@ -105,13 +103,14 @@
 
 (defn framework-input-opts
   [{:keys [attr-path
-           attr-feedback-sub-name
-           partial-form-path] :as opts}]
-  (merge {:attr-buffer       (rf/subscribe [::stff/attr-buffer partial-form-path attr-path])
-          :attr-feedback     (rf/subscribe [(or attr-feedback-sub-name ::stfd/stored-errors)
+           partial-form-path
+           feedback-fns] :as opts}]
+  (merge {:attr-buffer       (rf/subscribe [::dff/attr-buffer partial-form-path attr-path])
+          :attr-feedback     (rf/subscribe [::dffk/attr-feedback
                                             partial-form-path
-                                            attr-path])
-          :attr-input-events (rf/subscribe [::stff/attr-input-events partial-form-path attr-path])}
+                                            attr-path
+                                            feedback-fns])
+          :attr-input-events (rf/subscribe [::dff/attr-input-events partial-form-path attr-path])}
          opts))
 
 (defn default-event-handlers
@@ -408,33 +407,32 @@
   [partial-form-path sync-key & [submit-opts]]
   (let [submit-opts (sugar-submit-opts submit-opts sync-key)]
     (when-not (:prevent-submit? submit-opts)
-      (rf/dispatch [::stff/submit-form partial-form-path submit-opts]))))
+      (rf/dispatch [::dff/submit-form partial-form-path submit-opts]))))
 
 (defn form-sync-subs
   [sync-key]
-  {:*sync-state    (rf/subscribe [::stff/sync-state sync-key])
-   :*sync-active?  (rf/subscribe [::stff/sync-active? sync-key])
-   :*sync-success? (rf/subscribe [::stff/sync-success? sync-key])
-   :*sync-fail?    (rf/subscribe [::stff/sync-fail? sync-key])})
+  {:*sync-state    (rf/subscribe [::dff/sync-state sync-key])
+   :*sync-active?  (rf/subscribe [::dff/sync-active? sync-key])
+   :*sync-success? (rf/subscribe [::dff/sync-success? sync-key])
+   :*sync-fail?    (rf/subscribe [::dff/sync-fail? sync-key])})
 
 (defn form-subs
-  [partial-form-path & [{:keys [form-feedback-sub-name *sync-key]}]]
+  [partial-form-path & [{:keys [feedback-fns *sync-key]}]]
   (merge {:*form-path     partial-form-path
-          :*form-ui-state (rf/subscribe [::stff/ui-state partial-form-path])
-          :*form-errors   (rf/subscribe [::stff/errors partial-form-path])
-          :*form-feedback (rf/subscribe [(or form-feedback-sub-name ::stfd/stored-errors)
-                                         partial-form-path])
-          :*form-buffer   (rf/subscribe [::stff/buffer partial-form-path])
-          :*form-dirty?   (rf/subscribe [::stff/form-dirty? partial-form-path])
+          :*form-ui-state (rf/subscribe [::dff/ui-state partial-form-path])
+          :*form-errors   (rf/subscribe [::dff/errors partial-form-path])
+          :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
+          :*form-buffer   (rf/subscribe [::dff/buffer partial-form-path])
+          :*form-dirty?   (rf/subscribe [::dff/form-dirty? partial-form-path])
 
-          :*state-success? (rf/subscribe [::stff/state-success? partial-form-path])}
+          :*state-success? (rf/subscribe [::dff/state-success? partial-form-path])}
          (form-sync-subs *sync-key)))
 
 (defn form-components
   [partial-form-path & [formwide-opts *sync-key]]
   (let [input-opts-fn (partial all-input-opts
                                partial-form-path
-                               (apply dissoc formwide-opts form-opts))]
+                               formwide-opts)]
     {:*submit     (partial submit partial-form-path *sync-key)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
