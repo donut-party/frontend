@@ -92,12 +92,23 @@
                {}
                feedback)))
 
+(defn- leaf-paths
+  [m]
+  (cond
+    (map? m) (mapcat
+              (fn [[k v]]
+                (map #(cons k %) (filter some? (leaf-paths v)))) m)
+    (set? m) [[]]))
 
-;; A simple subscription that simply returns
-(rf/reg-sub ::stored-errors
-  (fn [[_ partial-form-path attr-path]]
-    (if attr-path
-      (rf/subscribe [::dff/attr-errors partial-form-path attr-path])
-      (rf/subscribe [::dff/errors partial-form-path])))
-  (fn [errors _]
-    {:errors errors}))
+(defn stored-error-feedback
+  "Shows errors for attrs when they haven't received focus"
+  [{:keys [errors input-events]}]
+  (let [input-event-paths (map vec (leaf-paths input-events))]
+    {:attrs (reduce (fn [visible-errors input-event-path]
+                      (if (contains? (get-in input-events input-event-path)
+                                     "focus")
+                        (assoc-in visible-errors input-event-path nil)
+                        visible-errors))
+                    (:attrs errors)
+                    input-event-paths)
+     :form (:form errors)}))
