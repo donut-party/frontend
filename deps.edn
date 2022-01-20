@@ -16,5 +16,4 @@
          metosin/reitit-core         {:mvn/version "0.5.15"}
          metosin/reitit-frontend     {:mvn/version "0.5.15"}
          rads/anomalies              {:mvn/version "0.1.13"}
-         sweet-tooth/describe        {:mvn/version "0.4.0"}
          venantius/accountant        {:mvn/version "0.2.4"}}}
