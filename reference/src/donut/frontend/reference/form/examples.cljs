@@ -149,12 +149,12 @@
    (dfc/with-form [:post :users]
      {:feedback-fns {:errors dffk/stored-error-feedback}}
      [:div
-      [*field :text :username]
+      [*field :text :first-name]
       [:input {:type     "submit"
                :value    "populate errors"
                :on-click #(*submit {::dsde/echo {:status        :fail
                                                  :response-data [[:errors {:form  "bad form"
-                                                                           :attrs {[:username] ["bad username"]}}]]}})}]])])
+                                                                           :attrs {[:first-name] ["bad username"]}}]]}})}]])])
 
 (defn examples
   []

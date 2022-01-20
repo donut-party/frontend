@@ -183,10 +183,9 @@
              (fn [form]
                (cond-> form
                  event-type
-                 (update-in (dsu/flatv :input-events :attrs attr-path)
+                 (update-in [:input-events :attrs (dsu/vectorize attr-path)]
                             (fnil conj #{})
                             event-type)
-
                  (contains? opts :val)
                  (assoc-in (dsu/flatv :buffer attr-path) val)))))
 
@@ -337,9 +336,9 @@
   (let [full-form-path (p/path :form partial-form-path)]
     {:db       (-> db
                    (update-in full-form-path merge {:errors nil})
-                   (update-in (into full-form-path [:input-events ::form])
+                   (update-in (into full-form-path [:input-events :form])
                               (fnil conj #{})
-                              "submit"))
+                              :submit))
      :dispatch [::dsf/sync (form-sync-opts partial-form-path
                                            (get-in db (conj full-form-path :buffer))
                                            form-spec)]}))
@@ -353,8 +352,9 @@
   [rf/trim-v]
   (fn [db [partial-form-path]]
     (update-in db
-               (p/path :form (into partial-form-path [:input-events ::form]))
-               (fnil conj #{}) "submit")))
+               (p/path :form (into partial-form-path [:input-events :form]))
+               (fnil conj #{})
+               :submit)))
 
 ;;--------------------
 ;; deleting
@@ -377,7 +377,9 @@
 (dh/rr rf/reg-event-db ::submit-form-success
   [rf/trim-v]
   (fn [db [{:keys [full-form-path]}]]
-    (assoc-in db (conj full-form-path :state) :success)))
+    (-> db
+        (assoc-in (conj full-form-path :state) :success)
+        (assoc-in (conj full-form-path :input-events) nil))))
 
 (defn response-error
   [$ctx]
@@ -393,7 +395,8 @@
                 (or (response-error $ctx)
                     {:cause :unknown}))
       (assoc-in (conj full-form-path :state)
-                :sleeping)))
+                :sleeping)
+      (assoc-in (conj full-form-path :input-events) nil)))
 
 (dh/rr rf/reg-event-db ::submit-form-fail
   [rf/trim-v]

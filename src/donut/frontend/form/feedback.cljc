@@ -94,9 +94,9 @@
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
   {:attrs (reduce-kv (fn [visible-errors attr-path attr-input-events]
-                       (if (contains? attr-input-events "focus")
+                       (if (contains? attr-input-events :focus)
                          (assoc visible-errors attr-path nil)
                          visible-errors))
                      (:attrs errors)
-                     input-events)
+                     (:attrs input-events))
    :form (:form errors)})
