@@ -23,6 +23,9 @@
    [clojure.set :as set]
    [donut.frontend.form.flow :as dff]
    [donut.sugar.utils :as dsu]
+   [malli.core :as m]
+   [malli.error :as me]
+   [medley.core :as medley]
    [re-frame.core :as rf]))
 
 (def FeedbackType
@@ -93,10 +96,42 @@
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
-  {:attrs (reduce-kv (fn [visible-errors attr-path attr-input-events]
-                       (if (contains? attr-input-events :focus)
-                         (assoc visible-errors attr-path nil)
-                         visible-errors))
-                     (:attrs errors)
-                     (:attrs input-events))
+  {:attrs (medley/filter-keys (fn [attr-path]
+                                (not (received-events? (get-in input-events [:attrs attr-path])
+                                                       #{:focus})))
+                              (:attrs errors))
    :form (:form errors)})
+
+;;---
+;; malli feedback
+;;---
+
+(defn feedback-humanize
+  "Humanized a explanation. Accepts the following optitons:
+  - `:wrap`, a function of `error -> message`, defaulting to `:message`
+  - `:resolve`, a function of `explanation error options -> path message`"
+  ([explanation]
+   (feedback-humanize explanation nil))
+  ([{:keys [value errors] :as explanation} {:keys [wrap resolve]
+                                            :or {wrap :message
+                                                 resolve me/-resolve-direct-error}
+                                            :as options}]
+   (when errors
+     (reduce
+      (fn [acc error]
+        (let [[path message] (resolve explanation error options)]
+          (assoc acc path (wrap (assoc error :message message)))))
+      nil errors))))
+
+(defn malli-error-feedback-fn
+  [schema & [error-overrides]]
+  (fn [{:keys [buffer input-events]}]
+    {:attrs (->> (-> schema
+                     (m/explain buffer)
+                     (feedback-humanize {:errors (merge me/default-errors
+                                                        {::m/missing-key {:error/message "required"}}
+                                                        error-overrides)
+                                         :wrap   (comp vector :message)}))
+                 (medley/filter-keys (fn [attr-path]
+                                       (received-events? (get-in input-events [:attrs attr-path])
+                                                         #{:blur}))))}))
