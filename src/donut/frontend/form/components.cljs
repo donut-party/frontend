@@ -173,22 +173,19 @@
   [{:donut.input/keys [format-read format-write attr-buffer value] :as opts}]
   (let [format-read  (or format-read identity)
         format-write (or format-write (constantly value))]
-    (assoc (input-type-opts-default (merge opts {:donut.input/format-write format-write}))
-           :checked (= value (format-read @attr-buffer)))))
+    (-> (merge opts {:donut.input/format-write format-write})
+        (input-type-opts-default)
+        (assoc :donut.input/checked (= value (format-read @attr-buffer))))))
 
 (defmethod input-type-opts :checkbox
   [{:donut.input/keys [attr-buffer format-read format-write] :as opts}]
   (let [format-read  (or format-read identity)
         value        (format-read @attr-buffer)
         format-write (or format-write (constantly (not value)))]
-    (-> (input-type-opts-default opts)
-        (merge {:donut.input/checked
-                (boolean value)
-
-                :donut.input/on-change
-                #(dispatch-attr-input-event %
-                                            (assoc opts :donut.input/format-write format-write)
-                                            true)})
+    (-> opts
+        (assoc :donut.input/format-write format-write)
+        (input-type-opts-default)
+        (merge {:donut.input/checked (boolean value)})
         (dissoc :donut.input/value))))
 
 (defn toggle-set-membership
@@ -201,15 +198,11 @@
   (let [format-read  (or format-read identity)
         checkbox-set (or (format-read @attr-buffer) #{})
         format-write (or format-write (constantly (toggle-set-membership checkbox-set value)))]
-    (merge (input-type-opts-default opts)
-           {:donut.input/type
-            :checkbox
-
-            :donut.input/checked
-            (boolean (checkbox-set value))
-
-            :donut.input/on-change
-            #(dispatch-attr-input-event % (merge opts {:donut.input/format-write format-write}) true)})))
+    (-> opts
+        (assoc :donut.input/format-write format-write)
+        input-type-opts-default
+        (merge {:donut.input/type    :checkbox
+                :donut.input/checked (boolean (checkbox-set value))}))))
 
 ;; date handling
 (defn unparse [fmt x]
@@ -226,15 +219,10 @@
 
 (defmethod input-type-opts :date
   [{:donut.input/keys [attr-buffer] :as opts}]
-  (assoc (input-type-opts-default opts)
-
-         :donut.input/value
-         (unparse date-fmt @attr-buffer)
-
-         :donut.input/on-change
-         #(dispatch-attr-input-event %
-                                     (merge {:donut.input/format-write format-write-date} opts)
-                                     true)))
+  (-> opts
+      (assoc :donut.input/format-write format-write-date)
+      input-type-opts-default
+      (assoc :donut.input/value (unparse date-fmt @attr-buffer))))
 
 (defn format-write-number
   [v]
