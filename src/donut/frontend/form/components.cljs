@@ -167,8 +167,7 @@
   [opts]
   (-> opts
       (update :donut.input/format-read (fn [f] (or f #(or % ""))))
-      (input-type-opts-default)
-      (dissoc :donut.input/type)))
+      (input-type-opts-default)))
 
 (defmethod input-type-opts :radio
   [{:donut.input/keys [format-read format-write attr-buffer value] :as opts}]
