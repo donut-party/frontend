@@ -89,7 +89,7 @@
             [(dcu/focus-component
               [*input :text :username])]
             "(this automatically gains focus)"]]
-          [input-example-row *form :active? [*input :checkbox :active? {:value true}]]
+          [input-example-row *form :active? [*input :checkbox :active? {:donut.input/value true}]]
           [input-example-row *form :remind-on [*input :date :remind-on]]
           [input-example-row *form :score [*input :number :score]]
           [input-example-row
@@ -97,28 +97,33 @@
            :email-preferences
            [:div
             [:div
-             [*field :checkbox-set :email-preferences {:label "gimme marketing emails, i am a weirdo"
-                                                       :value :marketing}]
-             [*field :checkbox-set :email-preferences {:label "gimme service emails"
-                                                       :value :service}]]]]
+             [*field :checkbox-set :email-preferences
+              {:donut.field/label "gimme marketing emails, i am a weirdo"
+               :donut.input/value :marketing}]
+             [*field :checkbox-set :email-preferences
+              {:donut.field/label "gimme service emails"
+               :donut.input/value :service}]]]]
           [input-example-row
            *form
            :favorite-pet
-           [*input :select :favorite-pet {:options [[nil "Select one"]
-                                                    [:dozer "Dozer"]
-                                                    [:janie "Janie"]
-                                                    [:cloud "Cloud"]
-                                                    [:link "Link"]
-                                                    [:rory "Rory"]]}]]
+           [*input :select :favorite-pet
+            {:donut.input/select-options [[nil "Select one"]
+                                          [:dozer "Dozer"]
+                                          [:janie "Janie"]
+                                          [:cloud "Cloud"]
+                                          [:link "Link"]
+                                          [:rory "Rory"]]}]]
           [input-example-row
            *form
            :dream-vacation
            [:div
             [:div
-             [*field :radio :dream-vacation {:label "mountains"
-                                             :value :mountains}]
-             [*field :radio :dream-vacation {:label "beach"
-                                             :value :beach}]]]]
+             [*field :radio :dream-vacation
+              {:donut.field/label "mountains"
+               :donut.input/value :mountains}]
+             [*field :radio :dream-vacation
+              {:donut.field/label "beach"
+               :donut.input/value :beach}]]]]
           [:tr
            [:td ":profile"]
            [:td
