@@ -341,7 +341,7 @@
     after-feedback]])
 
 (defn checkbox-field
-  [{:donut.field/keys [tip required label no-label? attr-feedback]
+  [{:donut.field/keys [tip required no-label? attr-feedback]
     :as opts}]
   [:div.field {:class (field-classes opts)}
    [:div
