@@ -66,3 +66,8 @@
   [& children]
   (into [:div {:class "p-4 bg-zinc-50 rounded-md border border-gray-300"}]
         children))
+
+(defn example-result
+  [& children]
+  (into [:div {:class "mt-2"}]
+        children))
