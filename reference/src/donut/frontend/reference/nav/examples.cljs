@@ -45,9 +45,9 @@
    [:h3 "links"]
    [:p "click these links to see how route sub values change"]
    [:ul
-    [:li [dnc/route-link :nav.flow ":nav.flow"]]
-    [:li [dnc/route-link :nav.flow-1 ":nav.flow-1"]]
-    [:li [dnc/route-link :nav.flow-2 ":nav.flow-2"]]]])
+    [:li [dnc/route-link {:route-name :nav.flow} ":nav.flow"]]
+    [:li [dnc/route-link {:route-name :nav.flow-1} ":nav.flow-1"]]
+    [:li [dnc/route-link {:route-name :nav.flow-2} ":nav.flow-2"]]]])
 
 (defn buffer
   []
@@ -82,7 +82,9 @@
     [:button
      {:on-click #(rf/dispatch [::dcf/merge-entity ::example :id {:id 1, :username "bobby"}])}
      "populate entity in [:entity ::example 1]"]]
-   [:div [dnc/route-link :nav.routed-entity {:id 1} ":nav.routed-entity"]]
+   [:div [dnc/route-link {:route-name   :nav.routed-entity
+                          :route-params {:id 1}}
+          ":nav.routed-entity"]]
    [:div "routed entity: " @(rf/subscribe [::dnf/routed-entity ::example :id])]])
 
 (defn examples

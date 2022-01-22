@@ -88,11 +88,6 @@
     (fn [form _]
       (get form attr))))
 
-(rf/reg-sub ::state-success?
-  form-signal
-  (fn [form _]
-    (= :success (:state form))))
-
 ;; Value for a specific form attribute
 (defn attr-facet-sub
   [facet]
@@ -377,9 +372,7 @@
 (dh/rr rf/reg-event-db ::submit-form-success
   [rf/trim-v]
   (fn [db [{:keys [full-form-path]}]]
-    (-> db
-        (assoc-in (conj full-form-path :state) :success)
-        (assoc-in (conj full-form-path :input-events) nil))))
+    (assoc-in db (conj full-form-path :input-events) nil)))
 
 (defn response-error
   [$ctx]
@@ -394,8 +387,6 @@
       (assoc-in (conj full-form-path :errors)
                 (or (response-error $ctx)
                     {:cause :unknown}))
-      (assoc-in (conj full-form-path :state)
-                :sleeping)
       (assoc-in (conj full-form-path :input-events) nil)))
 
 (dh/rr rf/reg-event-db ::submit-form-fail

@@ -7,7 +7,7 @@
   [:div
    [:h1 "Home"]
    [:ul
-    [:li [dnc/route-link :core.flow "donut.frontend.core.flow examples"]]
-    [:li [dnc/route-link :sync.flow "donut.frontend.sync.flow examples"]]
-    [:li [dnc/route-link :nav.flow "donut.frontend.nav.flow examples"]]
-    [:li [dnc/route-link :form.flow "donut.frontend.form.flow examples"]]]])
+    [:li [dnc/route-link {:route-link :core.flow} "donut.frontend.core.flow examples"]]
+    [:li [dnc/route-link {:route-link :sync.flow} "donut.frontend.sync.flow examples"]]
+    [:li [dnc/route-link {:route-link :nav.flow} "donut.frontend.nav.flow examples"]]
+    [:li [dnc/route-link {:route-link :form.flow} "donut.frontend.form.flow examples"]]]])
