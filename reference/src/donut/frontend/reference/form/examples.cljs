@@ -6,6 +6,7 @@
    [donut.frontend.form.flow :as dff]
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.reference.form.simplemde]
+   [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.dispatch.echo :as dsde]
    ["marked" :as marked]
    [re-frame.core :as rf]))
@@ -181,7 +182,7 @@
 
 (defn examples
   []
-  [:div [:h1 "form examples"]
+  [:div [ui/h1 "form examples"]
    [form-example-features]
    [validation-example-stored-errors]
    [validation-example-dynamic]])
