@@ -8,10 +8,10 @@
 
 (defn simple-route-link
   [{:keys [route-name route-params query-params] :as link-opts}
-   child]
-  [:a (merge {:href (dfr/path route-name route-params query-params)}
-             (dissoc link-opts :route-name :route-params :query-params))
-   child])
+   & children]
+  (into [:a (merge {:href (dfr/path route-name route-params query-params)}
+                   (dissoc link-opts :route-name :route-params :query-params))]
+        children))
 
 (defn route-active?
   "returns true if given route name is the same as the current route name, or if
@@ -24,10 +24,10 @@
   [{:keys [route-name route-params query-params
            class active-class]
     :as link-opts}
-   child]
+   & children]
   (let [link-opts (assoc link-opts :class (if (and (route-active? route-name) active-class)
                                             active-class
                                             class))]
-    [:a (merge {:href (dfr/path route-name route-params query-params)}
-               (dissoc link-opts :route-name :route-params :query-params :active-class))
-     child]))
+    (into [:a (merge {:href (dfr/path route-name route-params query-params)}
+                     (dissoc link-opts :route-name :route-params :query-params :active-class))]
+          children)))
