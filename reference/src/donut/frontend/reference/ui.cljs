@@ -59,7 +59,7 @@
 
 (defn explain
   [text]
-  [:p {:class "mb-3 text-gray-600"}
+  [:p {:class "text-gray-600 my-3"}
    text])
 
 (defn example-offset

@@ -35,13 +35,12 @@
   []
   [:div {:class "p-4"}
    [ui/mono-header ":donut.core.flow/debounce-dispatch"]
-   [:div {:class "my-3"}
-    [ui/explain "To debounce an action is to delay its exection for some time period,
+   [ui/explain "To debounce an action is to delay its exection for some time period,
     and to reset the delay every time the action is attempted within that time
     period."]
-    [ui/explain "The button below dispatches a re-frame event after 1s, but if you click it again
+   [ui/explain "The button below dispatches a re-frame event after 1s, but if you click it again
     before that 1s interval is over, its delay will reset and you'll have to wait
-    1s more before the re-frame event is dispatched."]]
+    1s more before the re-frame event is dispatched."]
    [ui/example-offset
     [ui/button
      {:on-click #(rf/dispatch [::debounce-dispatch-example])}
@@ -61,8 +60,7 @@
   []
   [:div {:class "p-4"}
    [ui/mono-header ":donut.core.flow/set-toggle"]
-   [:div {:class "my-3"}
-    [ui/explain "This handler will toggle an element's inclusion in a set"]]
+   [ui/explain "This handler will toggle an element's inclusion in a set"]
    [ui/example-offset
     [ui/button
      {:on-click #(rf/dispatch [::dcf/set-toggle [:example ::set-toggle-example] :foo])}
@@ -77,27 +75,34 @@
 
 (defn toggle-example
   []
-  [:div {:class "py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"}
-   [:dt {:class ""} [ui/mono-header ":donut.core.flow/toggle"]]
-   [:dd {:class "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"}
+  [:div {:class "p-4"}
+   [ui/mono-header ":donut.core.flow/toggle"]
+
+   [ui/explain
+    "This handler's behavior differs based on the number of args you pass.
+     If you pass no additional args it togles between true and nil:"]
+   [ui/example-offset
     (let [path [:example ::toggle-boolean-example]]
       [:div
-       [ui/button
-        {:on-click #(rf/dispatch [::dcf/toggle path])}
+       [ui/button {:on-click #(rf/dispatch [::dcf/toggle path])}
         "boolean toggle"]
-       [:div "val: " (str @(rf/subscribe [::dcf/get-in path]))]])
+       [:div {:class "mt-2"}
+        "val: " (str @(rf/subscribe [::dcf/get-in path]))]])]
 
+   [ui/explain "If you pass in one additional arg, it toggles between that value and nil:"]
+   [ui/example-offset
     (let [path [:example ::toggle-truthy-example]]
       [:div
-       [ui/button
-        {:on-click #(rf/dispatch [::dcf/toggle path :foo])}
+       [ui/button {:on-click #(rf/dispatch [::dcf/toggle path :foo])}
         "truthy val toggle"]
-       [:div "val: " (str @(rf/subscribe [::dcf/get-in path]))]])
+       [:div {:class "mt-2"}
+        "val: " (str @(rf/subscribe [::dcf/get-in path]))]])]
 
+   [ui/explain "If you pass two additional args, it toggles between those two values:"]
+   [ui/example-offset
     (let [path [:example ::toggle-two-val-example]]
       [:div
-       [ui/button
-        {:on-click #(rf/dispatch [::dcf/toggle path :foo :bar])}
+       [ui/button {:on-click #(rf/dispatch [::dcf/toggle path :foo :bar])}
         "two val toggle"]
        [:div "val: " (str @(rf/subscribe [::dcf/get-in path]))]])]])
 
