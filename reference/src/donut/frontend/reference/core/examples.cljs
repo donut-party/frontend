@@ -113,7 +113,7 @@
 (defn examples
   []
   [:div
-   [ui/h2 "donut.frontend.core.flow"]
+   [ui/h1 "donut.frontend.core.flow"]
    [debounce-dispatch-example]
    [set-toggle-example]
    [toggle-example]])
