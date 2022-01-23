@@ -37,10 +37,12 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "lifecycle handlers"]
-    [:div ":nav.flow-1 lifecycle fire count:"
-     @(rf/subscribe [::dcf/get-in [::flow-1-val]])]
-    [:div ":nav.flow-2 lifecycle fire count:"
-     @(rf/subscribe [::dcf/get-in [::flow-2-val]])]]])
+    [ui/explain "TODO Each route can include lifecycle handlers"]
+    [ui/example-offset
+     [:div ":nav.flow-1 lifecycle fire count:"
+      @(rf/subscribe [::dcf/get-in [::flow-1-val]])]
+     [:div ":nav.flow-2 lifecycle fire count:"
+      @(rf/subscribe [::dcf/get-in [::flow-2-val]])]]]])
 
 (defn links
   []
@@ -81,10 +83,11 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h3 "buffer"]
-    [:p "you can associate values with navigation so that they're cleared on navigation events"]
-    [:div [:button {:on-click #(rf/dispatch [::dnf/assoc-in-buffer [:params] "foo"])} "populate buffer"]]
-    [:div "buffer val: "
-     @(rf/subscribe [::dnf/buffer])]]])
+    [ui/explain "TODO You can associate values with navigation so that they're cleared on navigation events"]
+    [ui/example-offset
+     [:div [:button {:on-click #(rf/dispatch [::dnf/assoc-in-buffer [:params] "foo"])} "populate buffer"]]
+     [:div "buffer val: "
+      @(rf/subscribe [::dnf/buffer])]]]])
 
 (defn prevent-nav-change
   []
@@ -107,7 +110,7 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h3 "routed entity"]
-    [ui/explain "the ::dnf/routed-entity subscription uses an id-key in route params to look up an entity"]
+    [ui/explain "TODO the ::dnf/routed-entity subscription uses an id-key in route params to look up an entity"]
     [ui/example-offset
      [:div
       [ui/button
