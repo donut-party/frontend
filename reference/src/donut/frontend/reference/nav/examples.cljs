@@ -7,11 +7,11 @@
 
 (defn route-sub
   [sub-name]
-  [:div
-   [:div {:class "font-mono font-semibold mt-4"} (str sub-name)]
-   [:div
-    {:class "font-mono text-sm"}
-    @(rf/subscribe [sub-name])]])
+  [:div {:class "mt-4"}
+   [:div {:class "bg-gray-200 px-2 py-1 mb-2 rounded-md"}
+    "subscription value for "
+    [:span {:class "font-mono font-semibold"} (str sub-name)]]
+   [ui/pprint @(rf/subscribe [sub-name])]])
 
 (defn route-subs
   []
@@ -47,16 +47,25 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "links and subscriptions"]
-    [ui/explain "click these links to see how route sub values change"]
+    [ui/explain
+     "As you navigate an SPA, the route matching the current URL is stored in the global
+      app db. donut includes subscriptions for this state."]
+    [ui/explain
+     "donut also includes helper components for creating links using route names."]
     [ui/example-offset
-     [:div
+     [:div {:class "font-semibold"}
+      "route links: "
       [:span {:class "mr-2"}
-       [ui/route-link {:route-name :nav.flow} ":nav.flow"]]
+       [ui/route-link {:route-name :nav.flow
+                       :class "text-blue-800 hover:text-green-500 underline"}
+        ":nav.flow"]]
       [:span {:class "mr-2"}
-       [ui/route-link {:route-name :nav.flow-1}
+       [ui/route-link {:route-name :nav.flow-1
+                       :class "text-blue-800 hover:text-green-500 underline"}
         ":nav.flow-1"]]
       [:span {:class "mr-2"}
-       [ui/route-link {:route-name :nav.flow-2}
+       [ui/route-link {:route-name :nav.flow-2
+                       :class "text-blue-800 hover:text-green-500 underline"}
         ":nav.flow-2"]]]
 
      [:div

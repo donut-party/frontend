@@ -71,3 +71,8 @@
   [& children]
   (into [:div {:class "mt-2"}]
         children))
+
+(defn pprint
+  [data]
+  [:pre {:class "text-sm font-mono"}
+   (with-out-str (cljs.pprint/pprint data))])
