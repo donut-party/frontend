@@ -34,8 +34,7 @@
 
    ["/nav.flow"
     {:name       :nav.flow
-     :lifecycle  {:param-change (fn [_ _ {:keys [params]}])
-                  :can-exit?    nav-flow-can-exit?}
+     :lifecycle  {:can-exit?    nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 
@@ -55,7 +54,7 @@
      :title      "Donut Examples"}]
 
    ["/nav.flow/routed-entity/{id}"
-    {:name       :nav.routed-entity
+    {:name       :nav.flow.routed-entity
      :lifecycle  {:can-exit? nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"
