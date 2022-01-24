@@ -1,6 +1,7 @@
 (ns donut.frontend.reference.frontend-routes
   (:require
    [re-frame.core :as rf]
+   [donut.frontend.form.flow :as dff]
    [donut.frontend.reference.components.home :as home]
    [donut.frontend.reference.core.examples :as dece]
    [donut.frontend.reference.form.examples :as defe]
@@ -63,5 +64,6 @@
 
    ["/form.flow"
     {:name       :form.flow
+     :lifecycle {:exit [::dff/clear [:post :users]]}
      :components {:main [defe/examples]}
      :title      "Donut Examples"}]])

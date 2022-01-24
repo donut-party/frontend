@@ -133,8 +133,10 @@
      "You can use a lifecycle handler to check whether to prevent nav changes.
       You might do this if a person is filling out a form and hasn't saved it."]
     [ui/explain
-     "To try this, toggle nav prevention with the button below and then try to navigate
-      new a new route."]
+     "To try this, toggle nav prevention with the button below and then try to
+      navigate new a new route. This is just a demo; a real example would
+      probably have a prompt like, Are you sure you want to leave?? We don't
+      want you to leave!!!"]
     [ui/example-offset
      [nav-links]
      [ui/button

@@ -12,6 +12,7 @@
 ;; - specify success handler
 ;; - handle failure
 ;;   - show failure message
+;; - rules
 
 (defn random-string
   []
@@ -68,7 +69,7 @@
   []
   [ui/example
    [:div {:class "p-4"}
-    [ui/h2 "segments with entities example"]
+    [ui/h2 "segments (with entities)"]
     [ui/explain
      "What if you want to return data other than entities? donut has an
       extensible mechanism for processing arbitrary-ish data from an API call. A
@@ -104,10 +105,29 @@
       [:div "entities at [:post]:"]
       [ui/pprint @(rf/subscribe [::dcf/get-in (p/path :entity [:post])])]]]]])
 
+(defn sync-status-example
+  []
+  [ui/example
+   [:div {:class "p-4"}
+    [ui/h2 "sync state subscription"]
+    [ui/explain
+     "Sync requests are stored in the global state atom, and their state is
+     updated over the lifetime of a request. You can subscribe to this."]
+
+    [ui/example-offset
+     [ui/button
+      ;; TODO make name random
+      {:on-click #(rf/dispatch [::dsf/get :users {::dsde/echo {:status :success
+                                                               :ms     1000}}])}
+      "click to simulate a successful sync request that takes 1 second"]
+     [:div {:class "mt-3"}
+      "Sync state: " @(rf/subscribe [::dsf/sync-state [:get :users]])]]]])
+
 (defn examples
   []
   [:div
    [ui/h1 "donut.frontend.sync.flow"]
    [basic-success-example]
    [multiple-entities-success-example]
-   [segments-example]])
+   [segments-example]
+   [sync-status-example]])
