@@ -29,17 +29,16 @@
 ;; focus
 (defn submit-button
   [{:keys [*submit *form-buffer *form-path]}]
-  [:input
-   {:type     "submit"
-    :value    "submit"
-    :on-click (dcu/prevent-default
+  [ui/button
+   {:on-click (dcu/prevent-default
                #(*submit
                  ;; we have to use echo here because we don't actually have a backend
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            1000}
                   ;; removes form data after success
-                  :success [::dff/clear *form-path]}))}])
+                  :success [::dff/clear *form-path]}))}
+   "submit"])
 
 (defn submitting-indicator
   [*sync-active?]
@@ -56,43 +55,70 @@
 
 (defn input-example-row
   [*form attr-name input-component]
-  [:tr
-   [:td (str attr-name)]
-   [:td input-component]
-   [:td [read-form-buffer (:*form-buffer *form) attr-name]]])
+  [:div {:class "sm:grid sm:grid-cols-3 sm:gap-4 py-2"}
+   [:div (str attr-name)]
+   [:div input-component]
+   [:div [read-form-buffer (:*form-buffer *form) attr-name]]])
+
+(def input-class
+  "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full
+   border sm:text-sm border-gray-300 rounded-md px-3 py-2")
+
+(def checkbox-class
+  "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounde border mr-1")
 
 (defn form-example-features
   []
   (dfc/with-form [:post :users]
-    [:form
-     [:div
-      [:div
-       [:h2 "user form"]
+    [ui/example
+     [:div {:class "p-4"}
+      [:form
        [:div
-        [:button {:on-click
-                  ;; use prevent-default here to prevent the enclosing form from
-                  ;; submitting.
-                  ;; another option is to just not have an enclosing form
-                  (dcu/prevent-default
-                   #(rf/dispatch [::dff/initialize-form
-                                  *form-path
-                                  {:buffer {:username "marcy"}}]))}
-         "populate form"]
-        " sets the username to 'marcy'"]
-       [:div
-        [:p "input components manage state in the global app db:"]
-        [:table
-         [:tbody
+        [:div
+         [ui/h2 "Built-in input types and custom inputs demo"]
+         [ui/explain
+          [:div
+           "donut has a full-featured system for working with forms. Some of its features include:"
+           [:ul {:class "list-disc ml-6"}
+            [:li "storing form data in the global state atom"]
+            [:li "a set schema for form data, one less decision for you to have to make"]
+            [:li "wiring up input events so that you don't have to"]
+            [:li "handling form submission lifecycle"]
+            [:li "extensibility: you can easily create your own custom input types, like the markdown editor below"]
+            [:li "feedback - not just validation, but confirmation that values are good"]]]]
+
+         [ui/h3 "Fill in form data"]
+         [ui/explain "There's an event to set form data"]
+         [:div
+          [ui/button
+           {:on-click
+            ;; use prevent-default here to prevent the enclosing form from
+            ;; submitting.
+            ;; another option is to just not have an enclosing form
+            (dcu/prevent-default
+             #(rf/dispatch [::dff/initialize-form
+                            *form-path
+                            {:buffer {:username "marcy"}}]))}
+           "populate form"]
+          " sets the username value to 'marcy'"]
+         [ui/explain "input components manage state in the global app db:"]
+         [:div {:class "sm:divide-y sm:divide-gray-200"}
           [input-example-row
            *form
            :username
            [:div
-            [(dcu/focus-component
-              [*input :text :username])]
-            "(this automatically gains focus)"]]
-          [input-example-row *form :active? [*input :checkbox :active? {:donut.input/value true}]]
-          [input-example-row *form :remind-on [*input :date :remind-on]]
-          [input-example-row *form :score [*input :number :score]]
+            [:div
+             [(dcu/focus-component
+               [*input :text :username {:class input-class}])]]
+            [:div "(this automatically gains focus)"]]]
+          [input-example-row *form :active?
+           [*input :checkbox :active?
+            {:donut.input/value true
+             :class checkbox-class}]]
+          [input-example-row *form :remind-on
+           [*input :date :remind-on {:class input-class}]]
+          [input-example-row *form :score
+           [*input :number :score {:class input-class}]]
           [input-example-row
            *form
            :email-preferences
@@ -100,10 +126,12 @@
             [:div
              [*field :checkbox-set :email-preferences
               {:donut.field/label "gimme marketing emails, i am a weirdo"
-               :donut.input/value :marketing}]
+               :donut.input/value :marketing
+               :donut.input/class checkbox-class}]
              [*field :checkbox-set :email-preferences
               {:donut.field/label "gimme service emails"
-               :donut.input/value :service}]]]]
+               :donut.input/value :service
+               :donut.input/class checkbox-class}]]]]
           [input-example-row
            *form
            :favorite-pet
@@ -113,7 +141,8 @@
                                           [:janie "Janie"]
                                           [:cloud "Cloud"]
                                           [:link "Link"]
-                                          [:rory "Rory"]]}]]
+                                          [:rory "Rory"]]
+             :class input-class}]]
           [input-example-row
            *form
            :dream-vacation
@@ -121,28 +150,31 @@
             [:div
              [*field :radio :dream-vacation
               {:donut.field/label "mountains"
-               :donut.input/value :mountains}]
+               :donut.input/value :mountains
+               :class checkbox-class}]
              [*field :radio :dream-vacation
               {:donut.field/label "beach"
-               :donut.input/value :beach}]]]]
-          [:tr
-           [:td ":profile"]
-           [:td
-            [:div
-             [:p "you can create custom input elements, like this markdown editor"]
-             [*input :simplemde :profile]]]
-           [:td [rendered-markdown *form-buffer]]]]]]
+               :donut.input/value :beach
+               :class checkbox-class}]]]]
 
-       [:div
-        [:p "with-form includes a helper function for submitting the form"]
-        [submit-button *form]
-        [submitting-indicator *sync-active?]
-        [:span " <- a submitting indicator will show up here when you hit submit"]]]
-      [:div
-       [:h2 "submitted users"]
-       (->> @(rf/subscribe [::dcf/entities :user :id])
-            (map (fn [u] [:li (str u)]))
-            (into [:ul]))]]]))
+          [:div
+           [:div ":profile"]
+           [:div
+            [ui/explain "you can create custom input elements, like this markdown editor"]
+            [*input :simplemde :profile]]
+           [:div
+            [ui/example-offset
+             [rendered-markdown *form-buffer]]]]]
+
+         [:div
+          [:p "with-form includes a helper function for submitting the form"]
+          [submit-button *form]
+          [submitting-indicator *sync-active?]
+          [:span " <- a submitting indicator will show up here when you hit submit"]]]
+        [:div
+         [ui/h2 "submitted users"]
+         [ui/example-offset
+          [ui/pprint @(rf/subscribe [::dcf/entities :user :id])]]]]]]]))
 
 ;;---
 ;; validation examples
