@@ -166,11 +166,17 @@
             [ui/example-offset
              [rendered-markdown *form-buffer]]]]]
 
-         [:div
-          [:p "with-form includes a helper function for submitting the form"]
-          [submit-button *form]
-          [submitting-indicator *sync-active?]
-          [:span " <- a submitting indicator will show up here when you hit submit"]]]
+         [ui/explain
+          [:div
+           [ui/h2 "Form submission state"]
+           "The form library provides submit helpers that are tied to syncing.
+            You can use a sync subscription to show feedback for form submission
+            progress."]]
+         [ui/explain
+          [:div
+           [submit-button *form]
+           [submitting-indicator *sync-active?]
+           [:span " <- a submitting indicator will show up here when you hit submit"]]]]
         [:div
          [ui/h2 "submitted users"]
          [ui/example-offset
