@@ -50,8 +50,8 @@
 
 (defn rendered-markdown
   [*form-buffer]
-  [:div "rendered markdown:"
-   [:div (markdown (:profile @*form-buffer))]])
+  [:div "markdown -> html:"
+   [:div (marked (or (:profile @*form-buffer) ""))]])
 
 (defn input-example-row
   [*form attr-name input-component]
@@ -182,19 +182,20 @@
 
 (defn validation-example-stored-errors
   []
-  [:div
-   [:h2 "Validation Example 1: Server-side-validation"]
-   [:p "This simulates a setup where your form fails server-side validation.
+  [ui/example
+   [:div {:class "p-4"}
+    [ui/h2 "Validation Example 1: Server-side-validation"]
+    [:p "This simulates a setup where your form fails server-side validation.
         It hides the field's error message when its input receives focus, because
         I think that's a friendlier design."]
-   (dfc/with-form [:post :users]
-     {:feedback-fns {:errors dffk/stored-error-feedback}}
-     [:div
-      [*field :text :first-name]
-      [:input {:type     "submit"
-               :value    "populate errors"
-               :on-click #(*submit {::dsde/echo {:status        :fail
-                                                 :response-data [[:errors {:attrs {[:first-name] ["bad username"]}}]]}})}]])])
+    (dfc/with-form [:post :users]
+      {:feedback-fns {:errors dffk/stored-error-feedback}}
+      [:div
+       [*field :text :first-name {:class input-class}]
+       [ui/button
+        {:on-click #(*submit {::dsde/echo {:status        :fail
+                                           :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]}})}
+        "populate errors"]])]])
 
 (def UserSchema
   [:map
@@ -202,19 +203,21 @@
 
 (defn validation-example-dynamic
   []
-  [:div
-   [:h2 "Validation Example 2: Dynamic"]
-   [:p "Uses malli to validate a form. Validation message doesn't appear until blur.
+  [ui/example
+   [:div {:class "p-4"}
+    [ui/h2 "Validation Example 2: Dynamic"]
+    [:p "Uses malli to validate a form. Validation message doesn't appear until blur.
         Otherwise it'd be obnoxious, telling you the input is incorrect when you haven't
         even finished filling it out."]
-   (dfc/with-form [:post :users]
-     {:feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
-     [:div
-      [*field :text :zip-code]])])
+    (dfc/with-form [:post :users]
+      {:feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
+      [:div
+       [*field :text :zip-code {:class input-class}]])]])
 
 (defn examples
   []
-  [:div [ui/h1 "form examples"]
+  [:div
+   [ui/h1 "form examples"]
    [form-example-features]
    [validation-example-stored-errors]
    [validation-example-dynamic]])
