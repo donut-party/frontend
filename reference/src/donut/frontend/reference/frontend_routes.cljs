@@ -48,8 +48,8 @@
 
    ["/nav.flow/2"
     {:name       :nav.flow-2
-     :lifecycle  {:param-change (fn [_ _ {:keys [params]}]
-                                  [::dene/set-flow-2-val (str (random-uuid))])
+     :lifecycle  {:param-change (fn [_ _ _]
+                                  [[::dene/set-flow-2-val (str (random-uuid))]])
                   :can-exit?    nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
