@@ -105,63 +105,63 @@
          [:div {:class "sm:divide-y sm:divide-gray-200"}
           [input-example-row
            *form
-           :username
+           [:username]
            [:div
             [:div
              [(dcu/focus-component
-               [*input :text :username {:class input-class}])]]
+               [*input :text [:username] {:class input-class}])]]
             [:div "(this automatically gains focus)"]]]
           [input-example-row *form :active?
-           [*input :checkbox :active?
+           [*input :checkbox [:active?]
             {:donut.input/value true
-             :class checkbox-class}]]
-          [input-example-row *form :remind-on
+             :class             checkbox-class}]]
+          [input-example-row *form [:remind-on]
            [*input :date :remind-on {:class input-class}]]
-          [input-example-row *form :score
+          [input-example-row *form [:score]
            [*input :number :score {:class input-class}]]
           [input-example-row
            *form
-           :email-preferences
+           [:email-preferences]
            [:div
             [:div
-             [*field :checkbox-set :email-preferences
+             [*field :checkbox-set [:email-preferences]
               {:donut.field/label "gimme marketing emails, i am a weirdo"
                :donut.input/value :marketing
                :donut.input/class checkbox-class}]
-             [*field :checkbox-set :email-preferences
+             [*field :checkbox-set [:email-preferences]
               {:donut.field/label "gimme service emails"
-               :donut.input/value :service
+               :donut.input/value [:service]
                :donut.input/class checkbox-class}]]]]
           [input-example-row
            *form
-           :favorite-pet
-           [*input :select :favorite-pet
+           [:favorite-pet]
+           [*input :select [:favorite-pet]
             {:donut.input/select-options [[nil "Select one"]
                                           [:dozer "Dozer"]
                                           [:janie "Janie"]
                                           [:cloud "Cloud"]
                                           [:link "Link"]
                                           [:rory "Rory"]]
-             :class input-class}]]
+             :class                      input-class}]]
           [input-example-row
            *form
-           :dream-vacation
+           [:dream-vacation]
            [:div
             [:div
-             [*field :radio :dream-vacation
+             [*field :radio [:dream-vacation]
               {:donut.field/label "mountains"
                :donut.input/value :mountains
-               :class checkbox-class}]
-             [*field :radio :dream-vacation
+               :class             checkbox-class}]
+             [*field :radio [:dream-vacation]
               {:donut.field/label "beach"
                :donut.input/value :beach
-               :class checkbox-class}]]]]
+               :class             checkbox-class}]]]]
 
           [:div
            [:div ":profile"]
            [:div
             [ui/explain "you can create custom input elements, like this markdown editor"]
-            [*input :simplemde :profile]]
+            [*input :simplemde [:profile]]]
            [:div
             [ui/example-offset
              [rendered-markdown *form-buffer]]]]]
@@ -197,7 +197,7 @@
     (dfc/with-form [:post :users]
       {:feedback-fns {:errors dffk/stored-error-feedback}}
       [:div
-       [*field :text :first-name {:class input-class}]
+       [*field :text [:first-name] {:class input-class}]
        [ui/button
         {:on-click #(*submit {::dsde/echo {:status        :fail
                                            :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]}})}
@@ -218,7 +218,7 @@
     (dfc/with-form [:post :users]
       {:feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
       [:div
-       [*field :text :zip-code {:class input-class}]])]])
+       [*field :text [:zip-code] {:class input-class}]])]])
 
 (defn examples
   []

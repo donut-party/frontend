@@ -86,8 +86,7 @@
     (rf/subscribe [::feedback partial-form-path feedback-fns]))
   (fn [feedback [_ _partial-form-path attr-path]]
     (reduce-kv (fn [attr-feedback feedback-type all-feedback]
-                 (if-let [feedback (get (:attrs all-feedback)
-                                        (dsu/vectorize attr-path))]
+                 (if-let [feedback (get (:attrs all-feedback) attr-path)]
                    (assoc attr-feedback feedback-type feedback)
                    attr-feedback))
                {}

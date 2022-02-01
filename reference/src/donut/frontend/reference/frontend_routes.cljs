@@ -41,7 +41,7 @@
 
    ["/nav.flow/1"
     {:name       :nav.flow-1
-     :lifecycle  {:param-change [::dene/inc-flow-1-lifecycle-fire-count]
+     :lifecycle  {:param-change [[::dene/inc-flow-1-lifecycle-fire-count]]
                   :can-exit?    nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]

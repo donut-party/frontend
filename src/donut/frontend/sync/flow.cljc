@@ -120,22 +120,12 @@
   (fn [_ [dispatches]]
     {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
 
-(defn vectorize-dispatches
-  [xs]
-  (cond (nil? xs)             []
-        (keyword? (first xs)) [xs]
-        :else                 xs))
-
 (defn response-dispatches
   "Combine default response dispatches with request-specific response dispatches"
   [req {:keys [status] :as _resp}]
   (let [{:keys [default-on on] :as _rdata} (get req 2)
-
-        default-dispatches (->> (get default-on status (get default-on
-                                                            :fail))
-                                (vectorize-dispatches))
-        dispatches         (->> (get on status (get on :fail))
-                                (vectorize-dispatches))]
+        default-dispatches (vec (get default-on status (get default-on :fail)))
+        dispatches         (vec (get on status (get on :fail)))]
     (into default-dispatches dispatches)))
 
 (defn sync-response-handler

@@ -97,12 +97,12 @@
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
   (fn [buffer [_ _partial-form-path attr-path]]
-    (get-in buffer (dsu/vectorize attr-path))))
+    (get-in buffer attr-path)))
 
 (rf/reg-sub ::attr-errors
   (attr-facet-sub ::errors)
   (fn [errors [_ _partial-form-path attr-path]]
-    (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
+    (get-in errors (into [:attrs] attr-path))))
 
 (rf/reg-sub ::form-errors
   (attr-facet-sub ::errors)
@@ -112,7 +112,7 @@
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
   (fn [input-events [_ _partial-form-path attr-path]]
-    (get-in input-events (into [:attrs] (dsu/vectorize attr-path)))))
+    (get-in input-events (into [:attrs] attr-path))))
 
 (rf/reg-sub ::form-input-events
   (attr-facet-sub ::input-events)
@@ -178,7 +178,7 @@
              (fn [form]
                (cond-> form
                  event-type
-                 (update-in [:input-events :attrs (dsu/vectorize attr-path)]
+                 (update-in [:input-events :attrs attr-path]
                             (fnil conj #{})
                             event-type)
                  (contains? opts :val)
@@ -232,7 +232,7 @@
                           :or   {data-fn identity}
                           :as   form}]]
   (initialize-form db [partial-form-path (-> form
-                                             (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
+                                             (assoc :buffer (data-fn (get-in db data-path)))
                                              (dissoc :data-path :data-fn))]))
 
 ;; Populate form initial state
