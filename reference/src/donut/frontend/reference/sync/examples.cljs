@@ -94,8 +94,8 @@
        #(rf/dispatch [::dsf/get
                       :users
                       {::dsde/echo {:status        :success
-                                    :response-data [[:entity [:post :id {:id      1
-                                                                         :content (random-string)}]]
+                                    :response-data [[:entities [:post :id [{:id      1
+                                                                            :content (random-string)}]]]
                                                     [:entities [:post :id [{:id      2
                                                                             :content (random-string)}
                                                                            {:id      3

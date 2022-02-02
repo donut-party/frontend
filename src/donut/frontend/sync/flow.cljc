@@ -261,11 +261,6 @@
   "Sync segments allow the backend to convey heterogenous data to the frontend."
   (fn [_db [segment-type]] segment-type))
 
-;; TODO it'd be better to not require id-key
-(defmethod apply-sync-segment :entity
-  [db [_ [ent-type id-key ent]]]
-  (apply-sync-segment db [:entities [ent-type id-key [ent]]]))
-
 (defmethod apply-sync-segment :entities
   [db [_ [ent-type id-key ents]]]
   (replace-ents db ent-type id-key ents))
