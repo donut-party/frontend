@@ -54,11 +54,11 @@
 
 (defn assoc-in-form
   [db form-key ks v]
-  (assoc-in db (p/form (into [form-key] ks)) v))
+  (assoc-in db (p/form-path (into [form-key] ks)) v))
 
 (defn update-in-form
   [db form-key ks f & args]
-  (apply update-in db (p/form (into [form-key] ks)) f args))
+  (apply update-in db (p/form-path (into [form-key] ks)) f args))
 
 ;;--------------------
 ;; Form subs
@@ -208,7 +208,7 @@
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
   [db [form-key]]
   (update-in db
-             (p/form [form-key])
+             (p/form-path [form-key])
              (fn [{:keys [buffer-init-val] :as form}]
                (assoc form :buffer buffer-init-val))))
 
@@ -219,7 +219,7 @@
 (defn initialize-form
   [db [form-key {:keys [buffer] :as form}]]
   (assoc-in db
-            (p/form [form-key])
+            (p/form-path [form-key])
             (update form :buffer-init-val #(or % buffer))))
 
 ;; Populate form initial state
@@ -242,7 +242,7 @@
 
 (defn set-form
   [db [form-key form]]
-  (assoc-in db (p/form [form-key]) form))
+  (assoc-in db (p/form-path [form-key]) form))
 
 (dh/rr rf/reg-event-db ::set-form
   [rf/trim-v]
@@ -259,7 +259,7 @@
 (defn clear-selected-keys
   [db form-key clear]
   (update-in db
-             (p/form [form-key])
+             (p/form-path [form-key])
              select-keys
              (if (or (= :all clear) (nil? clear))
                #{}
@@ -273,15 +273,15 @@
 (dh/rr rf/reg-event-db ::keep
   [rf/trim-v]
   (fn [db [form-key keep-keys]]
-    (update-in db (p/form [form-key]) select-keys keep-keys)))
+    (update-in db (p/form-path [form-key]) select-keys keep-keys)))
 
 (dh/rr rf/reg-event-db ::replace-with-response
   [rf/trim-v]
   (fn [db [{:keys [form-key] :as ctx}]]
     (let [data  (dsf/single-entity ctx)]
       (-> db
-          (assoc-in (p/form [form-key :buffer-init-val]) data)
-          (assoc-in (p/form [form-key :buffer]) data)))))
+          (assoc-in (p/form-path [form-key :buffer-init-val]) data)
+          (assoc-in (p/form-path [form-key :buffer]) data)))))
 
 ;;---------------------
 ;; submitting a form
@@ -314,7 +314,7 @@
         sync-opts (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
                                                         [::dsf/default-sync-success :$ctx]]
                                               :fail    [[::submit-form-fail :$ctx]]}
-                               :$ctx         {:full-form-path (p/form [form-key])
+                               :$ctx         {:full-form-path (p/form-path [form-key])
                                               :form-key       form-key}
                                :params       params
                                :route-params (or route-params params)
@@ -328,7 +328,7 @@
   "build form request. update db to indicate form's submitting, clear
   old errors"
   [{:keys [db]} [form-key & [form-spec]]]
-  (let [full-form-path (p/form [form-key])]
+  (let [full-form-path (p/form-path [form-key])]
     {:db       (-> db
                    (update-in full-form-path merge {:errors nil})
                    (update-in (into full-form-path [:input-events :form])
@@ -347,7 +347,7 @@
   [rf/trim-v]
   (fn [db [form-key]]
     (update-in db
-               (p/form (into [form-key] [:input-events :form]))
+               (p/form-path (into [form-key] [:input-events :form]))
                (fnil conj #{})
                :submit)))
 

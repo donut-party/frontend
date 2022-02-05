@@ -91,7 +91,7 @@
   count"
   [db req]
   (-> db
-      (update-in (p/reqs [(sync-key req)])
+      (update-in (p/reqs-path [(sync-key req)])
                  merge
                  {:state            :active
                   :active-nav-route (p/get-path db :nav [:route])})
@@ -108,7 +108,7 @@
   "Update sync bookkeeping"
   [db [_ req resp]]
   (-> db
-      (assoc-in (p/reqs [(sync-key req) :state]) (:status resp))
+      (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
 (dh/rr rf/reg-event-db ::sync-finished

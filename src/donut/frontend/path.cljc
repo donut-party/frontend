@@ -20,13 +20,13 @@
   (cond-> (prefix-name config)
     (some? partial-path) (into partial-path)))
 
-(defn form [partial-path]    (into [:donut :form] partial-path))
-(defn page [partial-path]    (into [:donut :page] partial-path))
-(defn entity [partial-path]  (into [:donut :entity] partial-path))
-(defn nav [partial-path]     (into [:donut :nav] partial-path))
-(defn failure [partial-path] (into [:donut :failure] partial-path))
-(defn reqs [partial-path]    (into [:donut :reqs] partial-path))
-(defn system [partial-path]  (into [:donut :system] partial-path))
+(defn form-path [partial-path]    (into [:donut :form] partial-path))
+(defn page-path [partial-path]    (into [:donut :page] partial-path))
+(defn entity-path [partial-path]  (into [:donut :entity] partial-path))
+(defn nav-path [partial-path]     (into [:donut :nav] partial-path))
+(defn failure-path [partial-path] (into [:donut :failure] partial-path))
+(defn reqs-path [partial-path]    (into [:donut :reqs] partial-path))
+(defn system-path [partial-path]  (into [:donut :system] partial-path))
 
 (defn get-path
   [db prefix-name & [partial-path]]
