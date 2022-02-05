@@ -28,7 +28,7 @@
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
 (defn submit-button
-  [{:keys [*submit *form-buffer *form-path]}]
+  [{:keys [*submit *form-buffer *form-key]}]
   [ui/button
    {:on-click (dcu/prevent-default
                #(*submit
@@ -37,7 +37,7 @@
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            1000}
                   ;; removes form data after success
-                  :success [::dff/clear *form-path]}))}
+                  :success [::dff/clear *form-key]}))}
    "submit"])
 
 (defn submitting-indicator
@@ -97,7 +97,7 @@
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
              #(rf/dispatch [::dff/initialize-form
-                            *form-path
+                            *form-key
                             {:buffer {:username "marcy"}}]))}
            "populate form"]
           " sets the username value to 'marcy'"]
@@ -219,6 +219,14 @@
       {:feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
       [:div
        [*field :text :zip-code {:class input-class}]])]])
+
+(defn formwide-opts-example
+  []
+  [ui/example
+   [:div {:class "p-4"}
+    (dfc/with-form [:post :users {:id 1}]
+      {:sync-key [:foo]}
+      [:div])]])
 
 (defn examples
   []

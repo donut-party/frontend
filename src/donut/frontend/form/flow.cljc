@@ -53,36 +53,36 @@
 ;;--------------------
 
 (defn assoc-in-form
-  [db partial-form-path ks v]
-  (assoc-in db (p/path :form (into partial-form-path ks)) v))
+  [db form-key ks v]
+  (assoc-in db (p/form (into [form-key] ks)) v))
 
 (defn update-in-form
-  [db partial-form-path ks f & args]
-  (apply update-in db (p/path :form (into partial-form-path ks)) f args))
+  [db form-key ks f & args]
+  (apply update-in db (p/form (into [form-key] ks)) f args))
 
 ;;--------------------
 ;; Form subs
 ;;--------------------
 
 (rf/reg-sub ::form
-  (fn [db [_ partial-form-path]]
-    (p/get-path db :form partial-form-path)))
+  (fn [db [_ form-key]]
+    (p/get-path db :form [form-key])))
 
 (defn form-signal
-  [[_ partial-form-path]]
-  (rf/subscribe [::form partial-form-path]))
+  [[_ form-key]]
+  (rf/subscribe [::form form-key]))
 
-(def sub-name->form-key
+(def sub-name->inner-key
   {::buffer          :buffer
    ::errors          :errors
    ::input-events    :input-events
    ::buffer-init-val :buffer-init-val
    ::ui-state        :ui-state})
 
-(def form-keys (set (vals sub-name->form-key)))
+(def inner-keys (set (vals sub-name->inner-key)))
 
 ;; register these subscriptions
-(doseq [[sub-name attr] sub-name->form-key]
+(doseq [[sub-name attr] sub-name->inner-key]
   (rf/reg-sub sub-name
     form-signal
     (fn [form _]
@@ -91,17 +91,17 @@
 ;; Value for a specific form attribute
 (defn attr-facet-sub
   [facet]
-  (fn [[_ partial-form-path]]
-    (rf/subscribe [facet partial-form-path])))
+  (fn [[_ form-key]]
+    (rf/subscribe [facet form-key])))
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
-  (fn [buffer [_ _partial-form-path attr-path]]
+  (fn [buffer [_ _form-key attr-path]]
     (get-in buffer (dsu/vectorize attr-path))))
 
 (rf/reg-sub ::attr-errors
   (attr-facet-sub ::errors)
-  (fn [errors [_ _partial-form-path attr-path]]
+  (fn [errors [_ _form-key attr-path]]
     (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-errors
@@ -111,7 +111,7 @@
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
-  (fn [input-events [_ _partial-form-path attr-path]]
+  (fn [input-events [_ _form-key attr-path]]
     (get-in input-events (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-input-events
@@ -121,9 +121,9 @@
 
 ;; Has the user modified the buffer?
 (rf/reg-sub ::form-dirty?
-  (fn [[_ partial-form-path]]
-    [(rf/subscribe [::buffer-init-val partial-form-path])
-     (rf/subscribe [::buffer partial-form-path])])
+  (fn [[_ form-key]]
+    [(rf/subscribe [::buffer-init-val form-key])
+     (rf/subscribe [::buffer form-key])])
   (fn [[buffer-init-val buffer]]
     (not= buffer-init-val buffer)))
 
@@ -172,9 +172,9 @@
 
 (defn attr-input-event
   "Meant to handle all input events: focus, blur, change, etc"
-  [db [{:keys [partial-form-path attr-path val event-type] :as opts}]]
+  [db [{:keys [form-key attr-path val event-type] :as opts}]]
   (update-in db
-             (p/path :form partial-form-path)
+             (p/path :form [form-key])
              (fn [form]
                (cond-> form
                  event-type
@@ -190,9 +190,9 @@
 
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
-  [db [{:keys [partial-form-path event-type]}]]
+  [db [{:keys [form-key event-type]}]]
   (update-in db
-             (p/path :form (into partial-form-path [:input-events :form]))
+             (p/path :form (into [form-key] [:input-events :form]))
              (fnil conj #{})
              event-type))
 
@@ -206,9 +206,9 @@
 
 (defn reset-form-buffer
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
-  [db [partial-form-path]]
+  [db [form-key]]
   (update-in db
-             (p/path :form partial-form-path)
+             (p/form [form-key])
              (fn [{:keys [buffer-init-val] :as form}]
                (assoc form :buffer buffer-init-val))))
 
@@ -217,9 +217,9 @@
   reset-form-buffer)
 
 (defn initialize-form
-  [db [partial-form-path {:keys [buffer] :as form}]]
+  [db [form-key {:keys [buffer] :as form}]]
   (assoc-in db
-            (p/path :form partial-form-path)
+            (p/form [form-key])
             (update form :buffer-init-val #(or % buffer))))
 
 ;; Populate form initial state
@@ -228,10 +228,10 @@
   initialize-form)
 
 (defn initialize-form-from-path
-  [db [partial-form-path {:keys [data-path data-fn]
+  [db [form-key {:keys [data-path data-fn]
                           :or   {data-fn identity}
                           :as   form}]]
-  (initialize-form db [partial-form-path (-> form
+  (initialize-form db [form-key (-> form
                                              (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
                                              (dissoc :data-path :data-fn))]))
 
@@ -241,8 +241,8 @@
   initialize-form-from-path)
 
 (defn set-form
-  [db [partial-form-path form]]
-  (assoc-in db (p/path :form partial-form-path) form))
+  [db [form-key form]]
+  (assoc-in db (p/form [form-key]) form))
 
 (dh/rr rf/reg-event-db ::set-form
   [rf/trim-v]
@@ -257,31 +257,31 @@
   clear-form)
 
 (defn clear-selected-keys
-  [db partial-form-path clear]
+  [db form-key clear]
   (update-in db
-             (p/path :form partial-form-path)
+             (p/form [form-key])
              select-keys
              (if (or (= :all clear) (nil? clear))
                #{}
-               (set/difference form-keys (set clear)))))
+               (set/difference inner-keys (set clear)))))
 
 (dh/rr rf/reg-event-db ::clear
   [rf/trim-v]
-  (fn [db [partial-form-path clear]]
-    (clear-selected-keys db partial-form-path clear)))
+  (fn [db [form-key clear]]
+    (clear-selected-keys db form-key clear)))
 
 (dh/rr rf/reg-event-db ::keep
   [rf/trim-v]
-  (fn [db [partial-form-path keep-keys]]
-    (update-in db (p/path :form partial-form-path) select-keys keep-keys)))
+  (fn [db [form-key keep-keys]]
+    (update-in db (p/form [form-key]) select-keys keep-keys)))
 
 (dh/rr rf/reg-event-db ::replace-with-response
   [rf/trim-v]
-  (fn [db [{:keys [partial-form-path] :as ctx}]]
+  (fn [db [{:keys [form-key] :as ctx}]]
     (let [data  (dsf/single-entity ctx)]
       (-> db
-          (assoc-in (p/path :form partial-form-path :buffer-init-val) data)
-          (assoc-in (p/path :form partial-form-path :buffer) data)))))
+          (assoc-in (p/form [form-key :buffer-init-val]) data)
+          (assoc-in (p/form [form-key :buffer]) data)))))
 
 ;;---------------------
 ;; submitting a form
@@ -292,19 +292,19 @@
 (defn form-sync-opts
   "Returns a request that the sync handler can use
 
-  `form-handle`, the first element in a partial form path, is usually
-  the route name. however, say you want to display two
-  `[:todos :post]` forms. You don't want them to store their form
-  data in the same place, so for one you use the partial form path
-  `[:todos-a :post]` and for the other you use `[:todos-b :post]`.
+  `form-handle`, the second element in a partial form path, is usually the route
+  name. however, say you want to display two `[:post :todos]` forms. You don't
+  want them to store their form data in the same place, so for one you use the
+  partial form path `[:post :todos-a]` and for the other you use
+  `[:post :todos-b]`.
 
   You would then need to include `:route-name` in the `sync` opts.
 
   - `success` and `fail` are the handlers for request completion.
-  - `form-spec` is a way to pass on whatevs data to the request
-    completion handler.
+  - `form-spec` is a way to pass on whatevs data to the request completion
+    handler.
   - the `:sync` key of form spec can customize the sync request"
-  [[method form-handle route-params :as partial-form-path]
+  [[method form-handle route-params :as form-key]
    buffer-data
    sync-opts]
   (let [route-name (get sync-opts :sync-route-name form-handle)
@@ -314,8 +314,8 @@
         sync-opts (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
                                                         [::dsf/default-sync-success :$ctx]]
                                               :fail    [[::submit-form-fail :$ctx]]}
-                               :$ctx         {:full-form-path    (p/path :form partial-form-path)
-                                              :partial-form-path partial-form-path}
+                               :$ctx         {:full-form-path (p/form [form-key])
+                                              :form-key       form-key}
                                :params       params
                                :route-params (or route-params params)
                                ;; by default don't allow a form to be submitted
@@ -327,14 +327,14 @@
 (defn submit-form
   "build form request. update db to indicate form's submitting, clear
   old errors"
-  [{:keys [db]} [partial-form-path & [form-spec]]]
-  (let [full-form-path (p/path :form partial-form-path)]
+  [{:keys [db]} [form-key & [form-spec]]]
+  (let [full-form-path (p/form [form-key])]
     {:db       (-> db
                    (update-in full-form-path merge {:errors nil})
                    (update-in (into full-form-path [:input-events :form])
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-sync-opts partial-form-path
+     :dispatch [::dsf/sync (form-sync-opts form-key
                                            (get-in db (conj full-form-path :buffer))
                                            form-spec)]}))
 
@@ -345,9 +345,9 @@
 ;; when user clicks submit on form that has errors
 (dh/rr rf/reg-event-db ::register-form-submit
   [rf/trim-v]
-  (fn [db [partial-form-path]]
+  (fn [db [form-key]]
     (update-in db
-               (p/path :form (into partial-form-path [:input-events :form]))
+               (p/form (into [form-key] [:input-events :form]))
                (fnil conj #{})
                :submit)))
 

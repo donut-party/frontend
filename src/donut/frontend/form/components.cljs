@@ -16,29 +16,29 @@
 ;; "x-required" or just "required"
 
 (defn dispatch-form-input-event
-  [form-path event-type]
-  (rf/dispatch [::dff/form-input-event {:partial-form-path form-path
-                                        :event-type        event-type}]))
+  [form-key event-type]
+  (rf/dispatch [::dff/form-input-event {:form-key   form-key
+                                        :event-type event-type}]))
 
 (defn dispatch-attr-input-event
   [dom-event
-   {:donut.input/keys [format-write partial-form-path attr-path]}
+   {:donut.input/keys [format-write form-key attr-path]}
    & [update-val?]]
   (rf/dispatch-sync
    [::dff/attr-input-event
-    (cond-> {:partial-form-path partial-form-path
+    (cond-> {:form-key form-key
              :attr-path attr-path}
       true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
       update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
 
 (defn dispatch-new-val
   "Helper when you want non-input elements to update a val"
-  [form-path attr-path val & [opts]]
+  [form-key attr-path val & [opts]]
   (rf/dispatch-sync
-   [::dff/attr-input-event (merge {:partial-form-path form-path
-                                   :attr-path         attr-path
-                                   :event-type        nil
-                                   :val               val}
+   [::dff/attr-input-event (merge {:form-key   form-key
+                                   :attr-path  attr-path
+                                   :event-type nil
+                                   :val        val}
                                   opts)]))
 
 (defn attr-path-str
@@ -59,8 +59,8 @@
   (str form-id (attr-path-str attr-path)))
 
 (defn input-key
-  [{:donut.input/keys [form-id partial-form-path attr-path]} & suffix]
-  (str form-id partial-form-path attr-path (str/join "" suffix)))
+  [{:donut.input/keys [form-id form-key attr-path]} & suffix]
+  (str form-id form-key attr-path (str/join "" suffix)))
 
 ;; composition helpers
 (defn pre-wrap
@@ -95,7 +95,7 @@
                   :donut.input/attr-feedback
                   :donut.input/select-options
                   :donut.input/select-option-components
-                  :donut.input/partial-form-path
+                  :donut.input/form-key
                   :donut.input/feedback-fns
                   :donut.input/format-read
                   :donut.input/format-write})
@@ -103,15 +103,15 @@
 (def all-opts (into field-opts input-opts))
 
 (defn framework-input-opts
-  [{:donut.input/keys [attr-path partial-form-path feedback-fns]
+  [{:donut.input/keys [attr-path form-key feedback-fns]
     :as               opts}]
   (merge
-   #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer partial-form-path attr-path])
+   #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer form-key attr-path])
                  :attr-feedback     (rf/subscribe [::dffk/attr-feedback
-                                                   partial-form-path
+                                                   form-key
                                                    attr-path
                                                    feedback-fns])
-                 :attr-input-events (rf/subscribe [::dff/attr-input-events partial-form-path attr-path])}
+                 :attr-input-events (rf/subscribe [::dff/attr-input-events form-key attr-path])}
    opts))
 
 (defn default-event-handlers
@@ -366,7 +366,7 @@
   This allows the user to call [input :text :user/username {:x :y}]
   rather than something like
 
-  [input (all-input-opts :partial-form-path :text :user/username {:x :y})]"
+  [input (all-input-opts :form-key :text :user/username {:x :y})]"
   [all-input-opts-fn]
   (fn [input-type & [attr-path input-opts]]
     [field (if (map? input-type)
@@ -386,11 +386,11 @@
       (.preventDefault e))))
 
 (defn all-input-opts
-  [partial-form-path formwide-opts input-type attr-path & [opts]]
-  (-> {:donut.input/partial-form-path partial-form-path
-       :donut.input/type              input-type
-       :donut.input/attr-path         attr-path
-       :donut.input/feedback-fns      (:feedback-fns formwide-opts)}
+  [form-key formwide-opts input-type attr-path & [opts]]
+  (-> {:donut.input/form-key     form-key
+       :donut.input/type         input-type
+       :donut.input/attr-path    attr-path
+       :donut.input/feedback-fns (:feedback-fns formwide-opts)}
       (merge (:donut.form/default-input-opts formwide-opts))
       (merge opts)
       (framework-input-opts)
@@ -411,7 +411,7 @@
 
   rather than something like
 
-  `[input (all-input-opts :partial-form-path :text :user/username {:x :y})]`"
+  `[input (all-input-opts :form-key :text :user/username {:x :y})]`"
   [all-input-opts-fn]
   (fn [input-type & [attr-path input-opts]]
     [input (if (map? input-type)
@@ -428,10 +428,10 @@
       (update :sync-key #(or % sync-key))))
 
 (defn submit
-  [partial-form-path sync-key & [submit-opts]]
+  [form-key sync-key & [submit-opts]]
   (let [submit-opts (sugar-submit-opts submit-opts sync-key)]
     (when-not (:prevent-submit? submit-opts)
-      (rf/dispatch [::dff/submit-form partial-form-path submit-opts]))))
+      (rf/dispatch [::dff/submit-form form-key submit-opts]))))
 
 (defn form-sync-subs
   [sync-key]
@@ -441,29 +441,28 @@
    :*sync-fail?    (rf/subscribe [::dff/sync-fail? sync-key])})
 
 (defn form-subs
-  [partial-form-path & [{:keys [feedback-fns *sync-key]}]]
-  (merge {:*form-path     partial-form-path
-          :*form-ui-state (rf/subscribe [::dff/ui-state partial-form-path])
-          :*form-errors   (rf/subscribe [::dff/errors partial-form-path])
+  [form-key & [{:keys [feedback-fns *sync-key]}]]
+  (merge {:*form-ui-state (rf/subscribe [::dff/ui-state form-key])
+          :*form-errors   (rf/subscribe [::dff/errors form-key])
           :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
-          :*form-buffer   (rf/subscribe [::dff/buffer partial-form-path])
-          :*form-dirty?   (rf/subscribe [::dff/form-dirty? partial-form-path])
+          :*form-buffer   (rf/subscribe [::dff/buffer form-key])
+          :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-key])
 
-          :*state-success? (rf/subscribe [::dff/state-success? partial-form-path])}
+          :*state-success? (rf/subscribe [::dff/state-success? form-key])}
          (form-sync-subs *sync-key)))
 
 (defn form-components
-  [partial-form-path & [formwide-opts *sync-key]]
+  [form-key & [formwide-opts *sync-key]]
   (let [input-opts-fn (partial all-input-opts
-                               partial-form-path
+                               form-key
                                formwide-opts)]
-    {:*submit     (partial submit partial-form-path *sync-key)
+    {:*submit     (partial submit form-key *sync-key)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
      :*field      (field-component input-opts-fn)}))
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
-  [partial-form-path & [formwide-opts]]
-  (merge (form-subs partial-form-path formwide-opts)
-         (form-components partial-form-path formwide-opts)))
+  [form-key & [formwide-opts]]
+  (merge (form-subs form-key formwide-opts)
+         (form-components form-key formwide-opts)))

@@ -431,7 +431,7 @@
 (def sync-form-path
   {:id     ::sync-form-path
    :before (fn [ctx]
-             (get-in-path ctx :form-path #(p/get-path (ctx-db ctx) :form % :buffer)))
+             (get-in-path ctx :form-path #(p/get-path (ctx-db ctx) :form [% :buffer])))
    :after  identity})
 
 (def sync-data-path

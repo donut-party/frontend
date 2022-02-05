@@ -9,19 +9,18 @@
     body))
 
 (defmacro with-form
-  [partial-form-path & body]
-  (let [path                   (gensym :partial-form-path)
-        possible-formwide-opts (first body)
+  [form-key & body]
+  (let [possible-formwide-opts (first body)
         possible-formwide-opts (when (map? possible-formwide-opts)
                                  possible-formwide-opts)]
-    `(let [~path            ~partial-form-path
+    `(let [~'*form-key      ~form-key
            ~'*formwide-opts (update ~possible-formwide-opts
                                     :*sync-key
-                                    #(or % (donut.frontend.sync.flow/sync-key ~path)))
+                                    #(or (:sync-key %)
+                                         (donut.frontend.sync.flow/sync-key ~'*form-key)))
            ~'*sync-key      (:*sync-key ~'*formwide-opts)
 
-           {:keys [~'*form-path
-                   ~'*form-ui-state
+           {:keys [~'*form-ui-state
                    ~'*form-feedback
                    ~'*form-errors
                    ~'*form-buffer
@@ -34,12 +33,12 @@
                    ~'*sync-success?
                    ~'*sync-fail?]
             :as ~'*form-subs}
-           (form-subs ~path ~'*formwide-opts)]
+           (form-subs ~'*form-key ~'*formwide-opts)]
        (let [{:keys [~'*submit
                      ~'*input-opts
                      ~'*input
                      ~'*field]
               :as   ~'*form-components}
-             (form-components ~path ~'*formwide-opts)
+             (form-components ~'*form-key ~'*formwide-opts)
              ~'*form (merge ~'*form-subs ~'*form-components)]
          ~@(form-body body)))))

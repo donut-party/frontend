@@ -34,10 +34,10 @@
                (p/get-path db :nav [:route :params param-key])]))
 
 (defn routed-entity-form
-  [db partial-form-path param-key]
+  [db form-key param-key]
   (p/get-path db
               :form
-              (into partial-form-path
+              (into [form-key]
                     (select-keys (p/get-path db [:nav :route :params]) [param-key]))))
 
 ;; TODO put this in form namespace

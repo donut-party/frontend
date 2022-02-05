@@ -15,7 +15,7 @@
 
   - a `::feedback` subscription. It takes a signle argument, `feedback-fns`,
     which takes a form as an argument and returns data in the same described below
-  - a `::form-feedback` subscription that takes a `partial-form-path` and
+  - a `::form-feedback` subscription that takes a `form-key` and
     `feedback-fns` to produce form-wide feedback. can be used to e.g. prevent
     form submission
   - an `::attr-feedback` subscription that produces feedback for a specific attr."
@@ -56,8 +56,8 @@
   (seq (set/intersection input-events pred-events)))
 
 (rf/reg-sub ::feedback
-  (fn [[_ partial-form-path]]
-    (rf/subscribe [::dff/form partial-form-path]))
+  (fn [[_ form-key]]
+    (rf/subscribe [::dff/form form-key]))
   (fn [form [_ _ feedback-fns]]
     (reduce-kv (fn [feedback feedback-type feedback-fn]
                  (assoc feedback feedback-type (feedback-fn form)))
@@ -68,8 +68,8 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::form-feedback
-  (fn [[partial-form-path feedback-fns]]
-    (rf/subscribe [::feedback partial-form-path feedback-fns]))
+  (fn [[form-key feedback-fns]]
+    (rf/subscribe [::feedback form-key feedback-fns]))
   (fn [feedback]
     (reduce-kv (fn [form-feedback feedback-type all-feedback]
                  (if-let [feedback (:form all-feedback)]
@@ -82,9 +82,9 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::attr-feedback
-  (fn [[_ partial-form-path _attr-path feedback-fns]]
-    (rf/subscribe [::feedback partial-form-path feedback-fns]))
-  (fn [feedback [_ _partial-form-path attr-path]]
+  (fn [[_ form-key _attr-path feedback-fns]]
+    (rf/subscribe [::feedback form-key feedback-fns]))
+  (fn [feedback [_ _form-key attr-path]]
     (reduce-kv (fn [attr-feedback feedback-type all-feedback]
                  (if-let [feedback (get (:attrs all-feedback)
                                         (dsu/vectorize attr-path))]
