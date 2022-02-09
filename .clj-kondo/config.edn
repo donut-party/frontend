@@ -2,7 +2,7 @@
  {:unresolved-symbol
   ;; this macro binds these symbols as a convenience
   {:exclude [(donut.frontend.form.components/with-form
-               [*form-path
+               [*form-key
                 *form-state
                 *form-subs
                 *form-ui-state
