@@ -19,6 +19,39 @@
   (:import
    [goog.history Html5History]))
 
+
+;;------
+;; specs
+;;------
+
+(def DispatchEvent
+  [:catn
+   [:event-name keyword?]
+   [:event-args [:* :any]]])
+
+(def DispatchEvents
+  [:vector DispatchEvent])
+
+(def LifecycleHandler
+  [:or DispatchEvents fn?])
+
+(def LifecycleHandlers
+  [:map
+   [:before-enter        {:optional true} LifecycleHandler]
+   [:enter               {:optional true} LifecycleHandler]
+   [:after-enter         {:optional true} LifecycleHandler]
+   [:before-exit         {:optional true} LifecycleHandler]
+   [:exit                {:optional true} LifecycleHandler]
+   [:after-exit          {:optional true} LifecycleHandler]
+   [:before-param-change {:optional true} LifecycleHandler]
+   [:param-change        {:optional true} LifecycleHandler]
+   [:after-param-change  {:optional true} LifecycleHandler]])
+
+
+;;------
+;; HTML 5 history/nav handler
+;;------
+
 (defn- handle-unloading
   []
   (let [listener (fn [e] (rf/dispatch-sync [::before-unload e]))]
@@ -93,6 +126,7 @@
 ;; ------
 ;; Route change handlers
 ;; ------
+
 (defn can-change-route?
   [db scope existing-route new-route]
   ;; are we changing the entire route or just the params?
@@ -149,7 +183,7 @@
                     (hook cofx old-route new-route)
                     hook))))
          (filter identity)
-         (into fx))))
+         (reduce into fx))))
 
 (defn route-effects
   "Handles all route lifecycle effects"
@@ -286,15 +320,15 @@
     (assoc-in-buffer db path nil)))
 
 ;; ------
-;; nav flow components
+;; nav flow system components
 ;; ------
 
 (def default-global-lifecycle
   {:before-exit         nil
    :after-exit          nil
-   :before-enter        (constantly [::clear-buffer [:route]])
+   :before-enter        [[::clear-buffer [:route]]]
    :after-enter         nil
-   :before-param-change (constantly [::clear-buffer [:params]])
+   :before-param-change [[::clear-buffer [:params]]]
    :after-param-change  nil})
 
 ;; ------

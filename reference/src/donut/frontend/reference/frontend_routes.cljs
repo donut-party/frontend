@@ -41,7 +41,7 @@
 
    ["/nav.flow/1"
     {:name       :nav.flow-1
-     :lifecycle  {:enter     [::dene/inc-flow-1-lifecycle-fire-count]
+     :lifecycle  {:enter     [[::dene/inc-flow-1-lifecycle-fire-count]]
                   :can-exit? nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
@@ -49,7 +49,7 @@
    ["/nav.flow/2"
     {:name       :nav.flow-2
      :lifecycle  {:enter     (fn [_ _ {:keys [params]}]
-                               [::dene/set-flow-2-val (str (random-uuid))])
+                               [[::dene/set-flow-2-val (str (random-uuid))]])
                   :can-exit? nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
@@ -64,6 +64,6 @@
 
    ["/form.flow"
     {:name       :form.flow
-     :lifecycle  {:exit [::dff/clear [:post :users]]}
+     :lifecycle  {:exit [[::dff/clear [:post :users]]]}
      :components {:main [defe/examples]}
      :title      "Donut Examples"}]])

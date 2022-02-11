@@ -28,6 +28,10 @@
    [medley.core :as medley]
    [re-frame.core :as rf]))
 
+;;--------------------
+;; specs
+;;--------------------
+
 (def FeedbackType
   [:enum :error :warn :info :ok])
 (def FeedbackMap
