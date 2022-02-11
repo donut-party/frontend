@@ -358,7 +358,7 @@
 (rf/reg-sub ::routed-component
   :<- [::route]
   (fn [route [_ path]]
-    (get-in route (dsu/flatv :components path))))
+    (get-in route (into [:components] (dsu/vectorize path)))))
 
 (rf/reg-sub ::route-name
   :<- [::route]

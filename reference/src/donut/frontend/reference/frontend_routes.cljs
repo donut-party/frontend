@@ -48,7 +48,7 @@
 
    ["/nav.flow/2"
     {:name       :nav.flow-2
-     :lifecycle  {:enter     (fn [_ _ {:keys [params]}]
+     :lifecycle  {:enter     (fn [_old-route _new-route _params]
                                [[::dene/set-flow-2-val (str (random-uuid))]])
                   :can-exit? nav-flow-can-exit?}
      :components {:main [dene/examples]}
