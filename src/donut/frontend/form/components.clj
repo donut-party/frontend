@@ -26,8 +26,6 @@
                    ~'*form-buffer
                    ~'*form-dirty?
 
-                   ~'*state-success?
-
                    ~'*sync-state
                    ~'*sync-active?
                    ~'*sync-success?

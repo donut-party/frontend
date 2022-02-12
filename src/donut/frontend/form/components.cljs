@@ -446,9 +446,7 @@
           :*form-errors   (rf/subscribe [::dff/errors form-key])
           :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
           :*form-buffer   (rf/subscribe [::dff/buffer form-key])
-          :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-key])
-
-          :*state-success? (rf/subscribe [::dff/state-success? form-key])}
+          :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-key])}
          (form-sync-subs *sync-key)))
 
 (defn form-components
