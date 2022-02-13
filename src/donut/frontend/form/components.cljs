@@ -28,16 +28,20 @@
          [:donut.input/format-read]
          [:donut.input/feedback-fns]]))
 
+(def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
+
+;;--------------------
+;; events
+;;--------------------
 
 ;; TODO make class prefix configurable, e.g. "donut-required" can be
 ;; "x-required" or just "required"
 
+;; TODO update this with form layout
 (defn dispatch-form-input-event
   [form-key event-type]
   (rf/dispatch [::dff/form-input-event {:form-key   form-key
                                         :event-type event-type}]))
-
-(def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
 
 (defn dispatch-attr-input-event
   [dom-event

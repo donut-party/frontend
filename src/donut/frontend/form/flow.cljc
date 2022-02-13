@@ -38,7 +38,6 @@
    [:buffer-init-val FormBufferInitVal]
    [:ui-state {:optional true} FormUIState]])
 
-
 ;;---
 ;; form submitting options
 ;;---
@@ -61,7 +60,7 @@
    [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
    [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]])
 
-(def form-layout-keys (set (map first (rest FormLayout))))
+(def form-layout-keys (mapv first (rest FormLayout)))
 
 ;;--------------------
 ;; Form subs
@@ -173,22 +172,32 @@
 ;; Interacting with forms
 ;;------
 
+(defn form-paths
+  [form-layout]
+  (let [[form-key & layout-keys] form-layout-keys]
+    (reduce (fn [m k]
+              (assoc m k (or (k form-layout)
+                             (p/form-path [form-key (keyword (name k))]))))
+            {}
+            layout-keys)))
+
 (defn attr-input-event
   "Meant to handle all input events: focus, blur, change, etc"
-  [db [{:donut.form.layout/keys [buffer input-events]
-        :keys                   [form-key attr-path val event-type]
-        :as                     opts}]]
-  (cond-> db
-    event-type            (update-in (conj input-events attr-path)
-                                     (fnil conj #{})
-                                     event-type)
-    (contains? opts :val) (assoc-in (into buffer (dsu/vectorize attr-path))
-                                    val)))
+  [db [{:keys [attr-path val event-type]
+        :as   opts}]]
+  (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
+    (cond-> db
+      event-type            (update-in (conj input-events attr-path)
+                                       (fnil conj #{})
+                                       event-type)
+      (contains? opts :val) (assoc-in (into buffer (dsu/vectorize attr-path))
+                                      val))))
 
 (dh/rr rf/reg-event-db ::attr-input-event
   [rf/trim-v]
   attr-input-event)
 
+;; TODO update this with form layout
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
   [db [{:keys [form-key event-type]}]]
@@ -207,82 +216,83 @@
 
 (defn reset-form-buffer
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
-  [db [form-key]]
-  (update-in db
-             (p/form-path [form-key])
-             (fn [{:keys [buffer-init-val] :as form}]
-               (assoc form :buffer buffer-init-val))))
+  [db form-layout]
+  (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths form-layout)]
+    (assoc-in db buffer (get-in db buffer-init-val))))
 
 (dh/rr rf/reg-event-db ::reset-form-buffer
   [rf/trim-v]
   reset-form-buffer)
 
 (defn initialize-form
-  [db [form-key {:keys [buffer] :as form}]]
-  (assoc-in db
-            (p/form-path [form-key])
-            (update form :buffer-init-val #(or % buffer))))
+  [db form-layout {:keys [buffer] :as form}]
+  (let [paths (form-paths form-layout)
+        form  (update form :buffer-init-val #(or % buffer))]
+    (-> db
+        (assoc-in (:donut.form.layout/buffer paths) (:buffer form))
+        (assoc-in (:donut.form.layout/errors paths) (:errors form))
+        (assoc-in (:donut.form.layout/input-events paths) (:input-events form))
+        (assoc-in (:donut.form.layout/buffer-init-val paths) (:buffer-init-val form))
+        (assoc-in (:donut.form.layout/ui-state paths) (:ui-state form)))))
 
 ;; Populate form initial state
 (dh/rr rf/reg-event-db ::initialize-form
   [rf/trim-v]
-  initialize-form)
+  (fn [db [form-layout form]]
+    (initialize-form db form-layout form)))
 
 (defn initialize-form-from-path
-  [db [form-key {:keys [data-path data-fn]
-                          :or   {data-fn identity}
-                          :as   form}]]
-  (initialize-form db [form-key (-> form
-                                             (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
-                                             (dissoc :data-path :data-fn))]))
+  [db [form-layout {:keys [data-path data-fn]
+                    :or   {data-fn identity}
+                    :as   form}]]
+  (initialize-form db form-layout (-> form
+                                      (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
+                                      (dissoc :data-path :data-fn))))
 
 ;; Populate form initial state
 (dh/rr rf/reg-event-db ::initialize-form-from-path
   [rf/trim-v]
   initialize-form-from-path)
 
-(defn set-form
-  [db [form-key form]]
-  (assoc-in db (p/form-path [form-key]) form))
-
-(dh/rr rf/reg-event-db ::set-form
-  [rf/trim-v]
-  set-form)
-
 (defn clear-form
-  [db args]
-  (set-form db (take 1 args)))
+  [db form-layout]
+  (initialize-form db form-layout nil))
 
 (dh/rr rf/reg-event-db ::clear-form
   [rf/trim-v]
-  clear-form)
+  (fn [db [form-layout]]
+    (clear-form db form-layout)))
 
+;; TODO validate clear
 (defn clear-selected-keys
-  [db form-key clear]
-  (update-in db
-             (p/form-path [form-key])
-             select-keys
-             (if (or (= :all clear) (nil? clear))
-               #{}
-               (set/difference inner-keys (set clear)))))
+  [db form-layout clear]
+  (let [paths          (form-paths form-layout)
+        paths-to-clear (if (or (= :all clear) (nil? clear))
+                         inner-keys
+                         clear)]
+    (reduce (fn [db k] (assoc-in db k nil))
+            db
+            (select-keys paths (map #(keyword "donut.form.layout" (name %))
+                                    paths-to-clear)))))
 
 (dh/rr rf/reg-event-db ::clear
   [rf/trim-v]
-  (fn [db [form-key clear]]
-    (clear-selected-keys db form-key clear)))
+  (fn [db [form-layout clear]]
+    (clear-selected-keys db form-layout clear)))
 
 (dh/rr rf/reg-event-db ::keep
   [rf/trim-v]
-  (fn [db [form-key keep-keys]]
-    (update-in db (p/form-path [form-key]) select-keys keep-keys)))
+  (fn [db [form-layout keep-keys]]
+    (clear-selected-keys db form-layout (disj (set inner-keys) (set keep-keys)))))
 
 (dh/rr rf/reg-event-db ::replace-with-response
   [rf/trim-v]
-  (fn [db [{:keys [form-key] :as ctx}]]
-    (let [data  (dsf/single-entity ctx)]
+  (fn [db [ctx]]
+    (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths ctx)
+          data                                               (dsf/single-entity ctx)]
       (-> db
-          (assoc-in (p/form-path [form-key :buffer-init-val]) data)
-          (assoc-in (p/form-path [form-key :buffer]) data)))))
+          (assoc-in buffer-init-val data)
+          (assoc-in buffer data)))))
 
 ;;---------------------
 ;; submitting a form
@@ -305,52 +315,49 @@
   - `form-spec` is a way to pass on whatevs data to the request completion
     handler.
   - the `:sync` key of form spec can customize the sync request"
-  [[method form-handle route-params :as form-key]
-   buffer-data
-   sync-opts]
-  (let [route-name (get sync-opts :sync-route-name form-handle)
+  [{:donut.form/keys [key] :as form-layout} buffer-data sync-opts]
+  (let [[method form-handle route-params] key
+        route-name (get sync-opts :sync-route-name form-handle)
         method     (get sync-opts :method method)
         params     (merge (:params sync-opts) buffer-data)
-
-        sync-opts (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
-                                                        [::dsf/default-sync-success :$ctx]]
-                                              :fail    [[::submit-form-fail :$ctx]]}
-                               :$ctx         {:full-form-path (p/form-path [form-key])
-                                              :form-key       form-key}
-                               :params       params
-                               :route-params (or route-params params)
-                               ;; by default don't allow a form to be submitted
-                               ;; when we're waiting for a response
-                               :rules        #{:when-not-active}}
-                              sync-opts)]
+        sync-opts  (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
+                                                         [::dsf/default-sync-success :$ctx]]
+                                               :fail    [[::submit-form-fail :$ctx]]}
+                                :$ctx         form-layout
+                                :params       params
+                                :route-params (or route-params params)
+                                ;; by default don't allow a form to be submitted
+                                ;; when we're waiting for a response
+                                :rules        #{:when-not-active}}
+                               sync-opts)]
     [method route-name sync-opts]))
 
 (defn submit-form
   "build form request. update db to indicate form's submitting, clear
   old errors"
-  [{:keys [db]} [form-key & [form-spec]]]
-  (let [full-form-path (p/form-path [form-key])]
+  [db form-layout & [form-spec]]
+  (let [{:donut.form.layout/keys [errors input-events buffer]} (form-paths form-layout)]
     {:db       (-> db
-                   (update-in full-form-path merge {:errors nil})
-                   (update-in (into full-form-path [:input-events :form])
+                   (assoc-in errors nil)
+                   (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-sync-opts form-key
-                                           (get-in db (conj full-form-path :buffer))
-                                           form-spec)]}))
+     :dispatch [::dsf/sync (form-sync-opts form-layout (get-in db buffer) form-spec)]}))
 
 (dh/rr rf/reg-event-fx ::submit-form
   [rf/trim-v]
-  submit-form)
+  (fn [{:keys [db]} [form-layout form-spec]]
+    (submit-form db form-layout form-spec)))
 
 ;; when user clicks submit on form that has errors
 (dh/rr rf/reg-event-db ::register-form-submit
   [rf/trim-v]
-  (fn [db [form-key]]
-    (update-in db
-               (p/form-path (into [form-key] [:input-events :form]))
-               (fnil conj #{})
-               :submit)))
+  (fn [db [form-layout]]
+    (let [{:donut.form.layout/keys [input-events]} (form-paths form-layout)]
+      (update-in db
+                 (conj input-events :form)
+                 (fnil conj #{})
+                 :submit))))
 
 ;;--------------------
 ;; deleting
@@ -372,8 +379,9 @@
 
 (dh/rr rf/reg-event-db ::submit-form-success
   [rf/trim-v]
-  (fn [db [{:keys [full-form-path]}]]
-    (assoc-in db (conj full-form-path :input-events) nil)))
+  (fn [db [ctx]]
+    (let [{:donut.form.layout/keys [input-events]} (form-paths ctx)]
+      (assoc-in db input-events nil))))
 
 (defn response-error
   [$ctx]
@@ -381,14 +389,14 @@
   (get-in $ctx [:resp :response-data 0 1]))
 
 (defn submit-form-fail
-  [db [{:keys [full-form-path resp]
-        :as $ctx}]]
-  (rfl/console :log "form submit fail:" resp full-form-path)
-  (-> db
-      (assoc-in (conj full-form-path :errors)
-                (or (response-error $ctx)
-                    {:cause :unknown}))
-      (assoc-in (conj full-form-path :input-events) nil)))
+  [db [{:donut.form/keys [key]
+        :keys            [resp] :as $ctx}]]
+  (let [{:donut.form.layout/keys [errors input-events]} (form-paths $ctx)]
+    (rfl/console :log "form submit fail:" key resp)
+    (-> db
+        (assoc-in errors (or (response-error $ctx)
+                             {:cause :unknown}))
+        (assoc-in input-events nil))))
 
 (dh/rr rf/reg-event-db ::submit-form-fail
   [rf/trim-v]
