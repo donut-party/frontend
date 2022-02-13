@@ -48,17 +48,20 @@
    [:sync]
    [:data]])
 
-;;--------------------
-;; helpers
-;;--------------------
+;;---
+;; form config
+;;---
 
-(defn assoc-in-form
-  [db form-key ks v]
-  (assoc-in db (p/form-path (into [form-key] ks)) v))
+(def FormLayout
+  [:map
+   [:donut.form/key :any]
+   [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
+   [:donut.form.layout/errors {:optional true} [:vector keyword?]]
+   [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
+   [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
+   [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]])
 
-(defn update-in-form
-  [db form-key ks f & args]
-  (apply update-in db (p/form-path (into [form-key] ks)) f args))
+(def form-layout-keys (set (map first (rest FormLayout))))
 
 ;;--------------------
 ;; Form subs
@@ -82,11 +85,11 @@
 (def inner-keys (set (vals sub-name->inner-key)))
 
 ;; register these subscriptions
-(doseq [[sub-name attr] sub-name->inner-key]
+(doseq [[sub-name inner-key] sub-name->inner-key]
   (rf/reg-sub sub-name
     form-signal
     (fn [form _]
-      (get form attr))))
+      (get form inner-key))))
 
 ;; Value for a specific form attribute
 (defn attr-facet-sub
@@ -172,17 +175,15 @@
 
 (defn attr-input-event
   "Meant to handle all input events: focus, blur, change, etc"
-  [db [{:keys [form-key attr-path val event-type] :as opts}]]
-  (update-in db
-             (p/path :form [form-key])
-             (fn [form]
-               (cond-> form
-                 event-type
-                 (update-in [:input-events :attrs (dsu/vectorize attr-path)]
-                            (fnil conj #{})
-                            event-type)
-                 (contains? opts :val)
-                 (assoc-in (dsu/flatv :buffer attr-path) val)))))
+  [db [{:donut.form.layout/keys [buffer input-events]
+        :keys                   [form-key attr-path val event-type]
+        :as                     opts}]]
+  (cond-> db
+    event-type            (update-in (conj input-events attr-path)
+                                     (fnil conj #{})
+                                     event-type)
+    (contains? opts :val) (assoc-in (into buffer (dsu/vectorize attr-path))
+                                    val)))
 
 (dh/rr rf/reg-event-db ::attr-input-event
   [rf/trim-v]

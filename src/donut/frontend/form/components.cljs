@@ -12,6 +12,23 @@
    [re-frame.loggers :as rfl])
   (:require-macros [donut.frontend.form.components]))
 
+
+;;--------------------
+;; specs
+;;--------------------
+
+;;---
+;; input config
+;;---
+
+(def InputConfig
+  (into dff/FormLayout
+        [[:donut.input/attr-path]
+         [:donut.input/format-write]
+         [:donut.input/format-read]
+         [:donut.input/feedback-fns]]))
+
+
 ;; TODO make class prefix configurable, e.g. "donut-required" can be
 ;; "x-required" or just "required"
 
@@ -20,14 +37,15 @@
   (rf/dispatch [::dff/form-input-event {:form-key   form-key
                                         :event-type event-type}]))
 
+(def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
+
 (defn dispatch-attr-input-event
   [dom-event
-   {:donut.input/keys [format-write form-key attr-path]}
+   {:donut.input/keys [format-write] :as input-config}
    & [update-val?]]
   (rf/dispatch-sync
    [::dff/attr-input-event
-    (cond-> {:form-key form-key
-             :attr-path attr-path}
+    (cond-> (merge (select-keys input-config attr-input-keys))
       true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
       update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
 
@@ -450,11 +468,11 @@
          (form-sync-subs *sync-key)))
 
 (defn form-components
-  [form-key & [formwide-opts *sync-key]]
+  [form-key & [formwide-opts]]
   (let [input-opts-fn (partial all-input-opts
                                form-key
                                formwide-opts)]
-    {:*submit     (partial submit form-key *sync-key)
+    {:*submit     (partial submit form-key (:*sync-key formwide-opts))
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
      :*field      (field-component input-opts-fn)}))
