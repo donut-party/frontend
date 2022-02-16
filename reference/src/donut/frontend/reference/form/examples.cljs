@@ -97,7 +97,7 @@
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
              #(rf/dispatch [::dff/initialize-form
-                            *form-key
+                            *formwide-opts
                             {:buffer {:username "marcy"}}]))}
            "populate form"]
           " sets the username value to 'marcy'"]
@@ -164,23 +164,32 @@
             [*input :simplemde :profile]]
            [:div
             [ui/example-offset
-             [rendered-markdown *form-buffer]]]]]
+             [rendered-markdown *form-buffer]]]]]]]]]]))
 
-         [ui/explain
-          [:div
-           [ui/h2 "Form submission state"]
-           "The form library provides submit helpers that are tied to syncing.
+;;---
+;; activity example
+;;---
+
+(defn activity-example
+  []
+  (dfc/with-form [:post :users]
+    [ui/example
+     [:div {:class "p-4"}
+      [ui/explain
+       [:div
+        [ui/h2 "Form submission state"]
+        "The form library provides submit helpers that are tied to syncing.
             You can use a sync subscription to show feedback for form submission
             progress."]]
-         [ui/explain
-          [:div
-           [submit-button *form]
-           [submitting-indicator *sync-active?]
-           [:span " <- a submitting indicator will show up here when you hit submit"]]]]
-        [:div
-         [ui/h2 "submitted users"]
-         [ui/example-offset
-          [ui/pprint @(rf/subscribe [::dcf/entities :user :id])]]]]]]]))
+      [ui/explain
+       [:div
+        [submit-button *form]
+        [submitting-indicator *sync-active?]
+        [:span " <- a submitting indicator will show up here when you hit submit"]]]
+      [:div
+       [ui/h2 "submitted users"]
+       [ui/example-offset
+        [ui/pprint @(rf/subscribe [::dcf/entities :user :id])]]]]]))
 
 ;;---
 ;; validation examples
@@ -233,5 +242,6 @@
   [:div
    [ui/h1 "form examples"]
    [form-example-features]
+   [activity-example]
    [validation-example-stored-errors]
    [validation-example-dynamic]])

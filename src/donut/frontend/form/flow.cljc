@@ -121,13 +121,12 @@
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
-  (fn [buffer [_ _form-layout attr-path]]
-    (prn "buffer" buffer)
+  (fn [buffer [_ {:donut.input/keys [attr-path]}]]
     (get-in buffer (dsu/vectorize attr-path))))
 
 (rf/reg-sub ::attr-errors
   (attr-facet-sub ::errors)
-  (fn [errors [_ _form-layout attr-path]]
+  (fn [errors [_ {:donut.input/keys [attr-path]}]]
     (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-errors
@@ -137,7 +136,7 @@
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
-  (fn [input-events [_ _form-layout attr-path]]
+  (fn [input-events [_ {:donut.input/keys [attr-path]}]]
     (get-in input-events (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-input-events

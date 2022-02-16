@@ -129,15 +129,17 @@
    dff/form-layout-keys))
 
 (def all-opts (into field-opts input-opts))
+(def input-layout-opts (set (conj dff/form-layout-keys :donut.input/attr-path)))
 (def react-key-filter all-opts)
 
 (defn framework-input-opts
   [opts]
-  (merge
-   #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer opts])
-                 :attr-feedback     (rf/subscribe [::dffk/attr-feedback opts])
-                 :attr-input-events (rf/subscribe [::dff/attr-input-events opts])}
-   opts))
+  (let [layout (select-keys opts input-layout-opts)]
+    (merge
+     #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer layout])
+                   :attr-feedback     (rf/subscribe [::dffk/attr-feedback layout])
+                   :attr-input-events (rf/subscribe [::dff/attr-input-events layout])}
+     opts)))
 
 (defn default-event-handlers
   [opts]

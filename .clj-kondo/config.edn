@@ -25,6 +25,7 @@
 
                 *form-state
                 *form-components
+                *formwide-opts
                 *form])]}
 
   :unresolved-var
