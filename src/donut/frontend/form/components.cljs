@@ -39,9 +39,8 @@
 
 ;; TODO update this with form layout
 (defn dispatch-form-input-event
-  [form-key event-type]
-  (rf/dispatch [::dff/form-input-event {:form-key   form-key
-                                        :event-type event-type}]))
+  [form-layout event-type]
+  (rf/dispatch [::dff/form-input-event (assoc form-layout :donut.input/event-type event-type)]))
 
 (defn dispatch-attr-input-event
   [dom-event
@@ -50,18 +49,20 @@
   (rf/dispatch-sync
    [::dff/attr-input-event
     (cond-> (merge (select-keys input-config attr-input-keys))
-      true        (merge {:event-type (keyword (dcu/go-get dom-event ["type"]))})
-      update-val? (merge {:val (format-write (dcu/tv dom-event))}))]))
+      true        (merge {:donut.input/event-type (keyword (dcu/go-get dom-event ["type"]))})
+      update-val? (merge {:donut.input/value (format-write (dcu/tv dom-event))}))]))
 
-(defn dispatch-new-val
-  "Helper when you want non-input elements to update a val"
-  [form-key attr-path val & [opts]]
+(defn dispatch-new-value
+  "Helper when you want non-input elements to update a value"
+  [input-config value & [opts]]
   (rf/dispatch-sync
-   [::dff/attr-input-event (merge {:form-key   form-key
-                                   :attr-path  attr-path
-                                   :event-type nil
-                                   :val        val}
+   [::dff/attr-input-event (merge input-config
+                                  {:donut.input/value value}
                                   opts)]))
+
+;;--------------------
+;; html/react attr helpers
+;;--------------------
 
 (defn attr-path-str
   [attr-path]
@@ -101,39 +102,41 @@
 ;; input opts
 ;;~~~~~~~~~~~~~~~~~~
 
-;; used in the field component below
-(def field-opts #{:donut.field/tip
-                  :donut.field/before-input
-                  :donut.field/after-input
-                  :donut.field/after-feedback
-                  :donut.field/label
-                  :donut.field/no-label?
-                  :donut.field/class})
+(def field-opts
+  "used in the field component"
+  #{:donut.field/tip
+    :donut.field/before-input
+    :donut.field/after-input
+    :donut.field/after-feedback
+    :donut.field/label
+    :donut.field/no-label?
+    :donut.field/class})
 
-;; react doesn't recognize these and hates them
-(def input-opts #{:donut.input/attr-buffer
-                  :donut.input/attr-path
-                  :donut.input/attr-input-events
-                  :donut.input/attr-feedback
-                  :donut.input/select-options
-                  :donut.input/select-option-components
-                  :donut.input/form-key
-                  :donut.input/feedback-fns
-                  :donut.input/format-read
-                  :donut.input/format-write})
+(def input-opts
+  "react doesn't recognize these and hates them. enumerate them to dissoc them
+  from react component"
+  (into
+   #{:donut.input/attr-buffer
+     :donut.input/attr-path
+     :donut.input/attr-input-events
+     :donut.input/attr-feedback
+     :donut.input/select-options
+     :donut.input/select-option-components
+     :donut.input/form-key
+     :donut.input/feedback-fns
+     :donut.input/format-read
+     :donut.input/format-write}
+   dff/form-layout-keys))
 
 (def all-opts (into field-opts input-opts))
+(def react-key-filter all-opts)
 
 (defn framework-input-opts
-  [{:donut.input/keys [attr-path form-key feedback-fns]
-    :as               opts}]
+  [opts]
   (merge
-   #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer form-key attr-path])
-                 :attr-feedback     (rf/subscribe [::dffk/attr-feedback
-                                                   form-key
-                                                   attr-path
-                                                   feedback-fns])
-                 :attr-input-events (rf/subscribe [::dff/attr-input-events form-key attr-path])}
+   #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer opts])
+                 :attr-feedback     (rf/subscribe [::dffk/attr-feedback opts])
+                 :attr-input-events (rf/subscribe [::dff/attr-input-events opts])}
    opts))
 
 (defn default-event-handlers
@@ -155,7 +158,7 @@
 (defn donut-opts->react-opts
   [opts]
   (->> opts
-       (medley/filter-keys (complement all-opts))
+       (medley/remove-keys react-key-filter)
        (medley/map-keys (comp keyword name))))
 
 (defn input-type-opts-default
@@ -388,7 +391,7 @@
   This allows the user to call [input :text :user/username {:x :y}]
   rather than something like
 
-  [input (all-input-opts :form-key :text :user/username {:x :y})]"
+  [input (all-input-opts formwide-opts :text :user/username {:x :y})]"
   [all-input-opts-fn]
   (fn [input-type & [attr-path input-opts]]
     [field (if (map? input-type)
@@ -408,11 +411,11 @@
       (.preventDefault e))))
 
 (defn all-input-opts
-  [form-key formwide-opts input-type attr-path & [opts]]
-  (-> {:donut.input/form-key     form-key
-       :donut.input/type         input-type
+  [formwide-opts input-type attr-path & [opts]]
+  (-> {:donut.input/type         input-type
        :donut.input/attr-path    attr-path
        :donut.input/feedback-fns (:feedback-fns formwide-opts)}
+      (merge (select-keys formwide-opts dff/form-layout-keys))
       (merge (:donut.form/default-input-opts formwide-opts))
       (merge opts)
       (framework-input-opts)
@@ -440,20 +443,10 @@
              input-type
              (all-input-opts-fn input-type attr-path input-opts))]))
 
-(defn sugar-submit-opts
-  "support a couple submit shorthands"
-  [submit-opts sync-key]
-  (-> (if (vector? submit-opts)
-        {:on {:success submit-opts}}
-        submit-opts)
-      (dsu/move-keys #{:success :fail} [:on])
-      (update :sync-key #(or % sync-key))))
-
 (defn submit
-  [form-key sync-key & [submit-opts]]
-  (let [submit-opts (sugar-submit-opts submit-opts sync-key)]
-    (when-not (:prevent-submit? submit-opts)
-      (rf/dispatch [::dff/submit-form form-key submit-opts]))))
+  [formwide-opts & [sync-opts]]
+  (when-not (:donut.form/prevent-submit? sync-opts)
+    (rf/dispatch [::dff/submit-form formwide-opts sync-opts])))
 
 (defn form-sync-subs
   [sync-key]
@@ -463,26 +456,24 @@
    :*sync-fail?    (rf/subscribe [::dff/sync-fail? sync-key])})
 
 (defn form-subs
-  [form-key & [{:keys [feedback-fns *sync-key]}]]
-  (merge {:*form-ui-state (rf/subscribe [::dff/ui-state form-key])
-          :*form-errors   (rf/subscribe [::dff/errors form-key])
-          :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
-          :*form-buffer   (rf/subscribe [::dff/buffer form-key])
-          :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-key])}
-         (form-sync-subs *sync-key)))
+  [{:keys [feedback-fns :donut.form/sync?] :as formwide-opts}]
+  (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state formwide-opts])
+            :*form-errors   (rf/subscribe [::dff/errors formwide-opts])
+            :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
+            :*form-buffer   (rf/subscribe [::dff/buffer formwide-opts])
+            :*form-dirty?   (rf/subscribe [::dff/form-dirty? formwide-opts])}
+    sync? (merge (form-sync-subs (:donut.sync/key formwide-opts)))))
 
 (defn form-components
-  [form-key & [formwide-opts]]
-  (let [input-opts-fn (partial all-input-opts
-                               form-key
-                               formwide-opts)]
-    {:*submit     (partial submit form-key (:*sync-key formwide-opts))
+  [formwide-opts]
+  (let [input-opts-fn (partial all-input-opts formwide-opts)]
+    {:*submit     (partial submit formwide-opts)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
      :*field      (field-component input-opts-fn)}))
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
-  [form-key & [formwide-opts]]
-  (merge (form-subs form-key formwide-opts)
-         (form-components form-key formwide-opts)))
+  [formwide-opts]
+  (merge (form-subs formwide-opts)
+         (form-components formwide-opts)))

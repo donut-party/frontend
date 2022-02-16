@@ -62,17 +62,40 @@
 
 (def form-layout-keys (mapv first (rest FormLayout)))
 
+(defn form-paths
+  "By default all form data lives under [:donut :form form-key]. A form layout
+  lets you specify different locations for form facets. This function translates
+  your form layout into the actual paths to be used for subscriptions and
+  events."
+  [form-layout]
+  (let [[form-key-key & layout-keys] form-layout-keys
+        form-key                     (form-key-key form-layout)]
+    (reduce (fn [m k]
+              (assoc m k (or (k form-layout)
+                             (p/form-path [form-key (keyword (name k))]))))
+            {}
+            layout-keys)))
+
 ;;--------------------
 ;; Form subs
 ;;--------------------
 
 (rf/reg-sub ::form
-  (fn [db [_ form-key]]
-    (p/get-path db :form [form-key])))
+  (fn [db [_ {:donut.form.layout/keys [buffer errors input-events buffer-init-val ui-state] :as form-layout}]]
+    (if (or buffer errors input-events buffer-init-val ui-state)
+      (let [{:donut.form.layout/keys [buffer errors input-events buffer-init-val ui-state]}
+            (form-paths form-layout)]
+        ;; TODO this could be a drag on performance. could do this more precisely.
+        {:buffer          (get-in db buffer)
+         :errors          (get-in db errors)
+         :input-events    (get-in db input-events)
+         :buffer-init-val (get-in db buffer-init-val)
+         :ui-state        (get-in db ui-state)})
+      (p/get-path db :form [(:donut.form/key form-layout)]))))
 
 (defn form-signal
-  [[_ form-key]]
-  (rf/subscribe [::form form-key]))
+  [[_ form-layout]]
+  (rf/subscribe [::form form-layout]))
 
 (def sub-name->inner-key
   {::buffer          :buffer
@@ -93,17 +116,18 @@
 ;; Value for a specific form attribute
 (defn attr-facet-sub
   [facet]
-  (fn [[_ form-key]]
-    (rf/subscribe [facet form-key])))
+  (fn [[_ form-layout]]
+    (rf/subscribe [facet form-layout])))
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
-  (fn [buffer [_ _form-key attr-path]]
+  (fn [buffer [_ _form-layout attr-path]]
+    (prn "buffer" buffer)
     (get-in buffer (dsu/vectorize attr-path))))
 
 (rf/reg-sub ::attr-errors
   (attr-facet-sub ::errors)
-  (fn [errors [_ _form-key attr-path]]
+  (fn [errors [_ _form-layout attr-path]]
     (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-errors
@@ -113,7 +137,7 @@
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
-  (fn [input-events [_ _form-key attr-path]]
+  (fn [input-events [_ _form-layout attr-path]]
     (get-in input-events (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-input-events
@@ -123,9 +147,9 @@
 
 ;; Has the user modified the buffer?
 (rf/reg-sub ::form-dirty?
-  (fn [[_ form-key]]
-    [(rf/subscribe [::buffer-init-val form-key])
-     (rf/subscribe [::buffer form-key])])
+  (fn [[_ form-layout]]
+    [(rf/subscribe [::buffer-init-val form-layout])
+     (rf/subscribe [::buffer form-layout])])
   (fn [[buffer-init-val buffer]]
     (not= buffer-init-val buffer)))
 
@@ -172,26 +196,17 @@
 ;; Interacting with forms
 ;;------
 
-(defn form-paths
-  [form-layout]
-  (let [[form-key & layout-keys] form-layout-keys]
-    (reduce (fn [m k]
-              (assoc m k (or (k form-layout)
-                             (p/form-path [form-key (keyword (name k))]))))
-            {}
-            layout-keys)))
-
 (defn attr-input-event
   "Meant to handle all input events: focus, blur, change, etc"
-  [db [{:keys [attr-path val event-type]
-        :as   opts}]]
+  [db [{:donut.input/keys [attr-path value event-type]
+        :as               opts}]]
   (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
     (cond-> db
-      event-type            (update-in (conj input-events attr-path)
-                                       (fnil conj #{})
-                                       event-type)
-      (contains? opts :val) (assoc-in (into buffer (dsu/vectorize attr-path))
-                                      val))))
+      event-type                          (update-in (conj input-events attr-path)
+                                                     (fnil conj #{})
+                                                     event-type)
+      (contains? opts :donut.input/value) (assoc-in (into buffer (dsu/vectorize attr-path))
+                                                    value))))
 
 (dh/rr rf/reg-event-db ::attr-input-event
   [rf/trim-v]
@@ -200,11 +215,12 @@
 ;; TODO update this with form layout
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
-  [db [{:keys [form-key event-type]}]]
-  (update-in db
-             (p/path :form (into [form-key] [:input-events :form]))
-             (fnil conj #{})
-             event-type))
+  [db [{:keys [form-layout event-type]}]]
+  (let [paths (form-paths form-layout)]
+    (update-in db
+               (:donut.form.layout/input-events paths)
+               (fnil conj #{})
+               event-type)))
 
 (dh/rr rf/reg-event-db ::form-input-event
   [rf/trim-v]
@@ -335,19 +351,19 @@
 (defn submit-form
   "build form request. update db to indicate form's submitting, clear
   old errors"
-  [db form-layout & [form-spec]]
+  [db form-layout & [sync-opts]]
   (let [{:donut.form.layout/keys [errors input-events buffer]} (form-paths form-layout)]
     {:db       (-> db
                    (assoc-in errors nil)
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-sync-opts form-layout (get-in db buffer) form-spec)]}))
+     :dispatch [::dsf/sync (form-sync-opts form-layout (get-in db buffer) sync-opts)]}))
 
 (dh/rr rf/reg-event-fx ::submit-form
   [rf/trim-v]
-  (fn [{:keys [db]} [form-layout form-spec]]
-    (submit-form db form-layout form-spec)))
+  (fn [{:keys [db]} [form-layout sync-opts]]
+    (submit-form db form-layout sync-opts)))
 
 ;; when user clicks submit on form that has errors
 (dh/rr rf/reg-event-db ::register-form-submit

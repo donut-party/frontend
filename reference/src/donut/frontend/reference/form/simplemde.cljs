@@ -19,11 +19,11 @@
                    ["text"])))
 
 (defmethod dfc/input :simplemde
-  [{:donut.input/keys [form-key attr-path value] :as opts}]
+  [{:donut.input/keys [value] :as opts}]
   (let [markdown-text (atom nil)]
     [:div.simple-mde-wrapper]
-    [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-val form-key attr-path val))
-                   :onBlur    #(dfc/dispatch-attr-input-event % opts false)
+    [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-value opts val))
+                   :onBlur    (fn [e] (dfc/dispatch-attr-input-event e opts false))
                    :value     value
                    :events    #js{:beforeChange (fn [_ change-obj]
                                                   (when-let [text @markdown-text]
