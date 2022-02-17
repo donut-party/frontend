@@ -5,21 +5,20 @@
   (:require
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]
-   [donut.frontend.handlers :as dh]
    [donut.frontend.sync.flow :as dsf]))
 
-(dh/rr rf/reg-event-fx ::dispatch-echo
+(rf/reg-event-fx ::dispatch-echo
   [rf/trim-v]
   (fn [_ [opts]]
     {:fx [[:dispatch-later {:ms       (get-in opts [:echo :ms] 0)
                             :dispatch [::handle-echo opts]}]]}))
 
-(dh/rr rf/reg-event-fx ::handle-echo
+(rf/reg-event-fx ::handle-echo
   [rf/trim-v]
   (fn [_ [opts]]
     {::handle-echo opts}))
 
-(dh/rr rf/reg-fx ::handle-echo
+(rf/reg-fx ::handle-echo
   (fn [{:keys [response-handler echo]}]
     (response-handler echo)))
 

@@ -12,7 +12,7 @@
 (def default-config
   {::ds/defs
    {:donut.frontend
-    {:handlers             dh/RegisterHandlersComponent
+    {:handlers             dh/AddInterceptorsComponent
      :sync                 {:router           (ds/ref :sync-router)
                             :sync-dispatch-fn (ds/ref :sync-dispatch-fn)}
      :sync-dispatch-fn     {:start dsda/system-sync-dispatch-fn}

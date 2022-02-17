@@ -1,6 +1,5 @@
 (ns donut.frontend.core.flow
   (:require
-   [donut.frontend.handlers :as dh]
    [donut.frontend.path :as p]
    [donut.sugar.utils :as dsu]
    [donut.system :as ds]
@@ -15,21 +14,21 @@
   (fn [db [_ path]]
     (get-in db path)))
 
-(dh/rr rf/reg-event-db ::assoc-in
+(rf/reg-event-db ::assoc-in
   [rf/trim-v]
   (fn [db [path val]] (assoc-in db path val)))
 
-(dh/rr rf/reg-event-db ::dissoc-in
+(rf/reg-event-db ::dissoc-in
   [rf/trim-v]
   (fn [db [path]]
     (dsu/dissoc-in db path)))
 
-(dh/rr rf/reg-event-db ::update-in
+(rf/reg-event-db ::update-in
   [rf/trim-v]
   (fn [db [path & args]]
     (apply update-in db path args)))
 
-(dh/rr rf/reg-event-db ::merge
+(rf/reg-event-db ::merge
   [rf/trim-v]
   (fn [db [m & [path]]]
     (if path
@@ -42,24 +41,24 @@
   ([db ent-type id-key m]
    (update-in db (p/path :entity [ent-type (id-key m)]) merge m)))
 
-(dh/rr rf/reg-event-db ::merge-entity
+(rf/reg-event-db ::merge-entity
   [rf/trim-v]
   (fn [db [ent-type & args]]
     (apply merge-entity db ent-type args)))
 
-(dh/rr rf/reg-event-db ::deep-merge
+(rf/reg-event-db ::deep-merge
   [rf/trim-v]
   (fn [db [m]]
     (dsu/deep-merge db m)))
 
-(dh/rr rf/reg-event-db ::toggle
+(rf/reg-event-db ::toggle
   [rf/trim-v]
   (fn [db [path val alt-val]]
     (let [val (if (and (nil? val) (nil? alt-val)) true val)]
       (update-in db path #(dsu/toggle % val alt-val)))))
 
 ;; Toggles set inclusion/exclusion from set
-(dh/rr rf/reg-event-db ::set-toggle
+(rf/reg-event-db ::set-toggle
   [rf/trim-v]
   (fn [db [path val]]
     (update-in db path dsu/set-toggle val)))
@@ -68,7 +67,7 @@
 ;; entities
 ;;---
 
-(dh/rr rf/reg-event-db ::remove-entity
+(rf/reg-event-db ::remove-entity
   [rf/trim-v]
   (fn [db [entity-type id]]
     (update-in db [:entity entity-type] dissoc id)))
@@ -96,7 +95,7 @@
   #?(:cljs (doto (Debouncer. rf/dispatch interval)
              (.fire dispatch))))
 
-(dh/rr rf/reg-fx ::debounce-dispatch
+(rf/reg-fx ::debounce-dispatch
   (fn [debounce-effects]
     (doseq [{:keys [ms id dispatch] :as effect} (remove nil? debounce-effects)]
       (if (or (empty? dispatch) (not (number? ms)))

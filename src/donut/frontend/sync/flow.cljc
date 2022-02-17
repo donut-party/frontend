@@ -6,7 +6,6 @@
   (:require
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]
-   [donut.frontend.handlers :as dh]
    [donut.frontend.path :as p]
    [donut.frontend.routes.protocol :as drp]
    [donut.sugar.utils :as dsu]
@@ -111,11 +110,11 @@
       (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
-(dh/rr rf/reg-event-db ::sync-finished
+(rf/reg-event-db ::sync-finished
   []
   sync-finished)
 
-(dh/rr rf/reg-event-fx ::sync-response
+(rf/reg-event-fx ::sync-response
   [rf/trim-v]
   (fn [_ [dispatches]]
     {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
@@ -291,11 +290,11 @@
   (fn [db [_ query]]
     (medley/filter-keys (partial dsu/projection? query) (get-in db [:donut :reqs]))))
 
-(dh/rr rf/reg-event-db ::default-sync-success
+(rf/reg-event-db ::default-sync-success
   [rf/trim-v]
   (fn [db [response]] (handle-sync-response-data db response)))
 
-(dh/rr rf/reg-event-fx ::default-sync-fail
+(rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
     ;; TODO possibly allow failed responses to carry data
@@ -304,7 +303,7 @@
       (rfl/console :log "sync failed" sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
-(dh/rr rf/reg-event-fx ::default-sync-unavailable
+(rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
@@ -503,19 +502,19 @@
 ;; handlers
 
 ;; The core event handler for syncing
-(dh/rr rf/reg-event-fx ::sync
+(rf/reg-event-fx ::sync
   sync-interceptors
   (fn [cofx [req]]
     (sync-event-fx cofx req)))
 
 ;; makes it a little easier to sync a single entity
-(dh/rr rf/reg-event-fx ::sync-entity
+(rf/reg-event-fx ::sync-entity
   sync-interceptors
   (fn [cofx [req]]
     (sync-event-fx cofx (sync-entity-req req))))
 
 ;; The effect handler that actually performs a sync
-(dh/rr rf/reg-fx ::dispatch-sync
+(rf/reg-fx ::dispatch-sync
   (fn [{:keys [dispatch-fn req]}]
     (dispatch-fn req)))
 
@@ -551,7 +550,7 @@
 ;;---------------
 
 (doseq [method [::get ::put ::post ::delete ::patch]]
-  (dh/rr rf/reg-event-fx method
+  (rf/reg-event-fx method
     sync-interceptors
     (fn [cofx [req]]
       (sync-event-fx cofx req))))
@@ -590,14 +589,14 @@
                    (remove (fn [[k v]] (and (key-filter k) (value-filter v))))
                    (into {}))))))
 
-(dh/rr rf/reg-event-db ::remove-reqs
+(rf/reg-event-db ::remove-reqs
   [rf/trim-v]
   (fn [db [key-filter value-filter]]
     (remove-reqs db key-filter value-filter)))
 
 ;; remove all sync reqs dispatched while `route` was active
 ;; with a method found in set `methods`
-(dh/rr rf/reg-event-db ::remove-reqs-by-route-and-method
+(rf/reg-event-db ::remove-reqs-by-route-and-method
   [rf/trim-v]
   (fn [db [route methods]]
     (remove-reqs db

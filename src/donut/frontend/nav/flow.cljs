@@ -112,11 +112,11 @@
       {:dispatch [::update-token with-params :set]})))
 
 ;; Used for synthetic navigation events
-(dh/rr rf/reg-event-fx ::navigate
+(rf/reg-event-fx ::navigate
   [rf/trim-v]
   navigate-handler)
 
-(dh/rr rf/reg-event-fx ::navigate-route
+(rf/reg-event-fx ::navigate-route
   [rf/trim-v]
   (fn [{:keys [db] :as cofx} [route route-params query-params]]
     (let [router (p/get-path db :donut-component [:frontend-router])]
@@ -212,11 +212,11 @@
           :fx (route-effects updated-cofx)})))))
 
 ;; Default handler for new routes
-(dh/rr rf/reg-event-fx ::dispatch-route
+(rf/reg-event-fx ::dispatch-route
   [process-route-change]
   change-route-fx)
 
-(dh/rr rf/reg-event-db ::nav-loaded
+(rf/reg-event-db ::nav-loaded
   [rf/trim-v]
   (fn [db _]
     (assoc-in db (p/path :nav [:state]) :loaded)))
@@ -234,13 +234,13 @@
                (assoc-in ctx [:coeffects :event 1] (str path query hash))))
    :after  identity})
 
-(dh/rr rf/reg-event-fx ::dispatch-current
+(rf/reg-event-fx ::dispatch-current
   [add-current-path process-route-change]
   change-route-fx)
 
 ;; force the param change and enter lifecycle methods of the current
 ;; route to run again.
-(dh/rr rf/reg-event-fx ::perform-current-lifecycle
+(rf/reg-event-fx ::perform-current-lifecycle
   []
   (fn [{:keys [db] :as cofx} _]
     (let [current-route (get-in db (p/path :nav [:route]))]
@@ -257,7 +257,7 @@
 ;; ------
 
 ;; TODO figure out when this is actually used...
-(dh/rr rf/reg-event-fx ::update-token
+(rf/reg-event-fx ::update-token
   [process-route-change]
   (fn [{:keys [db] :as cofx} [_ relative-href op title]]
     (when-let [fx (change-route-fx cofx)]
@@ -268,7 +268,7 @@
                 :title         title
                 :op            op}]))))
 
-(dh/rr rf/reg-fx ::update-token
+(rf/reg-fx ::update-token
   (fn [{:keys [op history relative-href title]}]
     (reset! accountant/app-updated-token? true)
     (if (= op :replace)
@@ -279,7 +279,7 @@
 ;; check can unload
 ;; ------
 
-(dh/rr rf/reg-event-fx ::before-unload
+(rf/reg-event-fx ::before-unload
   []
   (fn [{:keys [db] :as cofx} [_ before-unload-event]]
     (let [existing-route                          (p/get-path db :nav :route)
@@ -309,12 +309,12 @@
   (fn [db [_ path]]
     (p/get-path db :nav-buffer path)))
 
-(dh/rr rf/reg-event-db ::assoc-in-buffer
+(rf/reg-event-db ::assoc-in-buffer
   [rf/trim-v]
   (fn [db [path val]]
     (assoc-in-buffer db path val)))
 
-(dh/rr rf/reg-event-db ::clear-buffer
+(rf/reg-event-db ::clear-buffer
   [rf/trim-v]
   (fn [db [path]]
     (assoc-in-buffer db path nil)))
@@ -379,7 +379,7 @@
 
 (comment
   ;; TODO move this to form namespace
-  (dh/rr rf/reg-event-db ::initialize-form-with-routed-entity
+  (rf/reg-event-db ::initialize-form-with-routed-entity
     [rf/trim-v]
     (fn [db [form-path entity-key param-key form-opts]]
       (dnu/initialize-form-with-routed-entity db form-path entity-key param-key form-opts))))

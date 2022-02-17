@@ -1,10 +1,9 @@
 (ns donut.frontend.failure.flow
   "experimental handlers for temporarily showing failures"
   (:require [re-frame.core :as rf]
-            [donut.frontend.handlers :as dh]
             [donut.frontend.path :as p]))
 
-(dh/rr rf/reg-event-fx ::add-failure
+(rf/reg-event-fx ::add-failure
   [rf/trim-v]
   (fn [{:keys [db]} [failure]]
     (let [new-db (update-in db (p/path :failure) (fnil conj []) {:failure  failure
@@ -13,7 +12,7 @@
       {:db             new-db
        :dispatch-later [{:ms 2000 :dispatch [::hide-failure pos]}]})))
 
-(dh/rr rf/reg-event-db ::hide-failure
+(rf/reg-event-db ::hide-failure
   [rf/trim-v]
   (fn [db [pos]]
     (assoc-in db (p/path :failure [pos :ui-state]) :hide)))

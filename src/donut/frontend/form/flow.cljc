@@ -1,7 +1,5 @@
 (ns donut.frontend.form.flow
   (:require
-   [clojure.set :as set]
-   [donut.frontend.handlers :as dh]
    [donut.frontend.path :as p]
    [donut.frontend.sync.flow :as dsf]
    [donut.sugar.utils :as dsu]
@@ -190,7 +188,7 @@
       (assoc-in (into buffer (dsu/vectorize attr-path))
                 value))))
 
-(dh/rr rf/reg-event-db ::attr-input-event
+(rf/reg-event-db ::attr-input-event
   [rf/trim-v]
   attr-input-event)
 
@@ -203,7 +201,7 @@
                (fnil conj #{})
                event-type)))
 
-(dh/rr rf/reg-event-db ::form-input-event
+(rf/reg-event-db ::form-input-event
   [rf/trim-v]
   form-input-event)
 
@@ -217,7 +215,7 @@
   (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths form-layout)]
     (assoc-in db buffer (get-in db buffer-init-val))))
 
-(dh/rr rf/reg-event-db ::reset-form-buffer
+(rf/reg-event-db ::reset-form-buffer
   [rf/trim-v]
   reset-form-buffer)
 
@@ -233,7 +231,7 @@
         (assoc-in (:donut.form.layout/ui-state paths) (:ui-state form)))))
 
 ;; Populate form initial state
-(dh/rr rf/reg-event-db ::initialize-form
+(rf/reg-event-db ::initialize-form
   [rf/trim-v]
   (fn [db [form-layout form]]
     (initialize-form db form-layout form)))
@@ -247,7 +245,7 @@
                                       (dissoc :data-path :data-fn))))
 
 ;; Populate form initial state
-(dh/rr rf/reg-event-db ::initialize-form-from-path
+(rf/reg-event-db ::initialize-form-from-path
   [rf/trim-v]
   initialize-form-from-path)
 
@@ -255,7 +253,7 @@
   [db form-layout]
   (initialize-form db form-layout nil))
 
-(dh/rr rf/reg-event-db ::clear-form
+(rf/reg-event-db ::clear-form
   [rf/trim-v]
   (fn [db [form-layout]]
     (clear-form db form-layout)))
@@ -272,17 +270,17 @@
             (select-keys paths (map #(keyword "donut.form.layout" (name %))
                                     paths-to-clear)))))
 
-(dh/rr rf/reg-event-db ::clear
+(rf/reg-event-db ::clear
   [rf/trim-v]
   (fn [db [form-layout clear]]
     (clear-selected-keys db form-layout clear)))
 
-(dh/rr rf/reg-event-db ::keep
+(rf/reg-event-db ::keep
   [rf/trim-v]
   (fn [db [form-layout keep-keys]]
     (clear-selected-keys db form-layout (disj (set inner-keys) (set keep-keys)))))
 
-(dh/rr rf/reg-event-db ::replace-with-response
+(rf/reg-event-db ::replace-with-response
   [rf/trim-v]
   (fn [db [ctx]]
     (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths ctx)
@@ -340,12 +338,12 @@
                               :submit))
      :dispatch [::dsf/sync (form-sync-opts form-layout (get-in db buffer) sync-opts)]}))
 
-(dh/rr rf/reg-event-fx ::submit-form
+(rf/reg-event-fx ::submit-form
   [rf/trim-v]
   (fn [{:keys [db]} [form-layout sync-opts]]
     (submit-form db form-layout sync-opts)))
 
-(dh/rr rf/reg-event-db ::record-form-submit
+(rf/reg-event-db ::record-form-submit
   [rf/trim-v]
   (fn [db [form-layout]]
     (let [{:donut.form.layout/keys [input-events]} (form-paths form-layout)]
@@ -372,7 +370,7 @@
 ;; handle form success/fail
 ;;--------------------
 
-(dh/rr rf/reg-event-db ::submit-form-success
+(rf/reg-event-db ::submit-form-success
   [rf/trim-v]
   (fn [db [ctx]]
     (let [{:donut.form.layout/keys [input-events]} (form-paths ctx)]
@@ -393,7 +391,7 @@
                                               {:cause :unknown}))
         (assoc-in input-events nil))))
 
-(dh/rr rf/reg-event-db ::submit-form-fail
+(rf/reg-event-db ::submit-form-fail
   [rf/trim-v]
   submit-form-fail)
 
