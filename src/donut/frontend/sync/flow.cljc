@@ -41,7 +41,7 @@
               [:route-params {:optional true} RouteParams]
               [:query-params {:optional true} QueryParams]
               [:params {:optional true} Params]
-              [:sync-key {:optional true} some?]])
+              [:donut.sync/key {:optional true} some?]])
 
 (def Req [:cat
           [:req-method ReqMethod]
@@ -78,9 +78,9 @@
   `:id-key`, a keyword like `:id` or `:db/id` that identifies an entity.
   `dfr/req-id` will use that value if present.
 
-  It's also possible to completely specify the sync-key with `:sync-key`."
+  It's also possible to completely specify the sync-key with `:donut.sync/key`."
   [[method route opts]]
-  (or (:sync-key opts)
+  (or (:donut.sync/key opts)
       (let [req-id (dfr/req-id route opts)]
         (if (empty? req-id)
           [method route]

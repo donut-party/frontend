@@ -228,12 +228,13 @@
       {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
       [:div
        [*field :text :zip-code {:class input-class}]])]])
+
 (defn formwide-opts-example
   []
   [ui/example
    [:div {:class "p-4"}
     (dfc/with-form [:post :users {:id 1}]
-      {:sync-key [:foo]}
+      {:donut.sync/key [:foo]}
       [:div])]])
 
 (defn examples

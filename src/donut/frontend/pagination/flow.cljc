@@ -45,7 +45,7 @@
 
 (rf/reg-sub ::sync-state
   (fn [db [_ endpoint pager-id]]
-    (dsf/sync-state db [:get endpoint {:sync-key pager-id}])))
+    (dsf/sync-state db [:get endpoint {:donut.sync/key pager-id}])))
 
 ;;---------
 ;; Helpers
@@ -58,6 +58,6 @@
 
 (defn page-sync-req
   [endpoint page-query & [opts]]
-  [:get endpoint (merge {:query-params page-query
-                         :sync-key     [:pagination (:pager-id page-query)]}
+  [:get endpoint (merge {:query-params   page-query
+                         :donut.sync/key [:pagination (:pager-id page-query)]}
                         opts)])
