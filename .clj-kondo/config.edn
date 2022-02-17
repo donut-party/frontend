@@ -7,7 +7,7 @@
                 *form-subs
                 *form-ui-state
                 *form-dscr
-                *form-errors
+                *form-feedback
                 *form-buffer
                 *form-dirty?
 

@@ -299,7 +299,8 @@
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
     ;; TODO possibly allow failed responses to carry data
-    (let [sync-info {:response-data response-data :req (into [] (take 2 req))}]
+    (let [sync-info {:response-data response-data
+                     :req           (into [] (take 2 req))}]
       (rfl/console :log "sync failed" sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 

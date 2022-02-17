@@ -97,13 +97,13 @@
 
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
-  [{:keys [errors input-events]}]
+  [{:keys [feedback input-events]}]
   {:errors
    {:attrs (medley/filter-keys (fn [attr-path]
                                  (not (received-events? (get input-events (dsu/vectorize attr-path))
                                                         #{:focus})))
-                               (:attrs errors))
-    :form  (:form errors)}})
+                               (get-in feedback [:errors :attrs]))
+    :form  (get-in feedback [:errors :form])}})
 
 ;;---
 ;; malli feedback

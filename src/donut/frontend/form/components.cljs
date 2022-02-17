@@ -461,11 +461,10 @@
 
 (defn form-subs
   [{:keys [:donut.form/sync?] :as formwide-opts}]
-  (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state formwide-opts])
-            :*form-errors   (rf/subscribe [::dff/errors formwide-opts])
-            :*form-feedback (rf/subscribe [::dffk/form-feedback formwide-opts])
-            :*form-buffer   (rf/subscribe [::dff/buffer formwide-opts])
-            :*form-dirty?   (rf/subscribe [::dff/form-dirty? formwide-opts])}
+  (cond->  {:*form-ui-state        (rf/subscribe [::dff/ui-state formwide-opts])
+            :*form-feedback        (rf/subscribe [::dffk/form-feedback formwide-opts])
+            :*form-buffer          (rf/subscribe [::dff/buffer formwide-opts])
+            :*form-dirty?          (rf/subscribe [::dff/form-dirty? formwide-opts])}
     sync? (merge (form-sync-subs (:donut.sync/key formwide-opts)))))
 
 (defn form-components

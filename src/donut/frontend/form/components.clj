@@ -22,7 +22,6 @@
 
            {:keys [~'*form-ui-state
                    ~'*form-feedback
-                   ~'*form-errors
                    ~'*form-buffer
                    ~'*form-dirty?
 

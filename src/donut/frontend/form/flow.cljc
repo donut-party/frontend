@@ -33,7 +33,7 @@
 (def Form
   [:map
    [:buffer FormBuffer]
-   [:errors {:optional true} FormErrors]
+   [:feedback {:optional true} [:map-of keyword? BufferView]]
    [:input-events {:optional true} FormInputEvents]
    [:buffer-init-val FormBufferInitVal]
    [:ui-state {:optional true} FormUIState]])
@@ -55,7 +55,7 @@
   [:map
    [:donut.form/key :any]
    [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
-   [:donut.form.layout/errors {:optional true} [:vector keyword?]]
+   [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
    [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
    [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
    [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]])
@@ -81,13 +81,13 @@
 ;;--------------------
 
 (rf/reg-sub ::form
-  (fn [db [_ {:donut.form.layout/keys [buffer errors input-events buffer-init-val ui-state] :as form-layout}]]
-    (if (or buffer errors input-events buffer-init-val ui-state)
-      (let [{:donut.form.layout/keys [buffer errors input-events buffer-init-val ui-state]}
+  (fn [db [_ {:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state] :as form-layout}]]
+    (if (or buffer feedback input-events buffer-init-val ui-state)
+      (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]}
             (form-paths form-layout)]
         ;; TODO this could be a drag on performance. could do this more precisely.
         {:buffer          (get-in db buffer)
-         :errors          (get-in db errors)
+         :feedback        (get-in db feedback)
          :input-events    (get-in db input-events)
          :buffer-init-val (get-in db buffer-init-val)
          :ui-state        (get-in db ui-state)})
@@ -99,7 +99,7 @@
 
 (def sub-name->inner-key
   {::buffer          :buffer
-   ::errors          :errors
+   ::feedback        :feedback
    ::input-events    :input-events
    ::buffer-init-val :buffer-init-val
    ::ui-state        :ui-state})
@@ -124,15 +124,15 @@
   (fn [buffer [_ {:donut.input/keys [attr-path]}]]
     (get-in buffer (dsu/vectorize attr-path))))
 
-(rf/reg-sub ::attr-errors
-  (attr-facet-sub ::errors)
+(rf/reg-sub ::attr-feedback
+  (attr-facet-sub ::feedback)
   (fn [errors [_ {:donut.input/keys [attr-path]}]]
     (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
 
-(rf/reg-sub ::form-errors
-  (attr-facet-sub ::errors)
-  (fn [errors _]
-    (:form errors)))
+(rf/reg-sub ::form-feedback
+  (attr-facet-sub ::feedback)
+  (fn [feedback _]
+    (:form feedback)))
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
@@ -172,26 +172,6 @@
     (= (sync-state db args) :fail)))
 
 ;;------
-;; Errors
-;;------
-
-;; TODO get rid of this
-;; returns attr errors only when the form or given input has received
-;; one of the input events in `show-errors-on`
-(rf/reg-sub ::attr-visible-errors
-  (fn [[_ & args]]
-    [(rf/subscribe (into [::attr-input-events] args))
-     (rf/subscribe (into [::form-input-events] args))
-     (rf/subscribe (into [::attr-errors] args))])
-  (fn [[attr-input-events form-input-events attr-errors] [_ _ _ show-errors-on]]
-    (when (->> form-input-events
-               (into attr-input-events)
-               set
-               (set/intersection show-errors-on)
-               not-empty)
-      attr-errors)))
-
-;;------
 ;; Interacting with forms
 ;;------
 
@@ -214,7 +194,6 @@
   [rf/trim-v]
   attr-input-event)
 
-;; TODO update this with form layout
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
   [db [{:keys [form-layout event-type]}]]
@@ -248,7 +227,7 @@
         form  (update form :buffer-init-val #(or % buffer))]
     (-> db
         (assoc-in (:donut.form.layout/buffer paths) (:buffer form))
-        (assoc-in (:donut.form.layout/errors paths) (:errors form))
+        (assoc-in (:donut.form.layout/feedback paths) (:feedback form))
         (assoc-in (:donut.form.layout/input-events paths) (:input-events form))
         (assoc-in (:donut.form.layout/buffer-init-val paths) (:buffer-init-val form))
         (assoc-in (:donut.form.layout/ui-state paths) (:ui-state form)))))
@@ -351,12 +330,11 @@
     [method route-name sync-opts]))
 
 (defn submit-form
-  "build form request. update db to indicate form's submitting, clear
-  old errors"
+  "build form request. update db with :submit input event for form"
   [db form-layout & [sync-opts]]
-  (let [{:donut.form.layout/keys [errors input-events buffer]} (form-paths form-layout)]
+  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-layout)]
     {:db       (-> db
-                   (assoc-in errors nil)
+                   (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
@@ -367,8 +345,7 @@
   (fn [{:keys [db]} [form-layout sync-opts]]
     (submit-form db form-layout sync-opts)))
 
-;; when user clicks submit on form that has errors
-(dh/rr rf/reg-event-db ::register-form-submit
+(dh/rr rf/reg-event-db ::record-form-submit
   [rf/trim-v]
   (fn [db [form-layout]]
     (let [{:donut.form.layout/keys [input-events]} (form-paths form-layout)]
@@ -409,11 +386,11 @@
 (defn submit-form-fail
   [db [{:donut.form/keys [key]
         :keys            [resp] :as $ctx}]]
-  (let [{:donut.form.layout/keys [errors input-events]} (form-paths $ctx)]
+  (let [{:donut.form.layout/keys [feedback input-events]} (form-paths $ctx)]
     (rfl/console :log "form submit fail:" key resp)
     (-> db
-        (assoc-in errors (or (response-error $ctx)
-                             {:cause :unknown}))
+        (assoc-in (conj feedback :errors) (or (response-error $ctx)
+                                              {:cause :unknown}))
         (assoc-in input-events nil))))
 
 (dh/rr rf/reg-event-db ::submit-form-fail
