@@ -201,11 +201,14 @@
         :as               opts}]]
   (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
     (cond-> db
-      event-type                          (update-in (conj input-events attr-path)
-                                                     (fnil conj #{})
-                                                     event-type)
-      (contains? opts :donut.input/value) (assoc-in (into buffer (dsu/vectorize attr-path))
-                                                    value))))
+      event-type
+      (update-in (conj input-events (dsu/vectorize attr-path))
+                 (fnil conj #{})
+                 event-type)
+
+      (contains? opts :donut.input/value)
+      (assoc-in (into buffer (dsu/vectorize attr-path))
+                value))))
 
 (dh/rr rf/reg-event-db ::attr-input-event
   [rf/trim-v]

@@ -101,7 +101,7 @@
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
   {:attrs (medley/filter-keys (fn [attr-path]
-                                (not (received-events? (get-in input-events (dsu/vectorize attr-path))
+                                (not (received-events? (get input-events (dsu/vectorize attr-path))
                                                        #{:focus})))
                               (:attrs errors))
    :form  (:form errors)})
@@ -117,9 +117,9 @@
   ([explanation]
    (feedback-humanize explanation nil))
   ([{:keys [value errors] :as explanation} {:keys [wrap resolve]
-                                            :or {wrap :message
-                                                 resolve me/-resolve-direct-error}
-                                            :as options}]
+                                            :or   {wrap    :message
+                                                   resolve me/-resolve-direct-error}
+                                            :as   options}]
    (when errors
      (reduce
       (fn [acc error]
@@ -137,5 +137,5 @@
                                                         error-overrides)
                                          :wrap   (comp vector :message)}))
                  (medley/filter-keys (fn [attr-path]
-                                       (received-events? (get-in input-events (dsu/vectorize attr-path))
+                                       (received-events? (get input-events (dsu/vectorize attr-path))
                                                          #{:blur}))))}))
