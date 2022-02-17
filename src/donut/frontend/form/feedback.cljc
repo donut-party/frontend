@@ -62,7 +62,7 @@
 (rf/reg-sub ::feedback
   (fn [[_ form-layout]]
     (rf/subscribe [::dff/form form-layout]))
-  (fn [form [_ _ feedback-fns]]
+  (fn [form [_ {:donut.form/keys [feedback-fns]} :as args]]
     (reduce-kv (fn [feedback feedback-type feedback-fn]
                  (assoc feedback feedback-type (feedback-fn form)))
                {}
@@ -72,9 +72,9 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::form-feedback
-  (fn [[form-layout feedback-fns]]
-    (rf/subscribe [::feedback form-layout feedback-fns]))
-  (fn [feedback]
+  (fn [[_ form-layout]]
+    (rf/subscribe [::feedback form-layout]))
+  (fn [feedback _]
     (reduce-kv (fn [form-feedback feedback-type all-feedback]
                  (if-let [feedback (:form all-feedback)]
                    (assoc form-feedback feedback-type feedback)
@@ -86,8 +86,8 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::attr-feedback
-  (fn [[_ form-layout _attr-path feedback-fns]]
-    (rf/subscribe [::feedback form-layout feedback-fns]))
+  (fn [[_ form-layout _attr-path]]
+    (rf/subscribe [::feedback form-layout]))
   (fn [feedback [_ {:donut.input/keys [attr-path]}]]
     (reduce-kv (fn [attr-feedback feedback-type all-feedback]
                  (if-let [feedback (get (:attrs all-feedback)
@@ -101,10 +101,10 @@
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
   {:attrs (medley/filter-keys (fn [attr-path]
-                                (not (received-events? (get-in input-events [:attrs attr-path])
+                                (not (received-events? (get-in input-events (dsu/vectorize attr-path))
                                                        #{:focus})))
                               (:attrs errors))
-   :form (:form errors)})
+   :form  (:form errors)})
 
 ;;---
 ;; malli feedback
@@ -131,11 +131,11 @@
   [schema & [error-overrides]]
   (fn [{:keys [buffer input-events]}]
     {:attrs (->> (-> schema
-                     (m/explain buffer)
+                     (m/explain (or buffer {}))
                      (feedback-humanize {:errors (merge me/default-errors
                                                         {::m/missing-key {:error/message "required"}}
                                                         error-overrides)
                                          :wrap   (comp vector :message)}))
                  (medley/filter-keys (fn [attr-path]
-                                       (received-events? (get-in input-events [:attrs attr-path])
+                                       (received-events? (get-in input-events (dsu/vectorize attr-path))
                                                          #{:blur}))))}))

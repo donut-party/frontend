@@ -26,7 +26,7 @@
         [[:donut.input/attr-path]
          [:donut.input/format-write]
          [:donut.input/format-read]
-         [:donut.input/feedback-fns]]))
+         [:donut.form/feedback-fns]]))
 
 (def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
 
@@ -123,18 +123,20 @@
      :donut.input/select-options
      :donut.input/select-option-components
      :donut.input/form-key
-     :donut.input/feedback-fns
+     :donut.form/feedback-fns
      :donut.input/format-read
      :donut.input/format-write}
    dff/form-layout-keys))
 
 (def all-opts (into field-opts input-opts))
-(def input-layout-opts (set (conj dff/form-layout-keys :donut.input/attr-path)))
+(def input-injected-opts (->> [:donut.input/attr-path :donut.form/feedback-fns]
+                              (into dff/form-layout-keys)
+                              set))
 (def react-key-filter all-opts)
 
 (defn framework-input-opts
   [opts]
-  (let [layout (select-keys opts input-layout-opts)]
+  (let [layout (select-keys opts input-injected-opts)]
     (merge
      #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer layout])
                    :attr-feedback     (rf/subscribe [::dffk/attr-feedback layout])
@@ -414,9 +416,9 @@
 
 (defn all-input-opts
   [formwide-opts input-type attr-path & [opts]]
-  (-> {:donut.input/type         input-type
-       :donut.input/attr-path    attr-path
-       :donut.input/feedback-fns (:feedback-fns formwide-opts)}
+  (-> {:donut.input/type        input-type
+       :donut.input/attr-path   attr-path
+       :donut.form/feedback-fns (:donut.form/feedback-fns formwide-opts)}
       (merge (select-keys formwide-opts dff/form-layout-keys))
       (merge (:donut.form/default-input-opts formwide-opts))
       (merge opts)
@@ -458,10 +460,10 @@
    :*sync-fail?    (rf/subscribe [::dff/sync-fail? sync-key])})
 
 (defn form-subs
-  [{:keys [feedback-fns :donut.form/sync?] :as formwide-opts}]
+  [{:keys [:donut.form/sync?] :as formwide-opts}]
   (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state formwide-opts])
             :*form-errors   (rf/subscribe [::dff/errors formwide-opts])
-            :*form-feedback (rf/subscribe [::dffk/form-feedback feedback-fns])
+            :*form-feedback (rf/subscribe [::dffk/form-feedback formwide-opts])
             :*form-buffer   (rf/subscribe [::dff/buffer formwide-opts])
             :*form-dirty?   (rf/subscribe [::dff/form-dirty? formwide-opts])}
     sync? (merge (form-sync-subs (:donut.sync/key formwide-opts)))))

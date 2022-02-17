@@ -204,7 +204,7 @@
         It hides the field's error message when its input receives focus, because
         I think that's a friendlier design."]
     (dfc/with-form [:post :users]
-      {:feedback-fns {:errors dffk/stored-error-feedback}}
+      {:donut.form/feedback-fns {:errors dffk/stored-error-feedback}}
       [:div
        [*field :text :first-name {:class input-class}]
        [ui/button
@@ -225,10 +225,9 @@
         Otherwise it'd be obnoxious, telling you the input is incorrect when you haven't
         even finished filling it out."]
     (dfc/with-form [:post :users]
-      {:feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
+      {:donut.form/feedback-fns {:errors (dffk/malli-error-feedback-fn UserSchema)}}
       [:div
        [*field :text :zip-code {:class input-class}]])]])
-
 (defn formwide-opts-example
   []
   [ui/example
