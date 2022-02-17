@@ -26,7 +26,7 @@
         [[:donut.input/attr-path]
          [:donut.input/format-write]
          [:donut.input/format-read]
-         [:donut.form/feedback-fns]]))
+         [:donut.form/feedback-fn]]))
 
 (def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
 
@@ -123,13 +123,13 @@
      :donut.input/select-options
      :donut.input/select-option-components
      :donut.input/form-key
-     :donut.form/feedback-fns
+     :donut.form/feedback-fn
      :donut.input/format-read
      :donut.input/format-write}
    dff/form-layout-keys))
 
 (def all-opts (into field-opts input-opts))
-(def input-injected-opts (->> [:donut.input/attr-path :donut.form/feedback-fns]
+(def input-injected-opts (->> [:donut.input/attr-path :donut.form/feedback-fn]
                               (into dff/form-layout-keys)
                               set))
 (def react-key-filter all-opts)
@@ -416,9 +416,9 @@
 
 (defn all-input-opts
   [formwide-opts input-type attr-path & [opts]]
-  (-> {:donut.input/type        input-type
-       :donut.input/attr-path   attr-path
-       :donut.form/feedback-fns (:donut.form/feedback-fns formwide-opts)}
+  (-> {:donut.input/type       input-type
+       :donut.input/attr-path  attr-path
+       :donut.form/feedback-fn (:donut.form/feedback-fn formwide-opts)}
       (merge (select-keys formwide-opts dff/form-layout-keys))
       (merge (:donut.form/default-input-opts formwide-opts))
       (merge opts)

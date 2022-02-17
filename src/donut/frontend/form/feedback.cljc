@@ -13,10 +13,10 @@
 
   The interface consists of:
 
-  - a `::feedback` subscription. It takes a signle argument, `feedback-fns`,
+  - a `::feedback` subscription. It takes a signle argument, `feedback-fn`,
     which takes a form as an argument and returns data in the same described below
   - a `::form-feedback` subscription that takes a `form-layout` and
-    `feedback-fns` to produce form-wide feedback. can be used to e.g. prevent
+    `feedback-fn` to produce form-wide feedback. can be used to e.g. prevent
     form submission
   - an `::attr-feedback` subscription that produces feedback for a specific attr."
   (:require
@@ -62,11 +62,9 @@
 (rf/reg-sub ::feedback
   (fn [[_ form-layout]]
     (rf/subscribe [::dff/form form-layout]))
-  (fn [form [_ {:donut.form/keys [feedback-fns]} :as args]]
-    (reduce-kv (fn [feedback feedback-type feedback-fn]
-                 (assoc feedback feedback-type (feedback-fn form)))
-               {}
-               feedback-fns)))
+  (fn [form [_ {:donut.form/keys [feedback-fn]}]]
+    (when feedback-fn
+      (feedback-fn form))))
 
 ;; yields values of the form
 ;; {:error [e1 e2 e3]
@@ -100,11 +98,12 @@
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
   [{:keys [errors input-events]}]
-  {:attrs (medley/filter-keys (fn [attr-path]
-                                (not (received-events? (get input-events (dsu/vectorize attr-path))
-                                                       #{:focus})))
-                              (:attrs errors))
-   :form  (:form errors)})
+  {:errors
+   {:attrs (medley/filter-keys (fn [attr-path]
+                                 (not (received-events? (get input-events (dsu/vectorize attr-path))
+                                                        #{:focus})))
+                               (:attrs errors))
+    :form  (:form errors)}})
 
 ;;---
 ;; malli feedback
@@ -116,10 +115,10 @@
   - `:resolve`, a function of `explanation error options -> path message`"
   ([explanation]
    (feedback-humanize explanation nil))
-  ([{:keys [value errors] :as explanation} {:keys [wrap resolve]
-                                            :or   {wrap    :message
-                                                   resolve me/-resolve-direct-error}
-                                            :as   options}]
+  ([{:keys [_value errors] :as explanation} {:keys [wrap resolve]
+                                             :or   {wrap    :message
+                                                    resolve me/-resolve-direct-error}
+                                             :as   options}]
    (when errors
      (reduce
       (fn [acc error]
@@ -130,12 +129,13 @@
 (defn malli-error-feedback-fn
   [schema & [error-overrides]]
   (fn [{:keys [buffer input-events]}]
-    {:attrs (->> (-> schema
-                     (m/explain (or buffer {}))
-                     (feedback-humanize {:errors (merge me/default-errors
-                                                        {::m/missing-key {:error/message "required"}}
-                                                        error-overrides)
-                                         :wrap   (comp vector :message)}))
-                 (medley/filter-keys (fn [attr-path]
-                                       (received-events? (get input-events (dsu/vectorize attr-path))
-                                                         #{:blur}))))}))
+    {:errors
+     {:attrs (->> (-> schema
+                      (m/explain (or buffer {}))
+                      (feedback-humanize {:errors (merge me/default-errors
+                                                         {::m/missing-key {:error/message "required"}}
+                                                         error-overrides)
+                                          :wrap   (comp vector :message)}))
+                  (medley/filter-keys (fn [attr-path]
+                                        (received-events? (get input-events (dsu/vectorize attr-path))
+                                                          #{:blur}))))}}))
