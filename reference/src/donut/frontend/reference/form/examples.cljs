@@ -7,6 +7,7 @@
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.reference.form.simplemde]
    [donut.frontend.reference.ui :as ui]
+   [donut.frontend.sync.flow :as dsf]
    [donut.frontend.sync.dispatch.echo :as dsde]
    ["marked" :as marked]
    [re-frame.core :as rf]))
@@ -36,8 +37,7 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            1000}
-                  ;; removes form data after success
-                  :success [::dff/clear *form-key]}))}
+                  :on         {:success [::dff/clear *form-key]}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -96,7 +96,7 @@
             ;; submitting.
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
-             #(rf/dispatch [::dff/initialize-form
+             #(rf/dispatch [::dff/set-form
                             *formwide-opts
                             {:buffer {:username "marcy"}}]))}
            "populate form"]
@@ -200,9 +200,10 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "Validation Example 1: Server-side-validation"]
-    [:p "This simulates a setup where your form fails server-side validation.
+    [ui/explain
+     "This simulates a setup where your form fails server-side validation.
         It hides the field's error message when its input receives focus, because
-        I think that's a friendlier design."]
+           I think that's a friendlier design."]
     (dfc/with-form [:post :users]
       {:donut.form/feedback-fn dffk/stored-error-feedback}
       [:div
@@ -221,7 +222,8 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "Validation Example 2: Dynamic"]
-    [:p "Uses malli to validate a form. Validation message doesn't appear until blur.
+    [ui/explain
+     "Uses malli to validate a form. Validation message doesn't appear until blur.
         Otherwise it'd be obnoxious, telling you the input is incorrect when you haven't
         even finished filling it out."]
     (dfc/with-form [:post :users]
@@ -229,13 +231,27 @@
       [:div
        [*field :text :zip-code {:class input-class}]])]])
 
-(defn formwide-opts-example
+(defn sync-and-init-example
   []
   [ui/example
    [:div {:class "p-4"}
-    (dfc/with-form [:post :users {:id 1}]
-      {:donut.sync/key [:foo]}
-      [:div])]])
+    [ui/h2 "Populate form with sync response"]
+    (dfc/with-form [:post :posts]
+      [:div
+       [ui/explain
+        "You can perform a sync request and use the result to populate a form"]
+       [ui/explain
+        [ui/button
+         {:on-click
+          #(rf/dispatch [::dsf/get
+                         :post
+                         {:id         1
+                          ::dsde/echo {:status        :success
+                                       :response-data {:id      1
+                                                       :content "post content"}}
+                          :on         {:success [::dff/set-form-from-sync :$ctx *form-layout]}}])}
+         "populate from sync"]]
+       [*field :text :content {:class input-class}]])]])
 
 (defn examples
   []
@@ -244,4 +260,5 @@
    [form-example-features]
    [activity-example]
    [validation-example-stored-errors]
-   [validation-example-dynamic]])
+   [validation-example-dynamic]
+   [sync-and-init-example]])

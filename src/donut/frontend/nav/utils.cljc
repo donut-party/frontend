@@ -40,13 +40,6 @@
               (into [form-key]
                     (select-keys (p/get-path db [:nav :route :params]) [param-key]))))
 
-;; TODO put this in form namespace
-#_(defn initialize-form-with-routed-entity
-    [db form-path entity-key param-key & [form-opts]]
-    (let [ent (routed-entity db entity-key param-key)]
-      (dff/initialize-form db [(conj form-path (select-keys ent [param-key]))
-                               (merge {:buffer ent} form-opts)])))
-
 (defn route
   [db]
   (p/get-path db :nav [:route]))

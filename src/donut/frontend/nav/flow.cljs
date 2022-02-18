@@ -373,17 +373,6 @@
   (fn [db [_ path-prefix]]
     (dsf/sync-state db (conj path-prefix (-> db nav :route :params)))))
 
-;; ------
-;; form interactions
-;; ------
-
-(comment
-  ;; TODO move this to form namespace
-  (rf/reg-event-db ::initialize-form-with-routed-entity
-    [rf/trim-v]
-    (fn [db [form-path entity-key param-key form-opts]]
-      (dnu/initialize-form-with-routed-entity db form-path entity-key param-key form-opts))))
-
 (rf/reg-event-fx ::navigate-to-synced-entity
   [rf/trim-v]
   (fn [_ [route-name ctx]]

@@ -18,6 +18,12 @@
                   :id-key   :id}]
    ["/user/{id}" {:name     :user
                   :ent-type :user
+                  :id-key   :id}]
+   ["/post" {:name     :posts
+             :ent-type :post
+             :id-key   :id}]
+   ["/post/{id}" {:name     :post
+                  :ent-type :post
                   :id-key   :id}]])
 
 (defn system-config
