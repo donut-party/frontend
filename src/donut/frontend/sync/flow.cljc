@@ -581,8 +581,8 @@
 
 (defn remove-reqs
   [db key-filter value-filter]
-  (let [key-filter   (or key-filter (constantly false))
-        value-filter (or value-filter (constantly false))]
+  (let [key-filter   (or key-filter (constantly true))
+        value-filter (or value-filter (constantly true))]
     (update db (p/path :reqs [])
             (fn [req-map]
               (->> req-map
