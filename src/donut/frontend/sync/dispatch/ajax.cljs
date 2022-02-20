@@ -18,11 +18,6 @@
    :purge   PURGE
    :head    HEAD})
 
-(def segments-response-format
-  {:read (at/transit-read-fn {})
-   :description "Segments over Transit"
-   :content-type ["application/st-segments+json"]})
-
 (def fails
   {400 ::anom/incorrect
    401 ::anom/forbidden
@@ -70,8 +65,7 @@
 
       ((get request-methods method)
        uri
-       (-> {:response-format segments-response-format}
-           (merge global-opts opts)
+       (-> (merge global-opts opts)
            (assoc :handler       (fn [resp]
                                    ((dsf/sync-response-handler req)
                                     {:status        :success

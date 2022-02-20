@@ -4,6 +4,7 @@
 
    [clojure.string :as str]
    [donut.sugar.utils :as dsu]
+   [donut.frontend.path :as p]
    [goog.object :as go]
    [reagent.core :as r]
    [reagent.dom :as rdom]
@@ -86,3 +87,9 @@
            (if timeout
              (js/setTimeout #(.focus node) timeout)
              (.focus node))))})))
+
+(defn entities
+  [db entity-type & [sort-by-fn]]
+  (cond->> (get-in db (p/entity-path [entity-type]))
+    true vals
+    sort-by-fn (sort-by sort-by-fn)))

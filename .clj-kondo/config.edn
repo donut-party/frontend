@@ -17,7 +17,7 @@
                 *sync-fail?
                 *sync-key
 
-                *on-submit
+                *submit
                 *submit
                 *input-opts
                 *input

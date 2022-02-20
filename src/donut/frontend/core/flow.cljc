@@ -114,7 +114,7 @@
 
 (rf/reg-fx ::start-system
   (fn [config]
-    (swap! rfdb/app-db meta-merge/meta-merge {:donut {:system (ds/signal config :start)}})))
+    (swap! rfdb/app-db assoc-in [:donut :system] (ds/signal config :start))))
 
 (rf/reg-event-fx ::stop-system
   (fn [_ _]
@@ -122,6 +122,4 @@
 
 (rf/reg-fx ::stop-system
   (fn []
-    (-> @rfdb/app-db
-        (p/get-path :system)
-        (ds/signal :stop))))
+    (swap! rfdb/app-db update-in [:donut :system] #(ds/signal % :stop))))

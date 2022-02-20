@@ -8,7 +8,6 @@
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]))
 
-
 ;;--------------------
 ;; specs
 ;;--------------------
