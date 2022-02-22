@@ -1,5 +1,4 @@
-(ns donut.frontend.form.components
-  (:require [donut.frontend.form.flow :as dff]))
+(ns donut.frontend.form.components)
 
 (defn- form-body
   "If the first element in the body is a map, that means it's form
@@ -20,7 +19,7 @@
                                  :donut.sync/key   (donut.frontend.sync.flow/sync-key ~'*form-key)}
                                 (merge ~possible-formwide-opts))
            ~'*sync-key      (:*sync-key ~'*formwide-opts)
-           ~'*form-layout   (select-keys ~'*formwide-opts dff/form-layout-keys)
+           ~'*form-layout   (select-keys ~'*formwide-opts form-layout-keys)
 
            {:keys [~'*form-ui-state
                    ~'*form-feedback

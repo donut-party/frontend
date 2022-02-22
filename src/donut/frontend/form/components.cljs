@@ -20,6 +20,14 @@
 ;;---
 ;; input config
 ;;---
+(def form-layout-keys
+  "this is needed for the with form macro.
+  TODO figure out better way to do this"
+  [:donut.form.layout/buffer
+   :donut.form.layout/feedback
+   :donut.form.layout/input-events
+   :donut.form.layout/buffer-init-val
+   :donut.form.layout/ui-state])
 
 (def InputConfig
   (into dff/FormLayout
