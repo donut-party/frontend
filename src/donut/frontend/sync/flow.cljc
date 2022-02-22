@@ -281,9 +281,27 @@
   (fn [db [_ req comparison]]
     (let [state (sync-state db req)]
       (if comparison
-        (or (= state comparison)
-            (isa? state comparison))
+        (isa? state comparison)
         state))))
+
+(defn sync-state-signal
+  [[_ req]]
+  (rf/subscribe [::sync-state req]))
+
+(rf/reg-sub ::sync-active?
+  sync-state-signal
+  (fn [sync-state]
+    (= sync-state :active)))
+
+(rf/reg-sub ::sync-success?
+  sync-state-signal
+  (fn [sync-state]
+    (= sync-state :success)))
+
+(rf/reg-sub ::sync-fail?
+  sync-state-signal
+  (fn [sync-state]
+    (= sync-state :fail)))
 
 ;; Used to find, e.g. all requests like [:get :topic] or [:post :host]
 (rf/reg-sub ::sync-state-q

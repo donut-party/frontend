@@ -6,6 +6,7 @@
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.form.flow :as dff]
+   [donut.frontend.sync.flow :as dsf]
    [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
@@ -462,10 +463,11 @@
 
 (defn form-sync-subs
   [sync-key]
-  {:*sync-state    (rf/subscribe [::dff/sync-state sync-key])
-   :*sync-active?  (rf/subscribe [::dff/sync-active? sync-key])
-   :*sync-success? (rf/subscribe [::dff/sync-success? sync-key])
-   :*sync-fail?    (rf/subscribe [::dff/sync-fail? sync-key])})
+  (let [req [nil nil {:donut.sync/key sync-key}]]
+    {:*sync-state    (rf/subscribe [::dsf/sync-state req])
+     :*sync-active?  (rf/subscribe [::dsf/sync-active? req])
+     :*sync-success? (rf/subscribe [::dsf/sync-success? req])
+     :*sync-fail?    (rf/subscribe [::dsf/sync-fail? req])}))
 
 (defn form-subs
   [{:keys [:donut.form/sync?] :as formwide-opts}]

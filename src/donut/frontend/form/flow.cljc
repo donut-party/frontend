@@ -150,25 +150,6 @@
   (fn [[buffer-init-val buffer]]
     (not= buffer-init-val buffer)))
 
-;; sync states
-(defn sync-state
-  [db [_ [method form-handle entity]]]
-  (dsf/sync-state db [method form-handle {:route-params entity}]))
-
-(rf/reg-sub ::sync-state sync-state)
-
-(rf/reg-sub ::sync-active?
-  (fn [db args]
-    (= (sync-state db args) :active)))
-
-(rf/reg-sub ::sync-success?
-  (fn [db args]
-    (= (sync-state db args) :success)))
-
-(rf/reg-sub ::sync-fail?
-  (fn [db args]
-    (= (sync-state db args) :fail)))
-
 ;;------
 ;; Interacting with forms
 ;;------
