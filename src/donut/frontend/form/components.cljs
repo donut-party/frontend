@@ -138,11 +138,13 @@
      :donut.input/format-write}
    dff/form-layout-keys))
 
-(def all-opts (into field-opts input-opts))
+(def donut-key-filter
+  "used to remove donut keys from react component options"
+  (into field-opts input-opts))
+
 (def input-injected-opts (->> [:donut.input/attr-path :donut.form/feedback-fn]
                               (into dff/form-layout-keys)
                               set))
-(def react-key-filter all-opts)
 
 (defn framework-input-opts
   [opts]
@@ -171,13 +173,16 @@
 
 (defn donut-opts->react-opts
   [opts]
-  (->> opts
-       (medley/remove-keys react-key-filter)
-       (medley/map-keys (comp keyword name))))
+  (let [input-class (:donut.input/class opts)
+        opts'       (->> opts
+                         (medley/remove-keys donut-key-filter)
+                         (medley/map-keys (comp keyword name)))]
+    (cond-> opts'
+      (fn? input-class) (assoc :class (input-class opts)))))
 
 (defn input-type-opts-default
   [{:donut.input/keys [attr-path attr-buffer type]
-    :as   opts}]
+    :as               opts}]
   (let [{:keys [:donut.input/format-read] :as opts} (merge #:donut.input{:format-read  identity
                                                                          :format-write identity}
                                                            opts)]
@@ -309,7 +314,7 @@
 ;; 'field' interface, wraps inputs with messages and labels
 ;;~~~~~~~~~~~~~~~~~~
 
-(defn feedback-classes
+(defn default-feedback-classes
   [feedback]
   (if (or (nil? feedback) (map? feedback))
     (->> feedback
@@ -341,7 +346,7 @@
     :donut.field/keys [class]}]
   (or class
       (cond->> [(dsu/kebab (attr-path-str attr-path))]
-        attr-feedback (into [(feedback-classes @attr-feedback)])
+        attr-feedback (into [(default-feedback-classes @attr-feedback)])
         true      (str/join " "))))
 
 (defmulti field :donut.input/type)
@@ -413,6 +418,24 @@
                                 (:donut.input/attr-path input-type)
                                 input-type)
              (all-input-opts-fn input-type attr-path input-opts))]))
+
+;;~~~~~~~~~~~~~~~~~~
+;; class helpers
+;;~~~~~~~~~~~~~~~~~~
+
+(defn feedback-classes
+  [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
+  (prn feedback-class-mapping)
+  (->> @attr-feedback
+       (remove #(empty? (second %)))
+       (map first)
+       (map #(get feedback-class-mapping % (dsu/full-name %)))
+       (str/join " ")))
+
+(defn map-feedback-classes
+  [mapping]
+  (fn [input-opts]
+    (feedback-classes input-opts mapping)))
 
 ;;~~~~~~~~~~~~~~~~~~
 ;; interface fns

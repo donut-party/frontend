@@ -253,6 +253,45 @@
          "populate from sync"]]
        [*field :text :content {:class input-class}]])]])
 
+(defn custom-input-class
+  []
+  ;; Alternatives for specifying classes
+  [ui/example
+   (dfc/with-form [:post :address]
+     {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
+     [:div {:class "p-4"}
+      [ui/h2 "Custom input classes"]
+      [ui/explain "You can customize the input class with feedback"]
+      [ui/explain
+       [*input :text :zip-code
+        {:donut.input/class #(str input-class " " (dfc/feedback-classes %))}]]
+      [ui/explain
+       [*input :text :zip-code
+        {:donut.input/class #(str input-class
+                                  " "
+                                  (dfc/feedback-classes % {:errors "one two three"}))}]]])])
+
+(rf/reg-sub ::custom-buffer
+  (fn [db _]
+    (::custom-buffer db)))
+
+(defn prevent-input-focus-loss
+  "TODO I still don't fully understand why this is needed"
+  []
+  [ui/example
+   (dfc/with-form [:post :address]
+     (fn []
+       {:donut.form.layout/buffer [::custom-buffer]}
+       [:div {:class "p-4"}
+        [ui/h2 "Inputs won't lose focus"]
+        [ui/explain
+         [:div "When we deref in a way that causes the input components to get
+       recreated, they shouldn't lose focus"]]
+        [ui/explain
+         [:div "custom buffer:" @(rf/subscribe [::custom-buffer])]]
+        [ui/explain
+         [*input :text :blah {:class input-class}]]]))])
+
 (defn examples
   []
   [:div
@@ -261,4 +300,6 @@
    [activity-example]
    [validation-example-stored-errors]
    [validation-example-dynamic]
-   [sync-and-init-example]])
+   [sync-and-init-example]
+   [custom-input-class]
+   [prevent-input-focus-loss]])
