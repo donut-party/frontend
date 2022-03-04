@@ -124,8 +124,8 @@
 
 (rf/reg-sub ::attr-feedback
   (attr-facet-sub ::feedback)
-  (fn [errors [_ {:donut.input/keys [attr-path]}]]
-    (get-in errors (into [:attrs] (dsu/vectorize attr-path)))))
+  (fn [feedback [_ {:donut.input/keys [attr-path]}]]
+    (get-in feedback (into [:attrs] (dsu/vectorize attr-path)))))
 
 (rf/reg-sub ::form-feedback
   (attr-facet-sub ::feedback)

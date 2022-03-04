@@ -146,14 +146,17 @@
                               (into dff/form-layout-keys)
                               set))
 
+(defn input-subs
+  [layout]
+  ;; TODO assert layout spec
+  #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer layout])
+                :attr-feedback     (rf/subscribe [::dffk/attr-feedback layout])
+                :attr-input-events (rf/subscribe [::dff/attr-input-events layout])})
+
 (defn framework-input-opts
   [opts]
   (let [layout (select-keys opts input-injected-opts)]
-    (merge
-     #:donut.input{:attr-buffer       (rf/subscribe [::dff/attr-buffer layout])
-                   :attr-feedback     (rf/subscribe [::dffk/attr-feedback layout])
-                   :attr-input-events (rf/subscribe [::dff/attr-input-events layout])}
-     opts)))
+    (merge (input-subs layout) opts)))
 
 (defn default-event-handlers
   [opts]

@@ -384,43 +384,36 @@
   [ctx rule]
   (contains? (get-in (ctx-req ctx) [2 :rules]) rule))
 
-(defn sync-entity-req
-  "To be used when dispatching a sync event for an entity:
-  (sync-entity-req :put :comment {:id 1 :content \"comment\"})"
-  [[method route ent & [opts]]]
-  [method route (-> opts
-                    (update :params #(or % ent))
-                    (update :route-params #(or % ent)))])
+(defmulti apply-sync-rule (fn [rule _] rule))
+(defmethod apply-sync-rule ::once
+  [_ ctx]
+  (if (ctx-sync-state ctx)
+    {:queue []}
+    ctx))
 
-(def sync-once
-  {:id     ::sync-once
+(defmethod apply-sync-rule ::when-not-active
+  [_ ctx]
+  (if (= :active (ctx-sync-state ctx))
+    {:queue []}
+    ctx))
+
+(defmethod apply-sync-rule ::merge-route-params
+  [_ ctx]
+  (update-ctx-req-opts
+   ctx
+   (fn [opts]
+     (merge {:route-params (p/get-path (ctx-db ctx) :nav [:route :params])}
+            opts))))
+
+
+(def apply-sync-rules
+  {:id     ::apply-sync-rules
    :before (fn [ctx]
-             (if (and (sync-rule? ctx :once)
-                      (= :success (ctx-sync-state ctx)))
-               {:queue []}
-               ctx))
+             (->> (get-in (ctx-req ctx) [2 :rules])
+                  (reduce (fn [ctx' rule]
+                            (apply-sync-rules rule ctx'))
+                          ctx)))
    :after  identity})
-
-(def sync-when-not-active
-  {:id     ::sync-when-not-active
-   :before (fn [ctx]
-             (if (and (sync-rule? ctx :when-not-active)
-                      (= :active (ctx-sync-state ctx)))
-               {:queue []}
-               ctx))
-   :after  identity})
-
-(def sync-merge-route-params
-  "Merges frontend route params into API request's route-params"
-  {:id     ::sync-merge-route-params
-   :before (fn [ctx]
-             (if (sync-rule? ctx :merge-route-params)
-               (update-ctx-req-opts ctx (fn [opts]
-                                          (merge {:route-params (p/get-path (ctx-db ctx) :nav [:route :params])}
-                                                 opts)))
-               ctx))
-   :after  identity})
-
 
 ;;---
 ;; populate sync with path data
@@ -430,7 +423,7 @@
   (merge {:route-params ent, :params ent}
          opts))
 
-(defn get-in-path
+(defn populate-params-from-path
   [ctx path-kw path-fn]
   (if-let [path (get-in (ctx-req ctx) [2 path-kw])]
     (if-let [ent (path-fn path)]
@@ -438,24 +431,15 @@
       (rfl/console :warn ::sync-entity-ent-not-found {path-kw path}))
     ctx))
 
-;; Use the entity at given path to populate route-params and params of request
-(def sync-entity-path
-  {:id     ::sync-entity-path
+(def sync-populate-params-from-path
+  {:id     ::sync-populate-from-path
    :before (fn [ctx]
-             (get-in-path ctx :entity-path #(p/get-path (ctx-db ctx) :entity %)))
-   :after  identity})
-
-;; Use the form buffer at given path to populate route-params and params of request
-(def sync-form-path
-  {:id     ::sync-form-path
-   :before (fn [ctx]
-             (get-in-path ctx :form-path #(p/get-path (ctx-db ctx) :form [% :buffer])))
-   :after  identity})
-
-(def sync-data-path
-  {:id     ::sync-data-path
-   :before (fn [ctx]
-             (get-in-path ctx :data-path #(get-in (ctx-db ctx) %)))
+             (->> [[:entity-params #(p/get-path (ctx-db ctx) :entity %)]
+                   [:form-buffer-params #(p/get-path (ctx-db ctx) :form [% :buffer])]
+                   [:path-parms #(get-in (ctx-db ctx) %)]]
+                  (reduce (fn [ctx' [path-kw path-fn]]
+                            (populate-params-from-path ctx' path-kw path-fn))
+                          ctx)))
    :after  identity})
 ;; end populate sync with path data
 
@@ -482,12 +466,8 @@
 
 (def sync-interceptors
   [sync-method
-   sync-merge-route-params
-   sync-entity-path
-   sync-form-path
-   sync-data-path
-   sync-once
-   sync-when-not-active
+   apply-sync-rules
+   sync-populate-params-from-path
    rf/trim-v])
 
 ;;---
@@ -524,6 +504,14 @@
   sync-interceptors
   (fn [cofx [req]]
     (sync-event-fx cofx req)))
+
+(defn sync-entity-req
+  "To be used when dispatching a sync event for an entity:
+  (sync-entity-req :put :comment {:id 1 :content \"comment\"})"
+  [[method route ent & [opts]]]
+  [method route (-> opts
+                    (update :params #(or % ent))
+                    (update :route-params #(or % ent)))])
 
 ;; makes it a little easier to sync a single entity
 (rf/reg-event-fx ::sync-entity
