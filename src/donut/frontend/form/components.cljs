@@ -410,7 +410,7 @@
   This allows the user to call [input :text :user/username {:x :y}]
   rather than something like
 
-  [input (all-input-opts formwide-opts :text :user/username {:x :y})]"
+  [input (all-input-opts form-config :text :user/username {:x :y})]"
   [all-input-opts-fn]
   (fn [input-type & [attr-path input-opts]]
     [field (if (map? input-type)
@@ -448,12 +448,12 @@
       (.preventDefault e))))
 
 (defn all-input-opts
-  [formwide-opts input-type attr-path & [opts]]
+  [form-config input-type attr-path & [opts]]
   (-> {:donut.input/type       input-type
        :donut.input/attr-path  attr-path
-       :donut.form/feedback-fn (:donut.form/feedback-fn formwide-opts)}
-      (merge (select-keys formwide-opts dff/form-layout-keys))
-      (merge (:donut.form/default-input-opts formwide-opts))
+       :donut.form/feedback-fn (:donut.form/feedback-fn form-config)}
+      (merge (select-keys form-config dff/form-layout-keys))
+      (merge (:donut.form/default-input-opts form-config))
       (merge opts)
       (framework-input-opts)
       (input-type-opts)))
@@ -481,9 +481,9 @@
              (all-input-opts-fn input-type attr-path input-opts))]))
 
 (defn submit
-  [formwide-opts & [sync-opts]]
+  [form-config & [sync-opts]]
   (when-not (:donut.form/prevent-submit? sync-opts)
-    (rf/dispatch [::dff/submit-form formwide-opts sync-opts])))
+    (rf/dispatch [::dff/submit-form form-config sync-opts])))
 
 (defn form-sync-subs
   [sync-key]
@@ -494,23 +494,23 @@
      :*sync-fail?    (rf/subscribe [::dsf/sync-fail? req])}))
 
 (defn form-subs
-  [{:keys [:donut.form/sync?] :as formwide-opts}]
-  (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state formwide-opts])
-            :*form-feedback (rf/subscribe [::dffk/form-feedback formwide-opts])
-            :*form-buffer   (rf/subscribe [::dff/buffer formwide-opts])
-            :*form-dirty?   (rf/subscribe [::dff/form-dirty? formwide-opts])}
-    sync? (merge (form-sync-subs (:donut.sync/key formwide-opts)))))
+  [{:keys [:donut.form/sync?] :as form-config}]
+  (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state form-config])
+            :*form-feedback (rf/subscribe [::dffk/form-feedback form-config])
+            :*form-buffer   (rf/subscribe [::dff/buffer form-config])
+            :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-config])}
+    sync? (merge (form-sync-subs (:donut.sync/key form-config)))))
 
 (defn form-components
-  [formwide-opts]
-  (let [input-opts-fn (partial all-input-opts formwide-opts)]
-    {:*submit     (partial submit formwide-opts)
+  [form-config]
+  (let [input-opts-fn (partial all-input-opts form-config)]
+    {:*submit     (partial submit form-config)
      :*input-opts input-opts-fn
      :*input      (input-component input-opts-fn)
      :*field      (field-component input-opts-fn)}))
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
-  [formwide-opts]
-  (merge (form-subs formwide-opts)
-         (form-components formwide-opts)))
+  [form-config]
+  (merge (form-subs form-config)
+         (form-components form-config)))

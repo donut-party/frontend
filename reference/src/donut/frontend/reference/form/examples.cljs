@@ -70,6 +70,7 @@
 (defn form-example-features
   []
   (dfc/with-form [:post :users]
+    {:donut.form.layout/buffer [:test-buffer]}
     [ui/example
      [:div {:class "p-4"}
       [:form
@@ -97,7 +98,7 @@
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
              #(rf/dispatch [::dff/set-form
-                            *formwide-opts
+                            *form-config
                             {:buffer {:username "marcy"}}]))}
            "populate form"]
           " sets the username value to 'marcy'"]
@@ -269,7 +270,7 @@
        [*input :text :zip-code
         {:donut.input/class #(str input-class
                                   " "
-                                  (dfc/feedback-classes % {:errors "one two three"}))}]]])])
+                                  (dfc/feedback-classes % {:errors "border-red-500"}))}]]])])
 
 (rf/reg-sub ::custom-buffer
   (fn [db _]

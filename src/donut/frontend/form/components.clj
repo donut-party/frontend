@@ -10,16 +10,16 @@
 
 (defmacro with-form
   [form-key & body]
-  (let [possible-formwide-opts (first body)
-        possible-formwide-opts (when (map? possible-formwide-opts)
-                                 possible-formwide-opts)]
-    `(let [~'*form-key      ~form-key
-           ~'*formwide-opts (-> {:donut.form/key   ~'*form-key
-                                 :donut.form/sync? true
-                                 :donut.sync/key   (donut.frontend.sync.flow/sync-key ~'*form-key)}
-                                (merge ~possible-formwide-opts))
-           ~'*sync-key      (:*sync-key ~'*formwide-opts)
-           ~'*form-layout   (select-keys ~'*formwide-opts form-layout-keys)
+  (let [possible-form-config (first body)
+        possible-form-config (when (map? possible-form-config)
+                               possible-form-config)]
+    `(let [~'*form-key    ~form-key
+           ~'*form-config (-> {:donut.form/key   ~'*form-key
+                               :donut.form/sync? true
+                               :donut.sync/key   (donut.frontend.sync.flow/sync-key ~'*form-key)}
+                              (merge ~possible-form-config))
+           ~'*sync-key    (:*sync-key ~'*form-config)
+           ~'*form-layout (select-keys ~'*form-config form-layout-keys)
 
            {:keys [~'*form-ui-state
                    ~'*form-feedback
@@ -31,12 +31,12 @@
                    ~'*sync-success?
                    ~'*sync-fail?]
             :as ~'*form-subs}
-           (form-subs ~'*formwide-opts)]
+           (form-subs ~'*form-config)]
        (let [{:keys [~'*submit
                      ~'*input-opts
                      ~'*input
                      ~'*field]
               :as   ~'*form-components}
-             (form-components ~'*formwide-opts)
+             (form-components ~'*form-config)
              ~'*form (merge ~'*form-subs ~'*form-components)]
          ~@(form-body body)))))

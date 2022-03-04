@@ -25,7 +25,7 @@
 
                 *form-state
                 *form-components
-                *formwide-opts
+                *form-config
                 *form-layout
                 *form])]}
 
