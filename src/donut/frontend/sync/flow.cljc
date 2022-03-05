@@ -360,8 +360,7 @@
   (when-let [path (drp/path router
                             route-name
                             (or (:route-params opts)
-                                (:params opts)
-                                opts)
+                                (:params opts))
                             (:query-params opts))]
     [method route-name (assoc opts :path path)]))
 
@@ -476,10 +475,26 @@
                ctx))
    :after  identity})
 
+(def set-sync-dispatch-fn
+  "Populates a default sync-dispatch-fn from the configured system, allowing
+  overrides"
+  {:id     ::sync-dispatch-fn
+   :before (fn [ctx]
+             (update-in ctx
+                        [:coeffects :event 1 2]
+                        #(merge {::sync-dispatch-fn (-> ctx
+                                                        (get-in [:coeffects :db])
+                                                        (p/get-path :donut-component)
+                                                        :sync-dispatch-fn)}
+                                (prn "req" %)
+                                %)))
+   :after  identity})
+
 (def sync-interceptors
   [sync-method
    apply-sync-rules
    sync-populate-params-from-path
+   set-sync-dispatch-fn
    rf/trim-v])
 
 ;;---
@@ -495,11 +510,11 @@
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
   [{:keys [db] :as _cofx} req]
-  (let [{:keys [sync-router sync-dispatch-fn]} (p/get-path db :donut-component)
-
-        adapted-req (-> req
-                        (add-default-sync-response-handlers)
-                        (adapt-req sync-router))]
+  (let [{:keys [sync-router]} (p/get-path db :donut-component)
+        sync-dispatch-fn      (get-in req [2 ::sync-dispatch-fn])
+        adapted-req           (-> req
+                                  (add-default-sync-response-handlers)
+                                  (adapt-req sync-router))]
     (if adapted-req
       {:db             (track-new-request db adapted-req)
        ::dispatch-sync {:dispatch-fn sync-dispatch-fn
