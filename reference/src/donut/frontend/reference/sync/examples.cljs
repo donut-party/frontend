@@ -5,6 +5,7 @@
    [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.dispatch.echo :as dsde]
    [donut.frontend.sync.flow :as dsf]
+   [reagent.core :as r]
    [re-frame.core :as rf]))
 
 
@@ -123,6 +124,35 @@
      [:div {:class "mt-3"}
       "Sync state: " @(rf/subscribe [::dsf/sync-state [:get :users]])]]]])
 
+
+(defn sync-rules-example
+  []
+  (let [success-count (r/atom 0)
+        sync-req      [:get :users {::dsde/echo     {:status :success
+                                                     :ms     2000}
+                                    ::dsf/rules     #{::dsf/when-not-active}
+                                    :donut.sync/key :rules-example
+                                    :on             {:success #(swap! success-count inc)}}]]
+    (fn []
+      [ui/example
+       [:div {:class "p-4"}
+        [ui/h2 "sync rules"]
+        [ui/explain "You can configure sync requests to take rules that modify their
+    behavior, for example by only firing if the request is not active."]
+
+        [ui/h3 "sync not active example"]
+        [ui/explain "This sycn request takes two second. If you click the button
+        below multiple times within that two second window, it will not not
+        'send' additional requests, and the success count will only increment by 1."]
+        [ui/example-offset
+         [ui/button
+          {:on-click #(rf/dispatch [::dsf/sync sync-req])}
+          "click to sync only if request is not active"]
+         [:div {:class "mt-3"}
+          [:div (str "Success count: " @success-count)]
+          [:div "The sync data for this request:"]
+          [ui/pprint @(rf/subscribe [::dsf/req sync-req])]]]]])))
+
 (defn examples
   []
   [:div
@@ -130,4 +160,5 @@
    [basic-success-example]
    [multiple-entities-success-example]
    [segments-example]
-   [sync-status-example]])
+   [sync-status-example]
+   [sync-rules-example]])

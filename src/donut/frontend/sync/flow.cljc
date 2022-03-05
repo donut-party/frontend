@@ -119,9 +119,19 @@
   (fn [_ [dispatches]]
     {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
 
+(rf/reg-event-fx ::fn-response-handler
+  [rf/trim-v]
+  (fn [_ [f ctx]]
+    {::fn-response-handler [f ctx]}))
+
+(rf/reg-fx ::fn-response-handler
+  (fn [[f ctx]]
+    (f ctx)))
+
 (defn vectorize-dispatches
   [xs]
   (cond (nil? xs)             []
+        (fn? xs)              [[::fn-response-handler xs :$ctx]]
         (keyword? (first xs)) [xs]
         :else                 xs))
 
@@ -405,13 +415,15 @@
      (merge {:route-params (p/get-path (ctx-db ctx) :nav [:route :params])}
             opts))))
 
+(defmethod apply-sync-rule :default
+  [rule _]
+  (rfl/console :warn "unknown sync rule" rule))
 
 (def apply-sync-rules
   {:id     ::apply-sync-rules
    :before (fn [ctx]
-             (->> (get-in (ctx-req ctx) [2 :rules])
-                  (reduce (fn [ctx' rule]
-                            (apply-sync-rules rule ctx'))
+             (->> (get-in (ctx-req ctx) [2 ::rules])
+                  (reduce (fn [ctx' rule] (apply-sync-rule rule ctx'))
                           ctx)))
    :after  identity})
 
