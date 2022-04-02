@@ -33,6 +33,11 @@
 
 (def ReqMethod keyword?)
 (def RouteName keyword?)
+(def Path string?)
+(def Location
+  [:orn
+   [:route-name RouteName]
+   [:path Path]])
 (def Params map?)
 (def RouteParams Params)
 (def QueryParams Params)
@@ -44,7 +49,7 @@
 
 (def Req [:cat
           [:req-method ReqMethod]
-          [:route-name RouteName]
+          [:location Location]
           [:req-opts ReqOpts]])
 
 (def DispatchFn fn?)
@@ -78,12 +83,12 @@
   `dfr/req-id` will use that value if present.
 
   It's also possible to completely specify the sync-key with `:donut.sync/key`."
-  [[method route opts]]
+  [[method route-name opts]]
   (or (:donut.sync/key opts)
-      (let [req-id (dfr/req-id route opts)]
+      (let [req-id (dfr/req-id route-name opts)]
         (if (empty? req-id)
-          [method route]
-          [method route req-id]))))
+          [method route-name]
+          [method route-name req-id]))))
 
 (defn track-new-request
   "Adds a request's state te the app-db and increments the active request

@@ -3,7 +3,6 @@
    [donut.frontend.path :as p]
    [donut.sugar.utils :as dsu]
    [donut.system :as ds]
-   [meta-merge.core :as meta-merge]
    [re-frame.core  :as rf]
    [re-frame.db :as rfdb]
    [re-frame.loggers :as rfl])

@@ -14,7 +14,7 @@
     ;; TODO update this to be more specific. does it not exist? is it missing params?
     (rfl/console :warn
                  "reitit could not generate path. route might not exist, or might not have required params."
-                 {:route-name   name
+                 {:route-name   route-name
                   :route-params (select-keys route-params required)
                   :required     required
                   :match        (-> match
@@ -35,34 +35,34 @@
 (defrecord ReititRouter [routes router on-no-path on-no-route]
   drp/Router
   (drp/path
-    [this name]
-    (drp/path this name {} {}))
+    [this route-name]
+    (drp/path this route-name {} {}))
   (drp/path
-    [this name route-params]
-    (drp/path this name route-params {}))
+    [this route-name route-params]
+    (drp/path this route-name route-params {}))
   (drp/path
-    [_this name route-params query-params]
-    (let [{{:keys [prefix]} :data :as match} (rc/match-by-name router name route-params)]
+    [_this route-name route-params query-params]
+    (let [{{:keys [prefix]} :data :as match} (rc/match-by-name router route-name route-params)]
       (if (and match (not (:required match)))
         (cond-> match
           true                     (rc/match->path)
           (not-empty query-params) (str "?" (dcu/params-to-str query-params))
           prefix                   (as-> p (str prefix  p)))
         (when on-no-path
-          (on-no-path name match route-params)
+          (on-no-path route-name match route-params)
           nil))))
 
   (drp/req-id
-    [this name]
-    (drp/req-id this name {}))
+    [this route-name]
+    (drp/req-id this route-name {}))
   (drp/req-id
-    [_this name opts]
+    [_this route-name opts]
     (when (and (some? opts) (not (map? opts)))
       (rfl/console :error "req-id opts should be a map" {:opts opts}))
     (let [params (or (:route-params opts)
                      (:params opts)
                      opts)]
-      (select-keys params (:required (rc/match-by-name router name)))))
+      (select-keys params (:required (rc/match-by-name router route-name)))))
 
   (drp/route
     [this path-or-name]

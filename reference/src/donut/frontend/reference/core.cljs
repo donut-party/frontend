@@ -39,13 +39,11 @@
       :frontend-router  {:conf {:routes frontend-routes/routes}}}}}))
 
 (defn ^:dev/after-load start []
-  ;; (rf/dispatch-sync [::stcf/init-system (system-config)])
-  ;; (rf/dispatch [::bch/init])
-  ;; (rf/dispatch-sync [::stnf/dispatch-current])
   (rf/dispatch-sync [::dcf/start-system (system-config)])
   (rf/dispatch-sync [::dnf/dispatch-current])
   (rdom/render [app/app] (dcu/el-by-id "app")))
 
+;; TODO does this actually get used?
 (defn init []
   (start))
 
