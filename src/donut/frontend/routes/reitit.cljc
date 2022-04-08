@@ -9,7 +9,7 @@
    [clojure.set :as set]))
 
 (defn on-no-path-default
-  [name match route-params]
+  [route-name match route-params]
   (let [required (get match :required)]
     ;; TODO update this to be more specific. does it not exist? is it missing params?
     (rfl/console :warn
