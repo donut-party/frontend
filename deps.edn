@@ -1,4 +1,4 @@
-{:paths ["src"]
+{:paths ["src" "resources"]
  :deps  {org.clojure/clojure         {:mvn/version "1.10.3"
                                       :scope       "provided"}
          org.clojure/clojurescript   {:mvn/version "1.11.4"

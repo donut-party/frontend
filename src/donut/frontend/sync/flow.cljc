@@ -491,7 +491,6 @@
                                                         (get-in [:coeffects :db])
                                                         (p/get-path :donut-component)
                                                         :sync-dispatch-fn)}
-                                (prn "req" %)
                                 %)))
    :after  identity})
 
