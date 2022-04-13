@@ -18,7 +18,6 @@
          rads/anomalies              {:mvn/version "0.1.13"}
          venantius/accountant        {:mvn/version "0.2.4"}}
 
-
  :aliases
  {:build {:deps       {io.github.seancorfield/build-clj
                        {:git/tag "v0.6.6" :git/sha "171d5f1"}}

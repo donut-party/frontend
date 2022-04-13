@@ -246,10 +246,10 @@
         paths-to-clear (if (or (= :all clear) (nil? clear))
                          inner-keys
                          clear)]
-    (reduce (fn [db k] (assoc-in db k nil))
-            db
-            (select-keys paths (map #(keyword "donut.form.layout" (name %))
-                                    paths-to-clear)))))
+    (reduce-kv (fn [db _ path] (assoc-in db path nil))
+               db
+               (select-keys paths (map #(keyword "donut.form.layout" (name %))
+                                       paths-to-clear)))))
 
 (rf/reg-event-db ::clear
   [rf/trim-v]
