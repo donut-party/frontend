@@ -20,7 +20,7 @@ sane, extensible starting point to deal with:
   * storing their data in the app db
   * validation
   * the submission lifecycle
-  * components that "wirte things up" so you don't have to.
+  * components that "wire things up" so you don't have to.
 * URL-based navigation with HTML history
 * Pagination
 
@@ -56,7 +56,7 @@ Transform various calls into a dispatch on `::sync` or
 
 ## Forms
 
-Sweet Tooth eliminates much of the boilerplate for creating forms.
+Donut Frontend eliminates much of the boilerplate for creating forms.
 
 - structure
 - concepts
