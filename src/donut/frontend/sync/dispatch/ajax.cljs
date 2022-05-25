@@ -77,5 +77,5 @@
                                         (set/rename-keys {:response :response-data}))))))))))
 
 (defn system-sync-dispatch-fn
-  [{:keys [global-opts]} _ _]
-  (sync-dispatch-fn global-opts))
+  [{:keys [:donut.system/config]}]
+  (sync-dispatch-fn (:global-opts config)))

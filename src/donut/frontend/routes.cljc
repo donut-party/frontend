@@ -1,6 +1,7 @@
 (ns donut.frontend.routes
-  (:require [donut.frontend.routes.protocol :as drp]
-            [clojure.spec.alpha :as s]))
+  (:require
+   [donut.frontend.routes.protocol :as drp]
+   [clojure.spec.alpha :as s]))
 
 (comment
   (s/def ::route-name keyword?)
@@ -33,9 +34,9 @@
   (drp/req-id sync-router route-name route-params))
 
 (defn start-frontend-router
-  [conf _ _]
-  (set! frontend-router (drp/router conf)))
+  [{:keys [:donut.system/config]}]
+  (set! frontend-router (drp/router config)))
 
 (defn start-sync-router
-  [conf _ _]
-  (set! sync-router (drp/router conf)))
+  [{:keys [:donut.system/config]}]
+  (set! sync-router (drp/router config)))

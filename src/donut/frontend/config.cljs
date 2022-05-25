@@ -13,19 +13,19 @@
   {::ds/defs
    {:donut.frontend
     {:handlers             dh/AddInterceptorsComponent
-     :sync                 {:router           (ds/ref :sync-router)
-                            :sync-dispatch-fn (ds/ref :sync-dispatch-fn)}
-     :sync-dispatch-fn     {:start dsda/system-sync-dispatch-fn}
-     :frontend-router      {:start dr/start-frontend-router
-                            :conf  drr/config-defaults}
-     :sync-router          {:start dr/start-sync-router
-                            :conf  drr/config-defaults}
-     :nav-global-lifecycle (ds/const dnf/default-global-lifecycle)
-     :nav-handler          {:start dnf/init-handler
-                            :stop  dnf/halt-handler!
-                            :conf  {:dispatch-route-handler ::dnf/dispatch-route
-                                    :check-can-unload?      true
-                                    :router                 (ds/ref :frontend-router)
-                                    :global-lifecycle       (ds/ref :nav-global-lifecycle)}}
-     :re-frame             {:start (constantly true)
-                            :stop  (fn [& _] (rf/clear-subscription-cache!))}}}})
+     :sync                 {:router           (ds/local-ref [:sync-router])
+                            :sync-dispatch-fn (ds/local-ref [:sync-dispatch-fn])}
+     :sync-dispatch-fn     #::ds{:start dsda/system-sync-dispatch-fn}
+     :frontend-router      #::ds{:start  dr/start-frontend-router
+                                 :config drr/config-defaults}
+     :sync-router          #::ds{:start  dr/start-sync-router
+                                 :config drr/config-defaults}
+     :nav-global-lifecycle dnf/default-global-lifecycle
+     :nav-handler          #::ds{:start  dnf/init-handler
+                                 :stop   dnf/halt-handler!
+                                 :config {:dispatch-route-handler ::dnf/dispatch-route
+                                          :check-can-unload?      true
+                                          :router                 (ds/local-ref [:frontend-router])
+                                          :global-lifecycle       (ds/local-ref [:nav-global-lifecycle])}}
+     :re-frame             #::ds{:start (constantly true)
+                                 :stop  (fn [_] (rf/clear-subscription-cache!))}}}})

@@ -61,17 +61,16 @@
 (defn init-handler
   "Configures accountant, window unloading, keeps track of event
   handlers for system teardown"
-  [{:keys [router
-           dispatch-route-handler
-           reload-same-path?
-           check-can-unload?
-           global-lifecycle]
-    :as _config}
-   & _]
-  (let [history      (accountant/new-history)
-        nav-handler  (fn [path] (rf/dispatch [dispatch-route-handler path]))
-        update-token (fn [relative-href title] (rf/dispatch [::update-token relative-href :set title]))
-        path-exists? #(drp/route router %)]
+  [{:keys [:donut.system/config]}]
+  (let [{:keys [router
+                dispatch-route-handler
+                reload-same-path?
+                check-can-unload?
+                global-lifecycle]} config
+        history                    (accountant/new-history)
+        nav-handler                (fn [path] (rf/dispatch [dispatch-route-handler path]))
+        update-token               (fn [relative-href title] (rf/dispatch [::update-token relative-href :set title]))
+        path-exists?               #(drp/route router %)]
     {:router           router
      :history          history
      :global-lifecycle global-lifecycle
@@ -87,11 +86,11 @@
 
   Undoes all of the stateful changes, including unlistening to events,
   that are setup when init'd"
-  [_ handler _]
-  (.dispose ^Html5History (:history handler))
-  (doseq [key (vals (select-keys (:listeners handler) [:document-click :navigate]))]
+  [{:keys [:donut.system/instance]}]
+  (.dispose ^Html5History (:history instance))
+  (doseq [key (vals (select-keys (:listeners instance) [:document-click :navigate]))]
     (events/unlistenByKey key))
-  (when-let [before-unload (get-in handler [:listeners :before-unload])]
+  (when-let [before-unload (get-in instance [:listeners :before-unload])]
     (.removeEventListener js/window "beforeunload" before-unload)))
 
 (defn- navigate-handler

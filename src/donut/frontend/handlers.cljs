@@ -15,5 +15,5 @@
       (swap! rr/kind->id->handler assoc-in [:event id] new-handler))))
 
 (def AddInterceptorsComponent
-  {:start (fn [id->interceptors _ _]
-            (add-interceptors id->interceptors))})
+  {:donut.system/start (fn [{:keys [:donut.system/config]}]
+                         (add-interceptors (:id->interceptors config)))})
