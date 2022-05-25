@@ -6,7 +6,7 @@
          re-frame/re-frame           {:mvn/version "1.2.0"
                                       :scope       "provided"}
          cljs-ajax/cljs-ajax         {:mvn/version "0.8.4"}
-         club.donutpower/system      {:mvn/version "0.0.103"}
+         club.donutpower/system      {:mvn/version "0.0.154"}
          club.donutpower/sugar       {:mvn/version "0.0.14"}
          com.andrewmcveigh/cljs-time {:mvn/version "0.5.2"}
          com.cemerick/url            {:mvn/version "0.1.1"}
@@ -19,6 +19,14 @@
          venantius/accountant        {:mvn/version "0.2.4"}}
 
  :aliases
- {:build {:deps       {io.github.seancorfield/build-clj
-                       {:git/tag "v0.6.6" :git/sha "171d5f1"}}
-          :ns-default build}}}
+ {:test-cljs
+  {:extra-paths   ["test"]
+   :extra-deps    {org.clojure/test.check  {:mvn/version "0.9.0"}
+                   olical/cljs-test-runner {:mvn/version "3.8.0"}}
+   :override-deps {club.donutpower/system {:local/root "../system"}}
+   :exec-fn       cljs-test-runner.main/-main}
+
+  :build
+  {:deps       {io.github.seancorfield/build-clj
+                {:git/tag "v0.6.6" :git/sha "171d5f1"}}
+   :ns-default build}}}
