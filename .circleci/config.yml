@@ -14,10 +14,10 @@ jobs:
       #     command: cd frontend && clojure -X:test
       - run:
           name: test frontend cljs
-          command: cd frontend && clojure -X:test-cljs
+          command: clojure -X:test-cljs
       - run:
           name: Build frontend
-          command: cd frontend && clojure -T:build jar
+          command: clojure -T:build jar
       - save-cache:
           paths:
             - ~/bin
@@ -38,7 +38,7 @@ jobs:
           at: ./
       - run:
           name: Deploy frontend to clojars
-          command: cd frontend && clojure -T:build deploy
+          command: clojure -T:build deploy
 workflows:
   version: 2
   build:
