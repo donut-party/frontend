@@ -19,12 +19,14 @@
          venantius/accountant        {:mvn/version "0.2.4"}}
 
  :aliases
- {:test-cljs
-  {:extra-paths   ["test"]
-   :extra-deps    {org.clojure/test.check  {:mvn/version "0.9.0"}
-                   olical/cljs-test-runner {:mvn/version "3.8.0"}}
-   :override-deps {party.donut/system {:local/root "../system"}}
-   :exec-fn       cljs-test-runner.main/-main}
+ {:dev
+  {:override-deps {party.donut/system {:local/root "../system"}}}
+
+  :test-cljs
+  {:extra-paths ["test"]
+   :extra-deps  {org.clojure/test.check  {:mvn/version "0.9.0"}
+                 olical/cljs-test-runner {:mvn/version "3.8.0"}}
+   :exec-fn     cljs-test-runner.main/-main}
 
   :build
   {:deps       {io.github.seancorfield/build-clj
