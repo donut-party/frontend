@@ -23,7 +23,7 @@
   and per-page to integers"
   [params]
   (-> (select-keys params page-param-keys)
-      (dsu/update-vals {[:page :per-page] #?(:cljs js/parseInt :clj #(Long. %))})))
+      (dsu/update-many-vals {[:page :per-page] #?(:cljs js/parseInt :clj #(Long. %))})))
 
 (defn routed-entity
   "Returns an entity by looking up its entity-key in nav params"
