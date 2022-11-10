@@ -121,4 +121,4 @@
 
 (rf/reg-fx ::stop-system
   (fn []
-    (swap! rfdb/app-db update-in [:donut :system] #(ds/signal % :stop))))
+    (swap! rfdb/app-db update-in [:donut :system] #(ds/signal % ::ds/stop))))
