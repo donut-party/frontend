@@ -35,8 +35,8 @@
    {::ds/defs
     {:donut.frontend
      {:sync-dispatch-fn dsde/sync-dispatch-fn
-      :sync-router      {:conf {:routes fake-endpoint-routes}}
-      :frontend-router  {:conf {:routes frontend-routes/routes}}}}}))
+      :sync-router      {::ds/config {:routes fake-endpoint-routes}}
+      :frontend-router  {::ds/config {:routes frontend-routes/routes}}}}}))
 
 (defn ^:dev/after-load start []
   (rf/dispatch-sync [::dcf/start-system (system-config)])

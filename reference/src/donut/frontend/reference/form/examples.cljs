@@ -67,6 +67,24 @@
 (def checkbox-class
   "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounde border mr-1")
 
+(defn most-basic-form-value
+  [*form-buffer]
+  [:div
+   [ui/h2 "Input value"]
+   [:div (:form-attribute-name-goes-here @*form-buffer)]])
+
+(defn most-basic-form
+  []
+  (dfc/with-form [:most-basic-form]
+    [ui/example
+     [:div {:class "p-4"}
+      [:form
+       [:div
+        [:div
+         [ui/h2 "A simple text field"]
+         [*input :text :form-attribute-name-goes-here {:class input-class}]]
+        [most-basic-form-value *form-buffer]]]]]))
+
 (defn form-example-features
   []
   (dfc/with-form [:post :users]
@@ -297,6 +315,7 @@
   []
   [:div
    [ui/h1 "form examples"]
+   [most-basic-form]
    [form-example-features]
    [activity-example]
    [validation-example-stored-errors]
