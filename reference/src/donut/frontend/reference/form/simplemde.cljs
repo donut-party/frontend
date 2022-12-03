@@ -21,7 +21,6 @@
 (defmethod dfc/input :simplemde
   [{:donut.input/keys [value] :as opts}]
   (let [markdown-text (atom nil)]
-    [:div.simple-mde-wrapper]
     [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-value opts val))
                    :onBlur    (fn [e] (dfc/dispatch-attr-input-event e opts false))
                    :value     value

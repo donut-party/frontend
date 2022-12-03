@@ -36,7 +36,7 @@
                  ;; we have to use echo here because we don't actually have a backend
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
-                               :ms            1000}
+                               :ms            2000}
                   :on         {:success [::dff/clear *form-key]}}))}
    "submit"])
 
@@ -69,7 +69,7 @@
 
 (defn most-basic-form-value
   [*form-buffer]
-  [:div
+  [:div {:class "mt-4"}
    [ui/h2 "Input value"]
    [:div (:form-attribute-name-goes-here @*form-buffer)]])
 
