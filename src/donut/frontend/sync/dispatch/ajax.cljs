@@ -2,7 +2,6 @@
   "Takes sync request and dispatch AJAX requests"
   (:require [re-frame.loggers :as rfl]
             [ajax.core :refer [GET HEAD POST PUT DELETE OPTIONS TRACE PATCH PURGE]]
-            [ajax.transit :as at]
             [donut.frontend.sync.flow :as dsf]
             [clojure.set :as set]
             [cognitect.anomalies :as anom]))
@@ -24,6 +23,7 @@
    403 ::anom/forbidden
    404 ::anom/not-found
    405 ::anom/unsupported
+   422 ::anom/incorrect
    500 ::anom/fault
    503 ::anom/unavailable})
 

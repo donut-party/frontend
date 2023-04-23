@@ -139,3 +139,8 @@
                   (medley/filter-keys (fn [attr-path]
                                         (received-events? (get input-events (dsu/vectorize attr-path))
                                                           #{:blur}))))}}))
+
+(defn merge-feedback-fns
+  [& fns]
+  (fn [form]
+    (apply dsu/deep-merge (map #(% form) fns))))

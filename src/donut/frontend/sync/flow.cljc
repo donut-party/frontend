@@ -220,7 +220,7 @@
   identically; they're considered to be either a singal instance or collection
   of entities. Those entities are placed in the entity-db, replacing whatever's
   there. "
-  (fn [db {{:keys [response-data]} :resp :as full-response}]
+  (fn [_db {{:keys [response-data]} :resp :as full-response}]
     (loop [[[dt-name pred] & dts] response-data-types]
       (when (nil? dt-name)
         (throw (ex-info "could not determine response data type"
@@ -279,6 +279,9 @@
   [db [_ [ent-type id-key ents]]]
   (replace-ents db ent-type id-key ents))
 
+(defmethod apply-sync-segment :auth
+  [db [_ auth-map]]
+  (assoc-in db (p/path :auth) auth-map))
 
 ;;------
 ;; registrations
@@ -494,11 +497,21 @@
                                 %)))
    :after  identity})
 
+(def add-auth-header
+  "Adds the 'Authorization' http header when there's an auth token present"
+  {:id     ::add-auth-header
+   :before (fn [ctx]
+             (if-let [auth-token (p/get-path (ctx-db ctx) :auth [:auth-token])]
+               (update-ctx-req-opts ctx #(assoc-in % [:headers "Authorization"] auth-token))
+               ctx))
+   :after  identity})
+
 (def sync-interceptors
   [sync-method
    apply-sync-rules
    sync-populate-params-from-path
    set-sync-dispatch-fn
+   add-auth-header
    rf/trim-v])
 
 ;;---

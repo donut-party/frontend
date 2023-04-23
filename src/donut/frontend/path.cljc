@@ -2,7 +2,8 @@
   "donut roots for the re-frame db. helpers for those roots.")
 
 (def config
-  {:form             [:donut :form]
+  {:auth             [:donut :auth]
+   :form             [:donut :form]
    :page             [:donut :page]
    :entity           [:donut :entity]
    :nav              [:donut :nav]
@@ -20,6 +21,7 @@
   (cond-> (prefix-name config)
     (some? partial-path) (into partial-path)))
 
+(defn auth-path [partial-path]    (into [:donut :auth] partial-path))
 (defn form-path [partial-path]    (into [:donut :form] partial-path))
 (defn page-path [partial-path]    (into [:donut :page] partial-path))
 (defn entity-path [partial-path]  (into [:donut :entity] partial-path))
