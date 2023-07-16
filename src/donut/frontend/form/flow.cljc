@@ -52,6 +52,7 @@
 (def FormLayout
   [:map
    [:donut.form/key :any]
+   [:donut.form/initial-state map?]
    [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
    [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
    [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
@@ -78,18 +79,26 @@
 ;; Form subs
 ;;--------------------
 
+(defn merge-initial-state
+  [form-layout form]
+  (dsu/deep-merge (:donut.form/initial-state form-layout) (or form {})))
+
 (rf/reg-sub ::form
   (fn [db [_ {:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state] :as form-layout}]]
     (if (or buffer feedback input-events buffer-init-val ui-state)
       (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]}
             (form-paths form-layout)]
         ;; TODO this could be a drag on performance. could do this more precisely.
-        {:buffer          (get-in db buffer)
-         :feedback        (get-in db feedback)
-         :input-events    (get-in db input-events)
-         :buffer-init-val (get-in db buffer-init-val)
-         :ui-state        (get-in db ui-state)})
-      (p/get-path db :form [(:donut.form/key form-layout)]))))
+        (merge-initial-state
+         form-layout
+         {:buffer          (get-in db buffer)
+          :feedback        (get-in db feedback)
+          :input-events    (get-in db input-events)
+          :buffer-init-val (get-in db buffer-init-val)
+          :ui-state        (get-in db ui-state)}))
+      (merge-initial-state
+       form-layout
+       (p/get-path db :form [(:donut.form/key form-layout)])))))
 
 (defn form-signal
   [[_ form-layout]]
@@ -317,7 +326,11 @@
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-sync-opts form-layout (get-in db buffer) sync-opts)]}))
+     :dispatch [::dsf/sync (form-sync-opts form-layout
+                                           (dsu/deep-merge
+                                            (:buffer (:donut.form/initial-state form-layout))
+                                            (get-in db buffer))
+                                           sync-opts)]}))
 
 (rf/reg-event-fx ::submit-form
   [rf/trim-v]

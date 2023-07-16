@@ -142,9 +142,10 @@
   "used to remove donut keys from react component options"
   (into field-opts input-opts))
 
-(def input-injected-opts (->> [:donut.input/attr-path :donut.form/feedback-fn]
-                              (into dff/form-layout-keys)
-                              set))
+(def input-injected-opts
+  (->> [:donut.input/attr-path :donut.form/feedback-fn]
+       (into dff/form-layout-keys)
+       set))
 
 (defn input-subs
   [layout]
@@ -428,7 +429,6 @@
 
 (defn feedback-classes
   [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
-  (prn feedback-class-mapping)
   (->> @attr-feedback
        (remove #(empty? (second %)))
        (map first)

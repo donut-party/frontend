@@ -70,8 +70,7 @@
       [route-sub ::dnf/route]
       [route-sub ::dnf/params]
       [route-sub ::dnf/nav-state]
-      [route-sub ::dnf/route-name]]
-     ]]])
+      [route-sub ::dnf/route-name]]]]])
 
 ;;---
 ;; lifecycle handlers

@@ -117,9 +117,9 @@
 
 (rf/reg-event-fx ::navigate-route
   [rf/trim-v]
-  (fn [{:keys [db] :as cofx} [route route-params query-params]]
+  (fn [{:keys [db] :as cofx} [route-name route-params query-params]]
     (let [router (p/get-path db :donut-component [:frontend-router])]
-      (when-let [path (drp/path router route route-params query-params)]
+      (when-let [path (drp/path router route-name route-params query-params)]
         (navigate-handler cofx [path])))))
 
 ;; ------

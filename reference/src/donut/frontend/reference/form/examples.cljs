@@ -5,6 +5,7 @@
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.flow :as dff]
    [donut.frontend.form.feedback :as dffk]
+   [donut.frontend.nav.flow :as dnf]
    [donut.frontend.reference.form.simplemde]
    [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.flow :as dsf]
@@ -311,6 +312,49 @@
         [ui/explain
          [*input :text :blah {:class input-class}]]]))])
 
+(defn initial-values-submit-button
+  [{:keys [*submit *form-buffer *form-key]}]
+  [ui/button
+   {:on-click (dcu/prevent-default
+               #(*submit
+                 ;; we have to use echo here because we don't actually have a backend
+                 {::dsde/echo {:status        :success
+                               :response-data (assoc @*form-buffer :id (rand-int 1000))
+                               :ms            0}
+                  :on         {:success [[::dff/clear *form-key]
+                                         [::initial-values-success :$ctx]]}}))}
+   "submit"])
+
+(rf/reg-event-db ::initial-values-success
+  [rf/trim-v]
+  (fn [db args]
+    (prn "args" args)
+    db))
+
+(defn initial-values
+  []
+  [ui/example
+   (dfc/with-form [:post :users]
+     {:donut.form/initial-state {:buffer {:initial-value-test "initial value"
+                                          :nav-params @(rf/subscribe [::dnf/route])}}}
+     [:div {:class "p-4"}
+      [ui/h2 "Provide initial values for the form"]
+      [ui/explain
+       [:div "If you're editing something you want the form to have initial
+       values for the thing edited. Or you might want hidden values in the
+       form."]]
+      [ui/explain
+       [:div "In this example, the form has initial buffer values set for the
+       ':initial-value-test' and ':nav-params' keys. The value of ':nav-params'
+       is a subscription."]]
+      [ui/explain
+       [*field :text :initial-value-test {:class input-class}]]
+      [:div
+       [ui/h2 "submitted users"]
+       [ui/example-offset
+        [ui/pprint @(rf/subscribe [::dcf/entities :user :id])]]]
+      [initial-values-submit-button *form]])])
+
 (defn examples
   []
   [:div
@@ -322,4 +366,5 @@
    [validation-example-dynamic]
    [sync-and-init-example]
    [custom-input-class]
-   [prevent-input-focus-loss]])
+   [prevent-input-focus-loss]
+   [initial-values]])
