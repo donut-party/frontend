@@ -6,6 +6,7 @@
    :form             [:donut :form]
    :page             [:donut :page]
    :entity           [:donut :entity]
+   :identity         [:donut :identity]
    :nav              [:donut :nav]
    :nav-buffer       [:donut :nav :buffer]
    :failure          [:donut :failure]
