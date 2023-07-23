@@ -3,17 +3,16 @@
 
 (def config
   {:auth             [:donut :auth]
-   :form             [:donut :form]
-   :page             [:donut :page]
+   :donut-component  [:donut :system :donut.system/instances :donut.frontend]
    :entity           [:donut :entity]
-   :identity         [:donut :identity]
+   :failure          [:donut :failure]
+   :form             [:donut :form]
    :nav              [:donut :nav]
    :nav-buffer       [:donut :nav :buffer]
-   :failure          [:donut :failure]
+   :page             [:donut :page]
    :reqs             [:donut :reqs]
    :system           [:donut :system]
-   :system-component [:donut :system :donut.system/instances]
-   :donut-component  [:donut :system :donut.system/instances :donut.frontend]})
+   :system-component [:donut :system :donut.system/instances]})
 
 (defn path
   [prefix-name & [partial-path]]
@@ -22,12 +21,12 @@
   (cond-> (prefix-name config)
     (some? partial-path) (into partial-path)))
 
-(defn auth-path [partial-path]    (into [:donut :auth] partial-path))
-(defn form-path [partial-path]    (into [:donut :form] partial-path))
-(defn page-path [partial-path]    (into [:donut :page] partial-path))
 (defn entity-path [partial-path]  (into [:donut :entity] partial-path))
-(defn nav-path [partial-path]     (into [:donut :nav] partial-path))
 (defn failure-path [partial-path] (into [:donut :failure] partial-path))
+(defn form-path [partial-path]    (into [:donut :form] partial-path))
+(defn auth-path [partial-path]    (into [:donut :auth] partial-path))
+(defn nav-path [partial-path]     (into [:donut :nav] partial-path))
+(defn page-path [partial-path]    (into [:donut :page] partial-path))
 (defn reqs-path [partial-path]    (into [:donut :reqs] partial-path))
 (defn system-path [partial-path]  (into [:donut :system] partial-path))
 
