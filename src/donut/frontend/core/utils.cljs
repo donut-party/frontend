@@ -71,6 +71,23 @@
   [e]
   (go-get e ["target" "value"]))
 
+(def loaded-scripts
+  (atom #{}))
+
+(defn load-script
+  [{:keys [url on-load async]}]
+  (when-not (@loaded-scripts url)
+    (let [script-el (.createElement js/document "script")
+          body (go-get js/window ["document" "body"])]
+      (doto script-el
+        (.setAttribute "src" url)
+        (.setAttribute "type" "text/javascript")
+        (.setAttribute "async" async))
+      (.appendChild body script-el)
+      (when on-load
+        (.addEventListener script-el "load" on-load)))
+    (swap! loaded-scripts conj url)))
+
 (defn focus-component
   "Causes component to receive focus on render. use like:
   [(focus-component [*input :text :username])]"
