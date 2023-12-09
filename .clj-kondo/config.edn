@@ -1,1 +1,1 @@
-{:config-paths ["../resources/clj-kondo.exports/party.donut/frontend"]}
+{:config-paths ["party.donut/donut/frontend"]}
