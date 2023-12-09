@@ -1,0 +1,30 @@
+{:linters
+ {:unresolved-symbol
+  ;; this macro binds these symbols as a convenience
+  {:exclude [(donut.frontend.form.components/with-form
+               [*form-key
+                *form-state
+                *form-subs
+                *form-ui-state
+                *form-dscr
+                *form-feedback
+                *form-buffer
+                *form-dirty?
+
+                *sync-state
+                *sync-active?
+                *sync-success?
+                *sync-fail?
+                *sync-key
+
+                *submit
+                *submit
+                *input-opts
+                *input
+                *field
+
+                *form-state
+                *form-components
+                *form-config
+                *form-layout
+                *form])]}}}
