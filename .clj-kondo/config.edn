@@ -1,1 +1,1 @@
-{:config-paths ["party.donut/donut/frontend"]}
+{:config-paths ["party.donut/frontend"]}

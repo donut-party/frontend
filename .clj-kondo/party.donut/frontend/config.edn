@@ -1,4 +1,7 @@
-{:linters
+{:lint-as
+ {donut.frontend.routes/defroutes clojure.core/def}
+
+ :linters
  {:unresolved-symbol
   ;; this macro binds these symbols as a convenience
   {:exclude [(donut.frontend.form.components/with-form
