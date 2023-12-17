@@ -112,7 +112,12 @@
 
 (def routes
 "
-                   (with-out-str (pp/pprint (eval (get @defroute-registry route-var-name)))) ")"))))
+                   (let [defd-routes (get @defroute-registry route-var-name)]
+                     (with-out-str
+                       (pp/pprint
+                        (if (list? defd-routes)
+                          (eval defd-routes)
+                          defd-routes)))) ")"))))
 
      (defn write-frontend-routes-hook
        {:shadow.build/stage :flush}
