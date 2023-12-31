@@ -94,15 +94,17 @@
            path (.getPath uri)
            query (uri->query uri)
            fragment (uri->fragment uri)
-           relative-href (str path query fragment)
+           path-query (str path query)
+           relative-href (str path-query fragment)
            title (.-title target)
            host (.getDomain uri)
            port (.getPort uri)
            current-host js/window.location.hostname
            current-port js/window.location.port
            loc js/window.location
-           current-relative-href (str (.-pathname loc)
-                                      (or (.-query loc) (.-search loc))
+           current-path-query (str (.-pathname loc)
+                                   (or (.-query loc) (.-search loc)))
+           current-relative-href (str current-path-query
                                       (.-hash loc))]
        (when (and (not any-key)
                   (#{"" "_self"} link-target)
@@ -113,7 +115,8 @@
                   (path-exists? path))
          (when (not= current-relative-href relative-href) ;; do not add duplicate html5 history state
            (update-token relative-href title))
-         (.preventDefault e)
+         (when (not= current-path-query path-query)
+           (.preventDefault e))
          (.stopPropagation e)
          (when reload-same-path?
            (events/dispatchEvent history (Event. path true))))))))
