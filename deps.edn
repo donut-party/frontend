@@ -8,7 +8,7 @@
          cljs-ajax/cljs-ajax         {:mvn/version "0.8.4"}
          com.andrewmcveigh/cljs-time {:mvn/version "0.5.2"}
          com.cemerick/url            {:mvn/version "0.1.1"}
-         medley/medley               {:mvn/version "1.3.0"}
+         medley/medley               {:mvn/version "1.8.1"}
          meta-merge/meta-merge       {:mvn/version "1.0.0"}
          metosin/malli               {:mvn/version "0.7.5"}
          metosin/reitit-core         {:mvn/version "0.5.15"}

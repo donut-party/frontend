@@ -3,7 +3,6 @@
   Accountant is licensed under the EPL v1.0."
   (:require
    [donut.frontend.core.utils :as dcu]
-   [donut.frontend.handlers :as dh]
    [donut.frontend.nav.accountant :as accountant]
    [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
