@@ -94,7 +94,7 @@
 
 (defn- navigate-handler
   [{:keys [db] :as _cofx} [path query]]
-  (let [{:keys [history]} (p/get-path db :donut-component [:nav-handler])
+  (let [{:keys [^goog.history.Html5History history]} (p/get-path db :donut-component [:nav-handler])
         token             (.getToken history)
         query-string      (dcu/params-to-str (reduce-kv (fn [valid k v]
                                                           (if v
@@ -267,7 +267,7 @@
                 :op            op}]))))
 
 (rf/reg-fx ::update-token
-  (fn [{:keys [op history relative-href title]}]
+  (fn [{:keys [op ^goog.history.Html5History history relative-href title]}]
     (reset! accountant/app-updated-token? true)
     (if (= op :replace)
       (. history (replaceToken relative-href title))
