@@ -279,8 +279,8 @@
 
 (rf/reg-event-fx ::before-unload
   []
-  (fn [{:keys [db] :as cofx} [_ before-unload-event]]
-    (let [existing-route                          (p/get-path db :nav :route)
+  (fn [{:keys [db] :as _cofx} [_ before-unload-event]]
+    (let [existing-route                          (p/get-path db :nav [:route])
           {:keys [can-unload?]
            :or   {can-unload? (constantly true)}} (when existing-route (:lifecycle existing-route))]
       (when-not (can-unload? db)
