@@ -131,13 +131,8 @@
              [(dcu/focus-component
                [*input :text :username {:class input-class}])]]
             [:div "(this automatically gains focus)"]]]
-          [input-example-row
-           *form
-           :email
-           [:div
-            [:div
-             [*input :email :email {:key "my-email" :class input-class}]]
-            [:div "(this automatically gains focus)"]]]
+          [input-example-row *form :email
+           [*input :email :email {:class input-class}]]
           [input-example-row *form :active?
            [*input :checkbox :active?
             {:donut.input/value true
