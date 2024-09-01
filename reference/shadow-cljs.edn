@@ -16,6 +16,7 @@
 
              ;; start a development http server on http://localhost:3000
              :devtools
-             {:preloads    [day8.re-frame-10x.preload]
-              :before-load donut.frontend.reference.core/stop
-              :after-load  donut.frontend.reference.core/start}}}}
+             {:preloads        [day8.re-frame-10x.preload.react-18]
+              :reload-strategy :full
+              :before-load     donut.frontend.reference.core/stop
+              :after-load      donut.frontend.reference.core/start}}}}

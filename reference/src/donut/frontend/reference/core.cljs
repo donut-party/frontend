@@ -1,15 +1,17 @@
 (ns donut.frontend.reference.core
-  (:require [reagent.dom :as rdom]
-            [re-frame.core :as rf]
-            [donut.frontend.config :as dconf]
-            [donut.frontend.core.flow :as dcf]
-            [donut.frontend.core.utils :as dcu]
-            [donut.frontend.reference.app :as app]
-            [donut.frontend.reference.frontend-routes :as frontend-routes]
-            [donut.frontend.nav.flow :as dnf]
-            [donut.frontend.sync.dispatch.echo :as dsde]
-            [donut.system :as ds]
-            [meta-merge.core :as meta-merge]))
+  (:require
+   ["react-dom/client" :refer [createRoot]]
+   [donut.frontend.config :as dconf]
+   [donut.frontend.core.flow :as dcf]
+   [donut.frontend.core.utils :as dcu]
+   [donut.frontend.nav.flow :as dnf]
+   [donut.frontend.reference.app :as app]
+   [donut.frontend.reference.frontend-routes :as frontend-routes]
+   [donut.frontend.sync.dispatch.echo :as dsde]
+   [donut.system :as ds]
+   [meta-merge.core :as meta-merge]
+   [re-frame.core :as rf]
+   [reagent.core :as r]))
 
 (def fake-endpoint-routes
   "We're not making requests to real endpoints,"
@@ -26,10 +28,8 @@
                   :ent-type :post
                   :id-key   :id}]])
 
-(defn system-config
-  "This is a function instead of a static value so that it will pick up
-  reloaded changes"
-  []
+(defmethod ds/named-system :frontend-dev
+  [_]
   (meta-merge/meta-merge
    dconf/default-config
    {::ds/defs
@@ -38,13 +38,16 @@
       :sync-router      {::ds/config {:routes fake-endpoint-routes}}
       :frontend-router  {::ds/config {:routes frontend-routes/routes}}}}}))
 
-(defn ^:dev/after-load start []
-  (rf/dispatch-sync [::dcf/start-system (system-config)])
-  (rf/dispatch-sync [::dnf/dispatch-current])
-  (rdom/render [app/app] (dcu/el-by-id "app")))
+(defonce root (createRoot (dcu/el-by-id "app")))
 
-;; TODO does this actually get used?
-(defn init []
+(defn ^:dev/after-load start []
+  (prn "starting")
+  (rf/dispatch-sync [::dcf/start-system (ds/system :frontend-dev)])
+  (rf/dispatch-sync [::dnf/dispatch-current])
+  (.render root (r/as-element [app/app])))
+
+(defn init
+  []
   (start))
 
 (defn ^:dev/before-load stop [_]

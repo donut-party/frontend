@@ -300,17 +300,16 @@
   []
   [ui/example
    (dfc/with-form [:post :address]
-     (fn []
-       {:donut.form.layout/buffer [::custom-buffer]}
-       [:div {:class "p-4"}
-        [ui/h2 "Inputs won't lose focus"]
-        [ui/explain
-         [:div "When we deref in a way that causes the input components to get
+     {:donut.form.layout/buffer [::custom-buffer]}
+     [:div {:class "p-4"}
+      [ui/h2 "Inputs won't lose focus"]
+      [ui/explain
+       [:div "When we deref in a way that causes the input components to get
        recreated, they shouldn't lose focus"]]
-        [ui/explain
-         [:div "custom buffer:" @(rf/subscribe [::custom-buffer])]]
-        [ui/explain
-         [*input :text :blah {:class input-class}]]]))])
+      [ui/explain
+       [:div "custom buffer:" @(rf/subscribe [::custom-buffer])]]
+      [ui/explain
+       [*input :text :blah {:class input-class}]]])])
 
 (defn initial-values-submit-button
   [{:keys [*submit *form-buffer *form-key]}]
