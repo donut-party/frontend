@@ -3,7 +3,7 @@
                                       :scope       "provided"}
          org.clojure/clojurescript   {:mvn/version "1.11.4"
                                       :scope       "provided"}
-         re-frame/re-frame           {:mvn/version "1.2.0"
+         re-frame/re-frame           {:mvn/version "1.4.3"
                                       :scope       "provided"}
          cljs-ajax/cljs-ajax         {:mvn/version "0.8.4"}
          com.andrewmcveigh/cljs-time {:mvn/version "0.5.2"}
