@@ -1,6 +1,5 @@
 (ns donut.frontend.reference.components.home
   (:require
-   [donut.frontend.nav.components :as dnc]
    [donut.frontend.reference.ui :as ui]))
 
 (defn component
