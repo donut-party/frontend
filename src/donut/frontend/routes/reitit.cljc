@@ -1,12 +1,13 @@
 (ns donut.frontend.routes.reitit
   (:require
-   [re-frame.loggers :as rfl]
-   [reitit.core :as rc]
-   [reitit.frontend :as reif]
-   [reitit.coercion :as coercion]
+   [clojure.set :as set]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.routes.protocol :as drp]
-   [clojure.set :as set]))
+   [re-frame.loggers :as rfl]
+   [reitit.coercion :as coercion]
+   [reitit.coercion.malli :as rm]
+   [reitit.core :as rc]
+   [reitit.frontend :as reif]))
 
 (defn on-no-path-default
   [route-name match route-params]
@@ -87,7 +88,8 @@
 
 (defmethod drp/router :reitit
   [{:keys [routes router-opts] :as config}]
-  (let [router (rc/router routes (merge {:compile coercion/compile-request-coercers}
+  (let [router (rc/router routes (merge {:compile coercion/compile-request-coercers
+                                         :data {:coercion rm/coercion}}
                                         router-opts))]
     (map->ReititRouter (merge {:routes routes
                                :router router}
