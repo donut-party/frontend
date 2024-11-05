@@ -488,6 +488,13 @@
   (when-not (:donut.form/prevent-submit? sync-opts)
     (rf/dispatch [::dff/submit-form form-config sync-opts])))
 
+(defn form-config
+  [form-key & [m]]
+  (merge {:donut.form/key   form-key
+          :donut.form/sync? true
+          :donut.sync/key   (dsf/sync-key form-key)}
+         m))
+
 (defn form-sync-subs
   [sync-key]
   (let [req [nil nil {:donut.sync/key sync-key}]]

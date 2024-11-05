@@ -14,10 +14,7 @@
         possible-form-config (when (map? possible-form-config)
                                possible-form-config)]
     `(let [~'*form-key    ~form-key
-           ~'*form-config (-> {:donut.form/key   ~'*form-key
-                               :donut.form/sync? true
-                               :donut.sync/key   (donut.frontend.sync.flow/sync-key ~'*form-key)}
-                              (merge ~possible-form-config))
+           ~'*form-config (form-config ~'*form-key ~possible-form-config)
            ~'*sync-key    (:*sync-key ~'*form-config)
            ~'*form-layout (select-keys ~'*form-config form-layout-keys)
 
