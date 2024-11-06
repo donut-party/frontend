@@ -109,11 +109,17 @@
       {:dispatch [::update-token with-params :replace]}
       {:dispatch [::update-token with-params :set]})))
 
-;; Used for synthetic navigation events
+
+;; -----
+;; Synthetic navigation events
+;; ------
+
+;; event for directly setting path and query string
 (rf/reg-event-fx ::navigate
   [rf/trim-v]
   navigate-handler)
 
+;; even for using a route-based approach to nav
 (rf/reg-event-fx ::navigate-route
   [rf/trim-v]
   (fn [{:keys [db] :as cofx} [route-name route-params query-params]]
