@@ -1,10 +1,12 @@
 (ns donut.frontend.sync.dispatch.ajax
   "Takes sync request and dispatch AJAX requests"
-  (:require [re-frame.loggers :as rfl]
-            [ajax.core :refer [GET HEAD POST PUT DELETE OPTIONS TRACE PATCH PURGE]]
-            [donut.frontend.sync.flow :as dsf]
-            [clojure.set :as set]
-            [cognitect.anomalies :as anom]))
+  (:require
+   [ajax.core :refer [GET HEAD POST PUT DELETE OPTIONS TRACE PATCH PURGE]]
+   [clojure.set :as set]
+   [cognitect.anomalies :as anom]
+   [donut.frontend.encoding :as denc]
+   [donut.frontend.sync.flow :as dsf]
+   [re-frame.loggers :as rfl]))
 
 (def request-methods
   {:get     GET
@@ -70,6 +72,7 @@
                                    ((dsf/sync-response-handler req)
                                     {:status        :success
                                      :response-data resp})))
+           (assoc :response-format (ajax.core/transit-response-format {:handlers denc/read-handlers}))
            (assoc :error-handler (fn [resp]
                                    ((dsf/sync-response-handler req)
                                     (-> resp

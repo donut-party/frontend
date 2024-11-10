@@ -393,6 +393,8 @@
 ;; fun little helpers
 ;;--------------------
 
+;; example:
+;; [::dff/set-form-from-sync :$ctx *form-layout]
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
   (fn [db [ctx form-layout]]
@@ -406,6 +408,8 @@
               form-layout
               (merge {:buffer ent} form-opts))))
 
+;; example:
+;; [::dff/set-form-from-sync {:donut.form/key [:put :option]} :option :option/id {:ui-state true}]
 (rf/reg-event-db ::set-form-with-routed-entity
   [rf/trim-v]
   (fn [db [form-layout entity-key param-key form-opts]]
