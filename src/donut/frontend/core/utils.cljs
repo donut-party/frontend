@@ -110,10 +110,9 @@
 ;;---
 
 (defn entities
-  [db entity-type & [sort-by-fn]]
-  (cond->> (get-in db (p/entity-path [entity-type]))
-    true vals
-    sort-by-fn (sort-by sort-by-fn)))
+  [db entity-type]
+  (->> (get-in db (p/entity-path [entity-type]))
+       vals))
 
 (defn dissoc-entity
   [db entity-type entity-id]
