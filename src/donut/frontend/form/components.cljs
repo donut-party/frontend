@@ -208,8 +208,7 @@
 
 (defmethod input-type-opts :textarea
   [opts]
-  (-> (input-type-opts-default opts)
-      (dissoc :donut.input/type)))
+  (input-type-opts-default opts))
 
 (defmethod input-type-opts :select
   [opts]

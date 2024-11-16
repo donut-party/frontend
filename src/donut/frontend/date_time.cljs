@@ -1,7 +1,7 @@
 (ns donut.frontend.date-time)
 
 (def relative-time-format
-  (Intl/RelativeTimeFormat.))
+  (js/Intl.RelativeTimeFormat.))
 
 (defn time-ago
   ([datetime]
