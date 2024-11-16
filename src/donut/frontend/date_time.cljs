@@ -22,4 +22,4 @@
        (> hours 0)   (.format rtf (* -1 hours) "hours")
        (> minutes 0) (.format rtf (* -1 minutes) "minutes")
        (< diff 2)    "just now"
-       :else         (.format rtf (* -1 diff) "seconds")))))
+       :else         (.format rtf (* -1 (Math/floor diff)) "seconds")))))
