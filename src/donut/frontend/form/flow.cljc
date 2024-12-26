@@ -314,7 +314,7 @@
                                 ;; by default don't allow a form to be submitted
                                 ;; when we're waiting for a response
                                 :rules        #{:when-not-active}}
-                               sync-opts)]
+                               (dissoc sync-opts :params))]
     [method route-name sync-opts]))
 
 (defn submit-form
