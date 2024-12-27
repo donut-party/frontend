@@ -29,7 +29,11 @@
   "Google Object Get - Navigates into a javascript object and gets a nested value"
   [obj ks]
   (let [ks (if (string? ks) [ks] ks)]
-    (reduce go/get obj ks)))
+    (reduce (fn [o k]
+              (try (go/get o k)
+                   (catch :default _ nil)))
+            obj
+            ks)))
 
 (defn go-set
   "Google Object Set - Navigates into a javascript object and sets a nested value"
