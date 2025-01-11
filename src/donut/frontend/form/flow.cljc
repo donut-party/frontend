@@ -197,8 +197,8 @@
 
 (rf/reg-event-db ::attr-init-buffer
   [rf/trim-v]
-  (fn [db {:donut.input/keys [attr-path value]
-           :as               opts}]
+  (fn [db [{:donut.input/keys [attr-path value]
+            :as opts}]]
     (let [{:donut.form.layout/keys [buffer]} (form-paths opts)]
       (update-in db (into buffer (dsu/vectorize attr-path)) #(or % value)))))
 
