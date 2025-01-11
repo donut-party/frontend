@@ -10,7 +10,8 @@
    [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
-   [re-frame.loggers :as rfl])
+   [re-frame.loggers :as rfl]
+   [reagent.core :as r])
   (:require-macros [donut.frontend.form.components]))
 
 
@@ -295,19 +296,29 @@
   [:textarea (donut-opts->react-opts opts)])
 
 (defmethod input :select
-  [{:donut.input/keys [select-options
-                       select-option-components]
-    :as   opts}]
-  (if select-option-components
-    (into [:select (donut-opts->react-opts opts)]
-          select-option-components)
-    [:select (donut-opts->react-opts opts)
-     (for [[opt-value txt option-opts] select-options]
-       ^{:key (input-key opts opt-value)}
-       [:option (cond-> {}
-                  opt-value (assoc :value opt-value)
-                  true      (merge option-opts))
-        txt])]))
+  [opts]
+  (let [ref (atom nil)
+        ref-fn #(reset! ref %)]
+    (r/create-class
+     {:component-did-mount
+      (fn [_]
+        (rf/dispatch [::dff/attr-init-buffer (assoc opts :donut.input/value (dcu/go-get @ref "value"))]))
+
+      :reagent-render
+      (fn [{:donut.input/keys [select-options
+                               select-option-components]
+            :as   opts}]
+        (let [input-opts (merge (donut-opts->react-opts opts)
+                                {:ref ref-fn})]
+          (if select-option-components
+            (into [:select input-opts] select-option-components)
+            [:select input-opts
+             (for [[opt-value txt option-opts] select-options]
+               ^{:key (input-key opts opt-value)}
+               [:option (cond-> {}
+                          opt-value (assoc :value opt-value)
+                          true      (merge option-opts))
+                txt])])))})))
 
 (defmethod input :default
   [opts]
