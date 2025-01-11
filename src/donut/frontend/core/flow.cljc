@@ -85,7 +85,7 @@
 ;; ui
 ;;---
 
-(defn- focus-node
+(defn- node-to-focus
   [node-or-selector]
   (if (string? node-or-selector)
     (js/document.querySelector node-or-selector)
@@ -93,7 +93,7 @@
 
 (rf/reg-fx ::focus
   (fn [{:keys [node-or-selector timeout]}]
-    (let [focus #(.focus (focus-node node-or-selector))]
+    (let [focus #(.focus (node-to-focus node-or-selector))]
       (if timeout
         (js/setTimeout focus timeout)
         (focus)))))

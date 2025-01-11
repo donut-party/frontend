@@ -92,7 +92,7 @@
         (.addEventListener script-el "load" on-load)))
     (swap! loaded-scripts conj url)))
 
-(defn focus-node
+(defn node-to-focus
   [ref selector]
   (if selector
     (js/document.querySelector selector)
@@ -102,7 +102,7 @@
   [& [{:keys [selector timeout]}]]
   (fn [ref]
     (when ref
-      (let [focus #(.focus (focus-node ref selector))]
+      (let [focus #(.focus (node-to-focus ref selector))]
         (if timeout
           (js/setTimeout focus timeout)
           (focus))))
