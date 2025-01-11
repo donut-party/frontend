@@ -82,6 +82,28 @@
       sort-key (sort-by sort-key))))
 
 ;;---
+;; ui
+;;---
+
+(defn- focus-node
+  [node-or-selector]
+  (if (string? node-or-selector)
+    (js/document.querySelector node-or-selector)
+    node-or-selector))
+
+(rf/reg-fx ::focus
+  (fn [{:keys [node-or-selector timeout]}]
+    (let [focus #(.focus (focus-node node-or-selector))]
+      (if timeout
+        (js/setTimeout focus timeout)
+        (focus)))))
+
+(rf/reg-event-fx ::focus
+  (fn [_ [_ node-or-selector timeout]]
+    {::focus {:node-or-selector node-or-selector
+              :timeout timeout}}))
+
+;;---
 ;; debouncing
 ;;---
 

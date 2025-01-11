@@ -92,16 +92,20 @@
         (.addEventListener script-el "load" on-load)))
     (swap! loaded-scripts conj url)))
 
+(defn focus-node
+  [ref selector]
+  (if selector
+    (js/document.querySelector selector)
+    ref))
+
 (defn focus-node-fn
-  [& [tag-name timeout]]
+  [& [{:keys [selector timeout]}]]
   (fn [ref]
     (when ref
-      (let [node (if tag-name
-                   (first (.getElementsByTagName ref tag-name))
-                   ref)]
+      (let [focus #(.focus (focus-node ref selector))]
         (if timeout
-          (js/setTimeout #(.focus node) timeout)
-          (.focus node))))
+          (js/setTimeout focus timeout)
+          (focus))))
     ref))
 
 ;;---
