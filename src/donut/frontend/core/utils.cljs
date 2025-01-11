@@ -92,22 +92,17 @@
         (.addEventListener script-el "load" on-load)))
     (swap! loaded-scripts conj url)))
 
-(defn focus-component
-  "Causes component to receive focus on render. use like:
-  [(focus-component [*input :text :username])]"
-  [component & [tag-name timeout]]
-  (let [tag-name (or tag-name "input")]
-    (with-meta (fn [] component)
-      {:component-did-mount
-       (fn [el]
-         (let [dom-node (rdom/dom-node el)
-               node     (if (= (str/lower-case tag-name)
-                               (str/lower-case (go-get dom-node ["tagName"])))
-                          dom-node
-                          (first (.getElementsByTagName dom-node tag-name)))]
-           (if timeout
-             (js/setTimeout #(.focus node) timeout)
-             (.focus node))))})))
+(defn focus-node-fn
+  [& [tag-name timeout]]
+  (fn [ref]
+    (when ref
+      (let [node (if tag-name
+                   (first (.getElementsByTagName ref tag-name))
+                   ref)]
+        (if timeout
+          (js/setTimeout #(.focus node) timeout)
+          (.focus node))))
+    ref))
 
 ;;---
 ;; interact with entities

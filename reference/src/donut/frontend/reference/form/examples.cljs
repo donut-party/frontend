@@ -128,8 +128,7 @@
            :username
            [:div
             [:div
-             [(dcu/focus-component
-               [*input :text :username {:class input-class}])]]
+             [*input :text :username {:class input-class :ref (dcu/focus-node-fn)}]]
             [:div "(this automatically gains focus)"]]]
           [input-example-row *form :email
            [*input :email :email {:class input-class}]]
