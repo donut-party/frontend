@@ -1,13 +1,10 @@
 (ns donut.frontend.core.utils
   (:require
    [ajax.url :as url]
-
-   [clojure.string :as str]
-   [donut.sugar.utils :as dsu]
    [donut.frontend.path :as p]
+   [donut.sugar.utils :as dsu]
    [goog.object :as go]
    [reagent.core :as r]
-   [reagent.dom :as rdom]
    [reagent.ratom :as ratom])
   (:import
    [goog.async Debouncer]))
