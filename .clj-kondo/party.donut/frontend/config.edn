@@ -25,6 +25,7 @@
                 *input-opts
                 *input
                 *field
+                *attr-buffer
 
                 *form-state
                 *form-components

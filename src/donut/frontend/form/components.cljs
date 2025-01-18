@@ -521,13 +521,18 @@
             :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-config])}
     sync? (merge (form-sync-subs (:donut.sync/key form-config)))))
 
+(defn attr-buffer
+  [form-config attr-path]
+  (rf/subscribe [::dff/attr-buffer (assoc form-config :donut.input/attr-path attr-path)]))
+
 (defn form-components
   [form-config]
   (let [input-opts-fn (partial all-input-opts form-config)]
-    {:*submit     (partial submit form-config)
-     :*input-opts input-opts-fn
-     :*input      (input-component input-opts-fn)
-     :*field      (field-component input-opts-fn)}))
+    {:*submit      (partial submit form-config)
+     :*input-opts  input-opts-fn
+     :*input       (input-component input-opts-fn)
+     :*field       (field-component input-opts-fn)
+     :*attr-buffer (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))}))
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"

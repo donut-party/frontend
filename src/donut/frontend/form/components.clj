@@ -32,7 +32,8 @@
        (let [{:keys [~'*submit
                      ~'*input-opts
                      ~'*input
-                     ~'*field]
+                     ~'*field
+                     ~'*attr-buffer]
               :as   ~'*form-components}
              (form-components ~'*form-config)
              ~'*form (merge ~'*form-subs ~'*form-components)]
