@@ -362,7 +362,7 @@
 
 (defn add-default-sync-response-handlers
   [req]
-  (update req 2 #(meta-merge default-handlers {:$ctx {:req req}} %)))
+  (update req 2 #(meta-merge {:$ctx {:req req}} % default-handlers)))
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
