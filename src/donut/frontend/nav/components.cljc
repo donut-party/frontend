@@ -14,13 +14,12 @@
         children))
 
 (defn route-link
-  [{:keys [route-name route-params query-params
-           class active-class]
+  [{:keys [route-name route-params query-params class current-class]
     :as link-opts}
    & children]
   (let [current-route (rf/subscribe [::dnf/route-name])
-        link-opts (assoc link-opts :class (if (and active-class (= @current-route route-name))
-                                            active-class
+        link-opts (assoc link-opts :class (if (and current-class (= @current-route route-name))
+                                            current-class
                                             class))]
     (into [:a (merge {:href (dfr/path route-name route-params query-params)}
                      (dissoc link-opts :route-name :route-params :query-params :active-class))]
