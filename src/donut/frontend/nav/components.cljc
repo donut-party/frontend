@@ -22,5 +22,5 @@
                                             current-class
                                             class))]
     (into [:a (merge {:href (dfr/path route-name route-params query-params)}
-                     (dissoc link-opts :route-name :route-params :query-params :active-class))]
+                     (dissoc link-opts :route-name :route-params :query-params :current-class))]
           children)))
