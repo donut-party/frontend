@@ -118,5 +118,6 @@
          (when (not= current-path-query path-query)
            (.preventDefault e))
          (.stopPropagation e)
-         (when reload-same-path?
-           (events/dispatchEvent history (Event. path true))))))))
+         (if reload-same-path?
+           (events/dispatchEvent history (Event. path true))
+           (.preventDefault e)))))))
