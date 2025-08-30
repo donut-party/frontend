@@ -182,6 +182,28 @@
   [rf/trim-v]
   attr-input-event)
 
+(defn attr-set-value
+  "directly set the value of an attribute"
+  [db [{:donut.input/keys [attr-path] :as form-config} value]]
+  (let [{:donut.form.layout/keys [buffer]} (form-paths form-config)]
+    (assoc-in db (into buffer (dsu/vectorize attr-path))
+              value)))
+
+(rf/reg-event-db ::attr-set-value
+  [rf/trim-v]
+  attr-set-value)
+
+(defn attr-dissoc
+  "remove attribute from buffer"
+  [db [form-config attr-path]]
+  (let [{:donut.form.layout/keys [buffer]} (form-paths form-config)
+        db-path (into buffer (dsu/vectorize attr-path))]
+    (update-in db (butlast db-path) dissoc (last db-path))))
+
+(rf/reg-event-db ::attr-dissoc
+  [rf/trim-v]
+  attr-dissoc)
+
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
   [db [{:keys [form-layout event-type]}]]

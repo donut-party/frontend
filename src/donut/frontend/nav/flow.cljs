@@ -368,6 +368,11 @@
   :<- [::route]
   (fn [route _] (:route-name route)))
 
+(rf/reg-sub ::current?
+  :<- [::route-name]
+  (fn [current-route-name [query]]
+    (= current-route-name query)))
+
 (rf/reg-sub ::routed-entity
   (fn [db [_ entity-key param]]
     (dnu/routed-entity db entity-key param)))
