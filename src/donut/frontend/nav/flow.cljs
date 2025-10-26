@@ -2,6 +2,7 @@
   "Adapted from Accountant, https://github.com/venantius/accountant
   Accountant is licensed under the EPL v1.0."
   (:require
+   [clojure.string :as str]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.nav.accountant :as accountant]
    [donut.frontend.nav.utils :as dnu]
@@ -370,8 +371,27 @@
 
 (rf/reg-sub ::current?
   :<- [::route-name]
-  (fn [current-route-name [query]]
+  (fn [current-route-name [_ query]]
     (= current-route-name query)))
+
+(defn route-parts
+  "docstring"
+  [route-name]
+  (str/split (name route-name) #"\."))
+
+(rf/reg-sub ::route-set
+  :<- [::route-name]
+  (fn [current-route-name [_ nav-items]]
+    (let [current-route-parts (route-parts current-route-name)]
+      (reduce-kv
+       (fn [m route-name {:keys [route-family]}]
+         (assoc m route-name {:current?        (= current-route-name route-name)
+                              :family-current? (let [family-parts (route-parts route-family)]
+                                                 (= (take (count family-parts) current-route-parts)
+                                                    family-parts))
+                              :path            (dfr/path route-name)}))
+       {}
+       nav-items))))
 
 (rf/reg-sub ::routed-entity
   (fn [db [_ entity-key param]]
