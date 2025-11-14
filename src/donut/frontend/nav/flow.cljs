@@ -375,7 +375,6 @@
     (= current-route-name query)))
 
 (defn route-parts
-  "docstring"
   [route-name]
   (str/split (name route-name) #"\."))
 

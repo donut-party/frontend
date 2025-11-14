@@ -9,7 +9,7 @@
    [reitit.core :as rc]
    [reitit.frontend :as reif]))
 
-(defn on-no-path-default
+(defn on-no-path-warn
   [route-name match route-params]
   (let [required (get match :required)]
     ;; TODO update this to be more specific. does it not exist? is it missing params?
@@ -22,16 +22,34 @@
                                     (dissoc :data :required)
                                     (update :path-params select-keys required))})))
 
-(defn on-no-route-default
+(defn on-no-path-throw
+  [route-name match route-params]
+  (let [required (get match :required)]
+    (throw
+     (ex-info "reitit could not generate path. route might not exist, or might not have required params."
+              {:route-name   route-name
+               :route-params (select-keys route-params required)
+               :required     required
+               :match        (-> match
+                                 (dissoc :data :required)
+                                 (update :path-params select-keys required))}))))
+
+(defn on-no-route-warn
   [path-or-name route-params query-params]
   (rfl/console :warn
                "reitit could not match route"
                {:route-args [path-or-name route-params query-params]}))
 
+(defn on-no-route-throw
+  [path-or-name route-params query-params]
+  (throw
+   (ex-info "reitit could not match route"
+            {:route-args [path-or-name route-params query-params]})))
+
 (def config-defaults
   {:use         :reitit
-   :on-no-path  on-no-path-default
-   :on-no-route on-no-route-default})
+   :on-no-path  on-no-path-warn
+   :on-no-route on-no-route-warn})
 
 (defrecord ReititRouter [routes router on-no-path on-no-route]
   drp/Router
