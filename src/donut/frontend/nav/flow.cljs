@@ -48,6 +48,14 @@
    [:after-param-change  {:optional true} LifecycleHandler]])
 
 
+(def RouteChange
+  [:map
+   [:can-change-route? boolean?]
+   [:scope [:enum :route :parmas]]
+   [:old-route :any]
+   [:new-route :any]
+   [:global-lifecycle]])
+
 ;;------
 ;; HTML 5 history/nav handler
 ;;------
@@ -65,15 +73,13 @@
   (let [{:keys [router
                 dispatch-route-handler
                 reload-same-path?
-                check-can-unload?
-                global-lifecycle]} config
+                check-can-unload?]} config
         history                    (accountant/new-history)
         nav-handler                (fn [path] (rf/dispatch [dispatch-route-handler path]))
         update-token               (fn [relative-href title] (rf/dispatch [::update-token relative-href :set title]))
         path-exists?               #(drp/route router %)]
     {:router           router
      :history          history
-     :global-lifecycle global-lifecycle
      :listeners        (cond-> {:document-click (accountant/prevent-reload-on-known-path history
                                                                                          path-exists?
                                                                                          reload-same-path?
@@ -155,51 +161,46 @@
   {:id     ::process-route-change
    :before (fn [{{:keys [db event]} :coeffects
                  :as                ctx}]
-             (let [global-lifecycle (p/get-path db :donut-component [:nav-global-lifecycle])
-                   router           (p/get-path db :donut-component [:frontend-router])
-                   path             (get event 1)
-                   new-route        (or (drp/route router path)
-                                        (drp/route router ::not-found))
-                   existing-route   (p/get-path db :nav [:route])
-                   scope            (if (= (:route-name new-route)
-                                           (:route-name existing-route))
-                                      :params
-                                      :route)]
+             (let [router         (p/get-path db :donut-component [:frontend-router])
+                   path           (get event 1)
+                   new-route      (or (drp/route router path)
+                                      (drp/route router ::not-found))
+                   existing-route (p/get-path db :nav [:route])
+                   scope          (if (= (:route-name new-route)
+                                         (:route-name existing-route))
+                                    :params
+                                    :route)]
                (assoc-in ctx [:coeffects ::route-change]
                          {:can-change-route? (can-change-route? db scope existing-route new-route)
                           :scope             scope
                           :old-route         existing-route
-                          :new-route         new-route
-                          :global-lifecycle  global-lifecycle})))
-   :after identity})
+                          :new-route         new-route})))
+   :after  identity})
 
 ;; ------
 ;; dispatch route
 ;; ------
-(defn compose-route-lifecycle
-  [cofx lifecycle hook-names fx]
-  (let [{:keys [old-route new-route global-lifecycle]} (::route-change cofx)]
-    (->> hook-names
-         (map (fn [hook-name]
-                (when-let [hook (or (and (contains? lifecycle hook-name)
-                                         (hook-name lifecycle))
-                                    (hook-name global-lifecycle))]
-                  (if (fn? hook)
-                    (hook cofx old-route new-route)
-                    hook))))
+(defn compose-route-events
+  [cofx handler-events fx]
+  (let [{:keys [old-route new-route]} (::route-change cofx)]
+    (->> handler-events
+         (map (fn [handler-event]
+                (if (fn? handler-event)
+                  (handler-event {:cofx      cofx
+                                  :old-route old-route
+                                  :new-route new-route})
+                  handler-event)))
          (filter identity)
          (reduce into fx))))
 
 (defn route-effects
-  "Handles all route lifecycle effects"
+  "Composes route events"
   [cofx]
   (let [{:keys [scope old-route new-route]} (::route-change cofx)]
     (cond->> []
-      (= scope :route) (compose-route-lifecycle cofx (:lifecycle old-route) [:before-exit :exit :after-exit])
-      (= scope :route) (compose-route-lifecycle cofx (:lifecycle new-route) [:before-enter :enter :after-enter])
-      true             (compose-route-lifecycle cofx (:lifecycle new-route) [:before-param-change :param-change :after-param-change])
-      ;; TODO this limits routes to only ever being able to dispatch, which
-      ;; isn't necessarily what we want.
+      (= scope :route) (compose-route-events cofx (-> old-route :donut.events/on :exit))
+      (= scope :route) (compose-route-events cofx (-> new-route :donut.events/on :enter))
+      true             (compose-route-events cofx (-> new-route :donut.events/on :param-change))
       true             (map (fn [dispatch] [:dispatch dispatch]))
       true             (into [[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]))))
 
@@ -254,8 +255,7 @@
               ::route-change
               {:can-change-route? true
                :scope             :route
-               :new-route         current-route
-               :global-lifecycle  (p/get-path db :donut-component [:nav-handler :global-lifecycle])})))))
+               :new-route         current-route})))))
 
 ;; ------
 ;; update token
@@ -323,18 +323,6 @@
   [rf/trim-v]
   (fn [db [path]]
     (assoc-in-buffer db path nil)))
-
-;; ------
-;; nav flow system components
-;; ------
-
-(def default-global-lifecycle
-  {:before-exit         nil
-   :after-exit          nil
-   :before-enter        [[::clear-buffer [:route]]]
-   :after-enter         nil
-   :before-param-change [[::clear-buffer [:params]]]
-   :after-param-change  nil})
 
 ;; ------
 ;; subscriptions

@@ -20,12 +20,10 @@
                                  :config drr/config-defaults}
      :sync-router          #::ds{:start  dr/start-sync-router
                                  :config drr/config-defaults}
-     :nav-global-lifecycle dnf/default-global-lifecycle
      :nav-handler          #::ds{:start  dnf/init-handler
                                  :stop   dnf/halt-handler!
                                  :config {:dispatch-route-handler ::dnf/dispatch-route
                                           :check-can-unload?      true
-                                          :router                 (ds/local-ref [:frontend-router])
-                                          :global-lifecycle       (ds/local-ref [:nav-global-lifecycle])}}
+                                          :router                 (ds/local-ref [:frontend-router])}}
      :re-frame             #::ds{:start (constantly true)
                                  :stop  (fn [_] (rf/clear-subscription-cache!))}}}})

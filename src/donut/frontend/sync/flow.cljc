@@ -334,7 +334,7 @@
 
 (rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
-  (fn [{:keys [db] :as _cofx} [{:keys [req], {:keys [response-data]} :resp}]]
+  (fn [_cofx [{:keys [req], {:keys [response-data]} :resp}]]
     ;; TODO possibly allow failed responses to carry data
     (let [sync-info {:response-data response-data
                      :req           (into [] (take 2 req))}]
@@ -343,9 +343,9 @@
 
 (rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]
-  (fn [{:keys [db] :as _cofx} [{:keys [req]}]]
+  (fn [_cofx [{:keys [req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
-      (rfl/console :warn "Service unavailable. Try `(dev) (go)` in your REPL." sync-info)
+      (rfl/console :warn "Service unavailable. Try `(dev) (start)` in your REPL." sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
 ;;-----------------------
