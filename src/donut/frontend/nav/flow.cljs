@@ -4,6 +4,7 @@
   (:require
    [clojure.string :as str]
    [donut.frontend.core.utils :as dcu]
+   [donut.frontend.events :as dfe]
    [donut.frontend.nav.accountant :as accountant]
    [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
@@ -53,8 +54,7 @@
    [:can-change-route? boolean?]
    [:scope [:enum :route :parmas]]
    [:old-route :any]
-   [:new-route :any]
-   [:global-lifecycle]])
+   [:new-route :any]])
 
 ;;------
 ;; HTML 5 history/nav handler
@@ -180,29 +180,17 @@
 ;; ------
 ;; dispatch route
 ;; ------
-(defn compose-route-events
-  [cofx handler-events fx]
-  (let [{:keys [old-route new-route]} (::route-change cofx)]
-    (->> handler-events
-         (map (fn [handler-event]
-                (if (fn? handler-event)
-                  (handler-event {:cofx      cofx
-                                  :old-route old-route
-                                  :new-route new-route})
-                  handler-event)))
-         (filter identity)
-         (reduce into fx))))
 
 (defn route-effects
   "Composes route events"
   [cofx]
-  (let [{:keys [scope old-route new-route]} (::route-change cofx)]
-    (cond->> []
-      (= scope :route) (compose-route-events cofx (-> old-route :donut.events/on :exit))
-      (= scope :route) (compose-route-events cofx (-> new-route :donut.events/on :enter))
-      true             (compose-route-events cofx (-> new-route :donut.events/on :param-change))
-      true             (map (fn [dispatch] [:dispatch dispatch]))
-      true             (into [[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]))))
+  (let [{:keys [scope old-route new-route]} (::route-change cofx)
+        route-change?                       (= scope :route)]
+    (->> [(when route-change? [old-route :exit])
+          (when route-change? [new-route :enter])
+          [new-route :param-change]]
+         (dfe/compose-triggered-callback-fx cofx)
+         (into [[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]))))
 
 (defn change-route-fx
   "Composes all effects returned by lifecycle methods"
