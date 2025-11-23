@@ -36,7 +36,7 @@
    :before (fn [{:keys [coeffects]
                  :as ctx}]
              (let [pre-fn (get-in coeffects [:event 1 ::pre])]
-               (when (or (not pre-fn) (pre-fn coeffects))
-                 ctx)
-               ctx))
+               (if (or (not pre-fn) (pre-fn coeffects))
+                 ctx
+                 {:queue []})))
    :after  identity})
