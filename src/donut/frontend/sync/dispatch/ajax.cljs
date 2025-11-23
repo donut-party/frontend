@@ -32,25 +32,25 @@
 (defn adapt-req
   "Adapts the req opts as passed in by sync so that they'll work with
   cljs-ajax"
-  [[method route-name opts :as req]]
-  (if-let [path (:path opts)]
-    [method route-name (-> opts
-                           (assoc :uri path)
-                           (cond-> (empty? (:params opts)) (dissoc :params)))]
+  [{:keys [params path] :as req}]
+  (if path
+    (-> req
+        (assoc :uri path)
+        (cond-> (empty? params) (dissoc :params)))
     (rfl/console :warn
                  "Could not resolve route"
                  ::route-not-found {:req          req
-                                    :route-params (:route-params opts)})))
+                                    :route-params (:route-params req)})))
 
 (defn sync-dispatch-fn
   [{:keys [fail-map]
     :or   {fail-map fails}
     :as   global-opts}]
   (fn [req]
-    (let [[method _res {:keys [uri] :as opts} :as req-sig] (adapt-req req)
-          request-method                                   (get request-methods method)]
+    (let [{:keys [method uri] :as adapted} (adapt-req req)
+          request-method                   (get request-methods method)]
 
-      (when-not req-sig
+      (when-not adapted
         (rfl/console :error
                      "could not find route for request"
                      ::no-route-found
@@ -67,7 +67,7 @@
 
       ((get request-methods method)
        uri
-       (-> (merge global-opts opts)
+       (-> (merge global-opts req)
            (assoc :handler       (fn [resp]
                                    ((dsf/sync-response-handler req)
                                     {:status        :success

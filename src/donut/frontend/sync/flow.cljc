@@ -6,8 +6,10 @@
   (:require
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]
+   [donut.frontend.events :as dfe]
    [donut.frontend.path :as p]
    [donut.frontend.routes.protocol :as drp]
+   [donut.frontend.sync.response :as dfsr]
    [donut.sugar.utils :as dsu]
    [donut.frontend.routes :as dfr]
    [donut.frontend.failure.flow :as dfaf]
@@ -15,8 +17,6 @@
    [clojure.walk :as walk]
    [meta-merge.core :refer [meta-merge]]
    [cognitect.anomalies :as anom]))
-
-(declare apply-sync-segment)
 
 (doseq [t [::anom/incorrect
            ::anom/forbidden
@@ -62,6 +62,7 @@
 ;;--------------------
 ;; request tracking
 ;;--------------------
+
 (defn sync-key
   "returns a 'normalized' req key for a request.
 
@@ -83,9 +84,9 @@
   `dfr/req-id` will use that value if present.
 
   It's also possible to completely specify the sync-key with `:donut.sync/key`."
-  [[method route-name opts]]
-  (or (:donut.sync/key opts)
-      (let [req-id (dfr/req-id route-name opts)]
+  [{:keys [method route-name route-params] :as req}]
+  (or (:donut.sync/key req)
+      (let [req-id (dfr/req-id route-name route-params)]
         (if (empty? req-id)
           [method route-name]
           [method route-name req-id]))))
@@ -166,124 +167,6 @@
                     (into [[::sync-finished req resp]]
                           (->> (response-dispatches req resp)
                                (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x)))))]))))
-;;------
-;; response data handling
-;;------
-;;
-;; This determines how to update the global state atom with data received from a
-;; sync request.
-;;
-;; NOTE this is one the most important parts of the system. As the primary
-;; interface between backend and frontend, it must be extensible and
-;; comprehensible.
-;;
-;; There are three points of extension:
-;;
-;; 1. `response-data-types`. This maps a "data type" for the response to a
-;;    predicate that gets applied to the response to see if the data type
-;;    applies.
-;;
-;; 2. `handle-sync-response-data`. This is a multimethod that dispatches on a
-;;    response data type, determined by `response-data-types`
-;;
-;; 3. `apply-sync-segment`. If response data contains a vector of vectors, the
-;;    response data is treated as containing "segments". Segments are just
-;;    2-vectors, with the first element identifying the _segment type_. This
-;;    allows a response to contain mixed data. Each segment is handled by
-;;    `apply-sync-segment`, a multimethod that dispatches on segment type.
-
-(defn replace-ents
-  [db ent-type id-key ents]
-  (reduce (fn [db ent]
-            (assoc-in db (p/path :entity [ent-type (id-key ent)]) ent))
-          db
-          ents))
-
-(defn response-data
-  [response]
-  (get-in response [:resp :response-data]))
-
-(def response-data-types
-  "Response data types and predicates are broken out from sync-success like this
-  to at least make it possible to alter them with set!"
-  [[:entity   (fn [response]
-                (map? (response-data response)))]
-   [:entities (fn [response]
-                (let [rd (response-data response)]
-                  (and (vector? rd) (map? (first rd)))))]
-   [:segments (fn [response]
-                (let [rd (response-data response)]
-                  (and (vector? rd) (vector? (first rd)))))]
-   [:empty    (fn [response]
-                (empty? (response-data response)))]])
-
-(defmulti handle-sync-response-data
-  "Dispatches based on the type of the response-data. Maps and vectors are treated
-  identically; they're considered to be either a singal instance or collection
-  of entities. Those entities are placed in the entity-db, replacing whatever's
-  there. "
-  (fn [_db {{:keys [response-data]} :resp :as full-response}]
-    (loop [[[dt-name pred] & dts] response-data-types]
-      (when (nil? dt-name)
-        (throw (ex-info "could not determine response data type"
-                        {:response-data response-data})))
-      (if (pred full-response)
-        dt-name
-        (recur dts)))))
-
-(defmethod handle-sync-response-data :entity
-  [db {{:keys [response-data]} :resp :as response}]
-  ;; it's easier to forward to a base case, bruv
-  (handle-sync-response-data db (assoc-in response [:resp :response-data] [response-data])))
-
-;; Updates db by replacing each entity with return value
-(defmethod handle-sync-response-data :entities
-  [db {{:keys [response-data]} :resp
-       :keys                   [req]
-       :as                     _response}]
-  ;; TODO handle case of `:ent-type` or `:id-key` missing
-  (let [sync-router     (p/get-path db :donut-component [:sync-router])
-        sync-route-name (second req)
-        sync-route      (drp/route sync-router sync-route-name)
-        ent-type        (:ent-type sync-route)
-        id-key          (:id-key sync-route)]
-    ;; TODO This replacement strategy could be seriously flawed! I'm trying to
-    ;; keep this simple and make possibly problematic code obvious
-    (when-not id-key
-      (throw (ex-info "could not determine id-key for sync response"
-                      {:ent-type        ent-type
-                       :sync-route-name sync-route-name})))
-    (replace-ents db ent-type id-key response-data)))
-
-(defmethod handle-sync-response-data :segments
-  [db {{:keys [response-data]} :resp
-       :as                     _response}]
-  (reduce apply-sync-segment db response-data))
-
-(defmethod handle-sync-response-data :empty [db _] db)
-
-(defmethod handle-sync-response-data :default
-  [db {{:keys [response-data]} :resp
-       :keys                   [req]
-       :as                     _response}]
-
-  (rfl/console :warn
-               "sync response data type was not recognized"
-               {:response-data response-data
-                :req (into [] (take 2 req))})
-  db)
-
-(defmulti apply-sync-segment
-  "Sync segments allow the backend to convey heterogenous data to the frontend."
-  (fn [_db [segment-type]] segment-type))
-
-(defmethod apply-sync-segment :entities
-  [db [_ [ent-type id-key ents]]]
-  (replace-ents db ent-type id-key ents))
-
-(defmethod apply-sync-segment :auth
-  [db [_ auth-map]]
-  (assoc-in db (p/path :auth) auth-map))
 
 ;;------
 ;; registrations
@@ -330,7 +213,7 @@
 
 (rf/reg-event-db ::default-sync-success
   [rf/trim-v]
-  (fn [db [response]] (handle-sync-response-data db response)))
+  (fn [db [response]] (dfsr/handle-sync-response-data db response)))
 
 (rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
@@ -362,17 +245,17 @@
 
 (defn add-default-sync-response-handlers
   [req]
-  (update req 2 #(meta-merge {:$ctx {:req req}} % default-handlers)))
+  (meta-merge {:$ctx {:req req}} req default-handlers))
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
-  [[method route-name opts :as _res] router]
+  [{:keys [route-name] :as opts} router]
   (when-let [path (drp/path router
                             route-name
                             (or (:route-params opts)
                                 (:params opts))
                             (:query-params opts))]
-    [method route-name (assoc opts :path path)]))
+    (assoc opts :path path)))
 
 (defn ctx-db
   "db coeffect in interceptor"
@@ -386,7 +269,7 @@
 
 (defn update-ctx-req-opts
   [ctx f]
-  (update-in ctx [:coeffects :event 1 2] f))
+  (update-in ctx [:coeffects :event 1] f))
 
 (defn ctx-sync-state
   [ctx]
@@ -396,107 +279,24 @@
 ;; sync interceptors
 ;;---
 
-;; You can specify `:rules` in a sync request's options to modify its behavior,
-;; e.g. by only syncing once or only syncing when not active.
 
-(defn sync-rule?
-  [ctx rule]
-  (contains? (get-in (ctx-req ctx) [2 :rules]) rule))
-
-(defmulti apply-sync-rule (fn [rule _] rule))
-(defmethod apply-sync-rule ::once
-  [_ ctx]
-  (if (ctx-sync-state ctx)
-    {:queue []}
-    ctx))
-
-(defmethod apply-sync-rule ::when-not-active
-  [_ ctx]
-  (if (= :active (ctx-sync-state ctx))
-    {:queue []}
-    ctx))
-
-(defmethod apply-sync-rule ::merge-route-params
-  [_ ctx]
-  (update-ctx-req-opts
-   ctx
-   (fn [opts]
-     (merge {:route-params (p/get-path (ctx-db ctx) :nav [:route :params])}
-            opts))))
-
-(defmethod apply-sync-rule :default
-  [rule _]
-  (rfl/console :warn "unknown sync rule" rule))
-
-(def apply-sync-rules
-  {:id     ::apply-sync-rules
-   :before (fn [ctx]
-             (->> (get-in (ctx-req ctx) [2 ::rules])
-                  (reduce (fn [ctx' rule] (apply-sync-rule rule ctx'))
-                          ctx)))
-   :after  identity})
 
 ;;---
 ;; populate sync with path data
-
-(defn merge-ent-params
-  [opts ent]
-  (merge {:route-params ent, :params ent}
-         opts))
-
-(defn populate-params-from-path
-  [ctx path-kw path-fn]
-  (if-let [path (get-in (ctx-req ctx) [2 path-kw])]
-    (if-let [ent (path-fn path)]
-      (update-ctx-req-opts ctx #(merge-ent-params % ent))
-      (rfl/console :warn ::sync-entity-ent-not-found {path-kw path}))
-    ctx))
-
-(def sync-populate-params-from-path
-  {:id     ::sync-populate-from-path
-   :before (fn [ctx]
-             (->> [[:entity-params #(p/get-path (ctx-db ctx) :entity %)]
-                   [:form-buffer-params #(p/get-path (ctx-db ctx) :form [% :buffer])]
-                   [:path-parms #(get-in (ctx-db ctx) %)]]
-                  (reduce (fn [ctx' [path-kw path-fn]]
-                            (populate-params-from-path ctx' path-kw path-fn))
-                          ctx)))
-   :after  identity})
-;; end populate sync with path data
-
-;; TODO I don't remember what this is fore
-(def sync-methods
-  {"get"    :get
-   "put"    :put
-   "delete" :delete
-   "post"   :post
-   "patch"  :patch})
-
-;; TODO I don't remember what this is fore
-(def sync-method
-  {:id     ::sync-method
-   :before (fn [ctx]
-             ;; TODO figure out why this is needed
-             (if-let [method (get sync-methods (name (get-in ctx [:coeffects :event 0])))]
-               (update-in ctx
-                          [:coeffects :event]
-                          (fn [[event-name & args]]
-                            (conj [event-name] (into [method] args))))
-               ctx))
-   :after  identity})
 
 (def set-sync-dispatch-fn
   "Populates a default sync-dispatch-fn from the configured system, allowing
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-in ctx
-                        [:coeffects :event 1 2]
-                        #(merge {::sync-dispatch-fn (-> ctx
-                                                        (get-in [:coeffects :db])
-                                                        (p/get-path :donut-component)
-                                                        :sync-dispatch-fn)}
-                                %)))
+             (update-ctx-req-opts
+              ctx
+              (fn [req]
+                (merge {::sync-dispatch-fn (-> ctx
+                                               (get-in [:coeffects :db])
+                                               (p/get-path :donut-component)
+                                               :sync-dispatch-fn)}
+                       req))))
    :after  identity})
 
 (def add-auth-header
@@ -509,11 +309,10 @@
    :after  identity})
 
 (def sync-interceptors
-  [sync-method
-   apply-sync-rules
-   sync-populate-params-from-path
-   set-sync-dispatch-fn
+  [set-sync-dispatch-fn
    add-auth-header
+   dfe/tx
+   dfe/pre
    rf/trim-v])
 
 ;;---
@@ -528,9 +327,8 @@
   a) updated db to track a sync request
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
-  [{:keys [db] :as _cofx} req]
+  [{:keys [db] :as _cofx} {:keys [::sync-dispatch-fn] :as req}]
   (let [{:keys [sync-router]} (p/get-path db :donut-component)
-        sync-dispatch-fn      (get-in req [2 ::sync-dispatch-fn])
         adapted-req           (-> req
                                   (add-default-sync-response-handlers)
                                   (adapt-req sync-router))]
@@ -601,11 +399,12 @@
 ;; common sync
 ;;---------------
 
-(doseq [method [::get ::put ::post ::delete ::patch]]
-  (rf/reg-event-fx method
-    sync-interceptors
-    (fn [cofx [req]]
-      (sync-event-fx cofx req))))
+(doseq [event-name [::get ::put ::post ::delete ::patch]]
+  (let [method (keyword (name event-name))]
+    (rf/reg-event-fx event-name
+      sync-interceptors
+      (fn [cofx [req]]
+        (sync-event-fx cofx (assoc req :method method))))))
 
 ;;---------------
 ;; response helpers
@@ -655,3 +454,13 @@
                  #(methods (first %))
                  #(= (:route-name route)
                      (get-in % [:active-route :route-name])))))
+
+;;---------------
+;; sync tx helpers
+;;---------------
+
+(defn use-route-params
+  [ctx]
+  (dfe/opts-merge-db-vals
+   ctx
+   {:route-params (p/path :nav [:route :params])}))

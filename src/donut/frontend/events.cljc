@@ -1,5 +1,13 @@
 (ns donut.frontend.events)
 
+
+(def event-opts-path [:coeffects :event 1])
+
+(defn ctx-db
+  "db coeffect in interceptor"
+  [ctx]
+  (get-in ctx [:coeffects :db]))
+
 (defn compose-handler-fx
   "Builds up an fx vector"
   [cofx callback-fx fx]
@@ -29,14 +37,43 @@
            fx
            candidates)))
 
+(defn event-opts
+  [ctx]
+  (get-in ctx event-opts-path))
+
 (def pre
   "Interceptor that lets you set preconditions in an event map. If ::pre is
   present in the event map and it returns falsey, the event stops."
   {:id     ::pre
    :before (fn [{:keys [coeffects]
                  :as ctx}]
-             (let [pre-fn (get-in coeffects [:event 1 ::pre])]
+             (let [pre-fn (-> ctx event-opts ::pre)]
                (if (or (not pre-fn) (pre-fn coeffects))
                  ctx
                  {:queue []})))
    :after  identity})
+
+(def tx
+  {:id ::tx
+   :before (fn [ctx]
+             (if-let [tx (-> ctx event-opts ::tx)]
+               (reduce (fn [ctx' tx-fn]
+                         (tx-fn ctx'))
+                       ctx
+                       tx)
+               ctx))
+   :after identity})
+
+(defn merge-event-opts
+  [ctx m]
+  (update-in ctx event-opts-path merge m))
+
+(defn opts-merge-db-vals
+  [ctx m]
+  (let [db    (ctx-db ctx)
+        eopts (event-opts ctx)]
+    (assoc-in ctx event-opts-path
+              (reduce-kv (fn [eopts' k db-path]
+                           (assoc eopts' k (get-in db db-path)))
+                         eopts
+                         m))))
