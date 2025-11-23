@@ -9,30 +9,36 @@
    [reitit.core :as rc]
    [reitit.frontend :as reif]))
 
+(defn no-path-data
+  [route-name match route-params]
+  (let [required          (set (get match :required))
+        provided-required (select-keys route-params required)
+        missing-required  (set/difference required (set (keys provided-required)))
+        data              {:route-name   route-name
+                           :route-params provided-required
+                           :required     required
+                           :match        (-> match
+                                             (dissoc :data :required)
+                                             (update :path-params select-keys required))}
+        message           (cond
+                            (not match)
+                            (str "there is no route named `" route-name "`")
+
+                            (seq missing-required)
+                            (str "missing required params for route `" route-name "`: "
+                                 missing-required))]
+    {:message message
+     :data    data}))
+
 (defn on-no-path-warn
   [route-name match route-params]
-  (let [required (get match :required)]
-    ;; TODO update this to be more specific. does it not exist? is it missing params?
-    (rfl/console :warn
-                 "reitit could not generate path. route might not exist, or might not have required params."
-                 {:route-name   route-name
-                  :route-params (select-keys route-params required)
-                  :required     required
-                  :match        (-> match
-                                    (dissoc :data :required)
-                                    (update :path-params select-keys required))})))
+  (let [{:keys [message data]} (no-path-data route-name match route-params)]
+    (rfl/console :warn message data)))
 
 (defn on-no-path-throw
   [route-name match route-params]
-  (let [required (get match :required)]
-    (throw
-     (ex-info "reitit could not generate path. route might not exist, or might not have required params."
-              {:route-name   route-name
-               :route-params (select-keys route-params required)
-               :required     required
-               :match        (-> match
-                                 (dissoc :data :required)
-                                 (update :path-params select-keys required))}))))
+  (let [{:keys [message data]} (no-path-data route-name match route-params)]
+    (throw (ex-info message data))))
 
 (defn on-no-route-warn
   [path-or-name route-params query-params]
