@@ -380,14 +380,15 @@
 ;;--------------------
 
 ;; TODO handle id-key in a universal manner
-(defn delete-entity-optimistic-fn
-  "Returns a handler that can be used to both send a delete sync and
+(comment
+  (defn delete-entity-optimistic-fn
+    "Returns a handler that can be used to both send a delete sync and
   remove the entity from the ent db"
-  [ent-type & [id-key]]
-  (let [id-key (or id-key :id)]
-    (fn [{:keys [db] :as cofx} [entity :as args]]
-      (merge ((dsf/sync-fx-handler [:delete ent-type]) cofx args)
-             {:db (update-in db [:entity ent-type] dissoc (id-key entity))}))))
+    [ent-type & [id-key]]
+    (let [id-key (or id-key :id)]
+      (fn [{:keys [db] :as cofx} [entity :as args]]
+        (merge ((dsf/sync-fx-handler [:delete ent-type]) cofx args)
+               {:db (update-in db [:entity ent-type] dissoc (id-key entity))})))))
 
 ;;--------------------
 ;; handle form success/fail

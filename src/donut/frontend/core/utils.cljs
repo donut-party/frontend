@@ -135,3 +135,8 @@
                (assoc m' k (get-in reference-m path)))
              m
              key->path))
+
+(defn >merge
+  "merge with args reversed"
+  [a b]
+  (merge b a))

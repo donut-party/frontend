@@ -11,32 +11,47 @@
   (get-in ctx [:coeffects :db]))
 
 (defn compose-handler-fx
-  "Builds up an fx vector"
-  [cofx callback-fx fx]
-  (if (fn? callback-fx)
-    (callback-fx cofx)
-    (->> callback-fx
-         (mapv (fn [handler-event]
-                 (if (fn? handler-event)
-                   (handler-event cofx)
-                   handler-event)))
-         (filter identity)
-         (mapv (fn [handler-event]
-                 [:dispatch handler-event]))
-         (into (vec fx)))))
+  "Builds up an fx vector. ex:
+
+  (compose-handler-fx
+   cofx
+   [[:event-1 {}]
+    (fn [cofx] [:event-2 {}])])
+  "
+  ([cofx callback-fx]
+   (compose-handler-fx cofx callback-fx {}))
+  ([cofx callback-fx common-opts]
+   (if (fn? callback-fx)
+     (callback-fx cofx)
+     (->> callback-fx
+          (mapv (fn [handler-event]
+                  (if (fn? handler-event)
+                    (handler-event cofx)
+                    handler-event)))
+          (filter identity)
+          (mapv (fn [handler-event]
+                  [:dispatch (update handler-event 1 dcu/>merge common-opts)]))))))
 
 (defn compose-triggered-callback-fx
   "takes many \"candidates\" which are tuples of
   [map-that-provides-callback event-name]
-  and creates a final vector of fx"
+  and creates a final vector of fx
+
+  ex:
+  (compose-triggered-callback-fx
+   [[{::on {:success x, :fail y}} :success]
+    [{::on {:success x, :fail y}} :success]])"
   ([cofx candidates]
-   (compose-triggered-callback-fx cofx candidates []))
-  ([cofx candidates fx]
+   (compose-triggered-callback-fx cofx candidates {} []))
+  ([cofx candidates common-opts]
+   (compose-triggered-callback-fx cofx candidates common-opts []))
+  ([cofx candidates common-opts fx]
    (reduce (fn [final-fx [m event-name]]
              (if-let [callback-fx (get-in m [::on event-name])]
-               (compose-handler-fx cofx callback-fx final-fx)
+               (into final-fx
+                     (compose-handler-fx cofx callback-fx common-opts))
                final-fx))
-           fx
+           (or fx [])
            candidates)))
 
 (defn event-opts

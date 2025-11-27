@@ -4,19 +4,17 @@
 
   The term 'sync' is used instead of AJAX"
   (:require
-   [re-frame.core :as rf]
-   [re-frame.loggers :as rfl]
+   [cognitect.anomalies :as anom]
    [donut.frontend.events :as dfe]
+   [donut.frontend.failure.flow :as dfaf]
    [donut.frontend.path :as p]
+   [donut.frontend.routes :as dfr]
    [donut.frontend.routes.protocol :as drp]
    [donut.frontend.sync.response :as dfsr]
    [donut.sugar.utils :as dsu]
-   [donut.frontend.routes :as dfr]
-   [donut.frontend.failure.flow :as dfaf]
    [medley.core :as medley]
-   [clojure.walk :as walk]
-   [meta-merge.core :refer [meta-merge]]
-   [cognitect.anomalies :as anom]))
+   [re-frame.core :as rf]
+   [re-frame.loggers :as rfl]))
 
 (doseq [t [::anom/incorrect
            ::anom/forbidden
@@ -143,11 +141,12 @@
 
 (rf/reg-event-db ::default-sync-success
   [rf/trim-v]
-  (fn [db [response]] (dfsr/handle-sync-response-data db response)))
+  (fn [db [{:keys [::resp]}]]
+    (dfsr/handle-sync-response-data db resp)))
 
 (rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
-  (fn [_cofx [{:keys [req], {:keys [response-data]} :resp}]]
+  (fn [_cofx [{:keys [::req], {:keys [response-data]} ::resp}]]
     ;; TODO possibly allow failed responses to carry data
     (let [sync-info {:response-data response-data
                      :req           (into [] (take 2 req))}]
@@ -156,7 +155,7 @@
 
 (rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]
-  (fn [_cofx [{:keys [req]}]]
+  (fn [_cofx [{:keys [::req]}]]
     (let [sync-info {:req (into [] (take 2 req))}]
       (rfl/console :warn "Service unavailable. Try `(dev) (start)` in your REPL." sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
@@ -185,19 +184,17 @@
 ;;------
 (defn sync-finished
   "Update sync bookkeeping"
-  [db [_ req resp]]
+  [db {:keys [::req ::resp]}]
   (-> db
       (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
       (update ::active-request-count dec)))
 
-(rf/reg-event-db ::sync-finished
-  []
-  sync-finished)
-
-(rf/reg-event-fx ::sync-response
+(rf/reg-event-fx ::handle-sync-response
   [rf/trim-v]
-  (fn [_ [dispatches]]
-    {:fx (mapv (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
+  (fn [{:keys [db] :as cofx} [{:keys [::req ::resp] :as request-response-map}]]
+    (let [status (if (= (:status resp) :success) :success :fail)]
+      {:db (sync-finished db request-response-map)
+       :fx (dfe/compose-triggered-callback-fx cofx [[req status]] request-response-map)})))
 
 (rf/reg-event-fx ::fn-response-handler
   [rf/trim-v]
@@ -215,48 +212,24 @@
         (keyword? (first xs)) [xs]
         :else                 xs))
 
-(defn response-dispatches
-  "Combine default response dispatches with request-specific response dispatches"
-  [req {:keys [status] :as _resp}]
-  (let [{:keys [default-on on] :as _rdata} (get req 2)
-        default-dispatches (->> (if (= status :success)
-                                  (get default-on :success)
-                                  (get default-on status (get default-on :fail)))
-                                (vectorize-dispatches))
-        dispatches         (->> (if (= status :success)
-                                  (get on :success)
-                                  (get on status (get on :fail)))
-                                (vectorize-dispatches))]
-    (into default-dispatches dispatches)))
-
 (defn sync-response-handler
   "Used by sync implementations (e.g. ajax) to create a response handler"
   [req]
   (fn anon-sync-response-handler [resp]
-    (let [rdata (get req 2)
-          $ctx                   (assoc (get rdata :$ctx {})
-                                        :resp resp
-                                        :req  req)]
-      (rf/dispatch [::sync-response
-                    (into [[::sync-finished req resp]]
-                          (->> (response-dispatches req resp)
-                               (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x)))))]))))
+    (rf/dispatch [::handle-sync-response {::req  req
+                                          ::resp resp}])))
 
 ;;-----------------------
 ;; dispatch sync requests
 ;;-----------------------
 
 (def default-handlers
-  {:default-on {:success           ^:displace [[::default-sync-success :$ctx]]
-                :fail              ^:displace [[::default-sync-fail :$ctx]]
-                ::anom/unavailable ^:displace [[::default-sync-unavailable :$ctx]]}})
+  {:success           [[::default-sync-success]]
+   :fail              [[::default-sync-fail]]
+   ::anom/unavailable [[::default-sync-unavailable]]})
 
 ;;---
 ;; helpers
-
-(defn add-default-sync-response-handlers
-  [req]
-  (meta-merge {:$ctx {:req req}} req default-handlers))
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
@@ -288,12 +261,13 @@
 ;;---
 ;; populate sync with path data
 
-(def set-sync-dispatch-fn
+(def set-request-defaults
   "Populates a default sync-dispatch-fn from the configured system, allowing
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-ctx-req ctx #(merge {::sync-dispatch-fn (-> ctx
+             (update-ctx-req ctx #(merge {::dfe/on           default-handlers
+                                          ::sync-dispatch-fn (-> ctx
                                                                  (dfe/ctx-db)
                                                                  (p/get-path :donut-component)
                                                                  :sync-dispatch-fn)}
@@ -310,7 +284,7 @@
    :after  identity})
 
 (def sync-interceptors
-  [set-sync-dispatch-fn
+  [set-request-defaults
    add-auth-header
    dfe/tx
    dfe/pre
@@ -330,9 +304,7 @@
   effect handler"
   [{:keys [db] :as _cofx} {:keys [::sync-dispatch-fn] :as req}]
   (let [{:keys [sync-router]} (p/get-path db :donut-component)
-        adapted-req           (-> req
-                                  (add-default-sync-response-handlers)
-                                  (adapt-req sync-router))]
+        adapted-req           (adapt-req req sync-router)]
     (if adapted-req
       {:db             (track-new-request db adapted-req)
        ::dispatch-sync {:dispatch-fn sync-dispatch-fn
@@ -369,35 +341,8 @@
   (fn [{:keys [dispatch-fn req]}]
     (dispatch-fn req)))
 
-;;------
-;; event helpers
-;;------
-
-(defn build-opts
-  [opts call-opts params]
-  (let [{:keys [route-params params] :as new-opts} (-> opts
-                                                       (meta-merge call-opts)
-                                                       (update :params meta-merge params))]
-    ;; by default also use param for route params
-    (cond-> new-opts
-      (not route-params) (assoc :route-params params))))
-
-(defn sync-req->sync-event
-  [[method route-name opts] & [call-opts params]]
-  [::sync [method route-name (build-opts opts call-opts params)]])
-
-(defn sync-req->dispatch
-  [req & [call-opts params]]
-  {:dispatch (sync-req->sync-event req call-opts params)})
-
-(defn sync-fx-handler
-  "Returns an effect handler that dispatches a sync event"
-  [req]
-  (fn [_cofx [call-opts params]]
-    {:dispatch (sync-req->sync-event req call-opts params)}))
-
 ;;---------------
-;; common sync
+;; sync events
 ;;---------------
 
 (doseq [event-name [::get ::put ::post ::delete ::patch]]
