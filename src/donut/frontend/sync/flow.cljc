@@ -205,13 +205,6 @@
   (fn [[f ctx]]
     (f ctx)))
 
-(defn vectorize-dispatches
-  [xs]
-  (cond (nil? xs)             []
-        (fn? xs)              [[::fn-response-handler xs :$ctx]]
-        (keyword? (first xs)) [xs]
-        :else                 xs))
-
 (defn sync-response-handler
   "Used by sync implementations (e.g. ajax) to create a response handler"
   [req]
