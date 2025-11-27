@@ -279,8 +279,6 @@
 ;; sync interceptors
 ;;---
 
-
-
 ;;---
 ;; populate sync with path data
 
@@ -459,7 +457,7 @@
 ;; sync tx helpers
 ;;---------------
 
-(defn use-route-params
+(defn use-current-route-params
   [ctx]
   (dfe/opts-merge-db-vals
    ctx

@@ -4,7 +4,7 @@
 (def event-opts-path [:coeffects :event 1])
 
 (defn ctx-db
-  "db coeffect in interceptor"
+  "db coeffect in interceptor context"
   [ctx]
   (get-in ctx [:coeffects :db]))
 
@@ -69,11 +69,18 @@
   (update-in ctx event-opts-path merge m))
 
 (defn opts-merge-db-vals
-  [ctx m]
+  "Given
+  - an interceptor ctx that contains an event where the event's first argument
+    is a map (event-opts)
+  - a map `key->db-path` where the keys are keywords and the values are db-paths
+
+  Transforms `key->db-path` such that the values are replaced by db values
+  looked up with `db-path and merges the result into event-opts`"
+  [ctx key->db-path]
   (let [db    (ctx-db ctx)
         eopts (event-opts ctx)]
     (assoc-in ctx event-opts-path
               (reduce-kv (fn [eopts' k db-path]
                            (assoc eopts' k (get-in db db-path)))
                          eopts
-                         m))))
+                         key->db-path))))
