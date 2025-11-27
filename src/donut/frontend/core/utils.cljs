@@ -117,3 +117,21 @@
 (defn dissoc-entity
   [db entity-type entity-id]
   (update-in db (p/path :entity [entity-type]) dissoc entity-id))
+
+;;---
+;; other helpers
+;;---
+
+(defn merge-retrieved-vals
+  "Given
+  - a map `m` to merge values into
+  - a map `reference-m` to look up values in
+  - a map `key->path` where the keys are keywords and the values are db-paths
+
+  Transforms `key->path` such that the values are replaced by values
+  looked up in `reference-m` with `path` and merges the result into `m`"
+  [m reference-m key->path]
+  (reduce-kv (fn [m' k path]
+               (assoc m' k (get-in reference-m path)))
+             m
+             key->path))

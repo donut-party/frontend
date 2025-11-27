@@ -462,3 +462,8 @@
   (dfe/opts-merge-db-vals
    ctx
    {:route-params (p/path :nav [:route :params])}))
+
+
+(defn not-active
+  [ctx]
+  (not= :active (ctx-sync-state ctx)))

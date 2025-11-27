@@ -1,4 +1,6 @@
-(ns donut.frontend.events)
+(ns donut.frontend.events
+  (:require
+   [donut.frontend.core.utils :as dcu]))
 
 
 (def event-opts-path [:coeffects :event 1])
@@ -45,12 +47,11 @@
   "Interceptor that lets you set preconditions in an event map. If ::pre is
   present in the event map and it returns falsey, the event stops."
   {:id     ::pre
-   :before (fn [{:keys [coeffects]
-                 :as ctx}]
-             (let [pre-fn (-> ctx event-opts ::pre)]
-               (if (or (not pre-fn) (pre-fn coeffects))
-                 ctx
-                 {:queue []})))
+   :before (fn [ctx]
+             (let [pre-fns (-> ctx event-opts ::pre)]
+               (if (some #(% ctx) pre-fns)
+                 {:queue []}
+                 ctx)))
    :after  identity})
 
 (def tx
@@ -69,18 +70,10 @@
   (update-in ctx event-opts-path merge m))
 
 (defn opts-merge-db-vals
-  "Given
-  - an interceptor ctx that contains an event where the event's first argument
-    is a map (event-opts)
-  - a map `key->db-path` where the keys are keywords and the values are db-paths
+  "Transforms ctx's event-opts by merging in values looked up from the db
 
-  Transforms `key->db-path` such that the values are replaced by db values
-  looked up with `db-path and merges the result into event-opts`"
+  ex:
+  (opts-merge-db-vals ctx {:route-params (p/path :nav [:route :params])})"
   [ctx key->db-path]
-  (let [db    (ctx-db ctx)
-        eopts (event-opts ctx)]
-    (assoc-in ctx event-opts-path
-              (reduce-kv (fn [eopts' k db-path]
-                           (assoc eopts' k (get-in db db-path)))
-                         eopts
-                         key->db-path))))
+  (let [db (ctx-db ctx)]
+    (update-in ctx event-opts-path dcu/merge-retrieved-vals db key->db-path)))
