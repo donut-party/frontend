@@ -27,41 +27,9 @@
            :fail]]
   (derive t ::fail))
 
-;;--------------------
-;; specs
-;;--------------------
-
-(def ReqMethod keyword?)
-(def RouteName keyword?)
-(def Path string?)
-(def Location
-  [:orn
-   [:route-name RouteName]
-   [:path Path]])
-(def Params map?)
-(def RouteParams Params)
-(def QueryParams Params)
-(def ReqOpts [:map
-              [:route-params {:optional true} RouteParams]
-              [:query-params {:optional true} QueryParams]
-              [:params {:optional true} Params]
-              [:donut.sync/key {:optional true} some?]])
-
-(def Req [:cat
-          [:req-method ReqMethod]
-          [:location Location]
-          [:req-opts ReqOpts]])
-
-(def DispatchFn fn?)
-(def DispatchSync [:map
-                   [:req Req]
-                   [:dispatch-fn DispatchFn]])
-
-;; TODO spec response
-
-;;--------------------
-;; request tracking
-;;--------------------
+;;---
+;; utils
+;;---
 
 (defn sync-key
   "returns a 'normalized' req key for a request.
@@ -91,82 +59,44 @@
           [method route-name]
           [method route-name req-id]))))
 
-(defn track-new-request
-  "Adds a request's state te the app-db and increments the active request
-  count"
-  [db req]
-  (-> db
-      (update-in (p/reqs-path [(sync-key req)])
-                 merge
-                 {:state            :active
-                  :active-nav-route (p/get-path db :nav [:route])})
-      (update ::active-request-count (fnil inc 0))))
+;;--------------------
+;; specs
+;;--------------------
 
-(defn remove-req
-  [db req]
-  (update-in db [:donut :reqs] dissoc (sync-key req)))
+(def ReqMethod keyword?)
+(def RouteName keyword?)
+(def URI string?)
+(def Params map?)
+(def RouteParams Params)
+(def QueryParams Params)
 
-;;------
-;; dispatch handler wrappers
-;;------
-(defn sync-finished
-  "Update sync bookkeeping"
-  [db [_ req resp]]
-  (-> db
-      (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
-      (update ::active-request-count dec)))
+(def URIReq
+  [:map
+   [:method ReqMethod]
+   [:uri URI]
+   [:query-params {:optional true} QueryParams]
+   [:params {:optional true} Params]
+   [:donut.sync/key {:optional true} some?]])
 
-(rf/reg-event-db ::sync-finished
-  []
-  sync-finished)
+(def RoutedReq
+  [:map
+   [:method ReqMethod]
+   [:route-name {:optional true} RouteName]
+   [:route-params {:optional true} RouteParams]
+   [:query-params {:optional true} QueryParams]
+   [:params {:optional true} Params]
+   [:donut.sync/key {:optional true} some?]])
 
-(rf/reg-event-fx ::sync-response
-  [rf/trim-v]
-  (fn [_ [dispatches]]
-    {:fx (map (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
+(def Req
+  [:or
+   RoutedReq
+   URIReq])
 
-(rf/reg-event-fx ::fn-response-handler
-  [rf/trim-v]
-  (fn [_ [f ctx]]
-    {::fn-response-handler [f ctx]}))
-
-(rf/reg-fx ::fn-response-handler
-  (fn [[f ctx]]
-    (f ctx)))
-
-(defn vectorize-dispatches
-  [xs]
-  (cond (nil? xs)             []
-        (fn? xs)              [[::fn-response-handler xs :$ctx]]
-        (keyword? (first xs)) [xs]
-        :else                 xs))
-
-(defn response-dispatches
-  "Combine default response dispatches with request-specific response dispatches"
-  [req {:keys [status] :as _resp}]
-  (let [{:keys [default-on on] :as _rdata} (get req 2)
-        default-dispatches (->> (if (= status :success)
-                                  (get default-on :success)
-                                  (get default-on status (get default-on :fail)))
-                                (vectorize-dispatches))
-        dispatches         (->> (if (= status :success)
-                                  (get on :success)
-                                  (get on status (get on :fail)))
-                                (vectorize-dispatches))]
-    (into default-dispatches dispatches)))
-
-(defn sync-response-handler
-  "Used by sync implementations (e.g. ajax) to create a response handler"
-  [req]
-  (fn anon-sync-response-handler [resp]
-    (let [rdata (get req 2)
-          $ctx                   (assoc (get rdata :$ctx {})
-                                        :resp resp
-                                        :req  req)]
-      (rf/dispatch [::sync-response
-                    (into [[::sync-finished req resp]]
-                          (->> (response-dispatches req resp)
-                               (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x)))))]))))
+(def DispatchFn fn?)
+(def DispatchSync
+  [:map
+   [:req Req]
+   [:dispatch-fn DispatchFn]])
 
 ;;------
 ;; registrations
@@ -231,6 +161,87 @@
       (rfl/console :warn "Service unavailable. Try `(dev) (start)` in your REPL." sync-info)
       {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
 
+;;--------------------
+;; request tracking
+;;--------------------
+
+(defn track-new-request
+  "Adds a request's state te the app-db and increments the active request
+  count"
+  [db req]
+  (-> db
+      (update-in (p/reqs-path [(sync-key req)])
+                 merge
+                 {:state            :active
+                  :active-nav-route (p/get-path db :nav [:route])})
+      (update ::active-request-count (fnil inc 0))))
+
+(defn remove-req
+  [db req]
+  (update-in db [:donut :reqs] dissoc (sync-key req)))
+
+;;------
+;; dispatch handler wrappers
+;;------
+(defn sync-finished
+  "Update sync bookkeeping"
+  [db [_ req resp]]
+  (-> db
+      (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
+      (update ::active-request-count dec)))
+
+(rf/reg-event-db ::sync-finished
+  []
+  sync-finished)
+
+(rf/reg-event-fx ::sync-response
+  [rf/trim-v]
+  (fn [_ [dispatches]]
+    {:fx (mapv (fn [a-dispatch] [:dispatch a-dispatch]) dispatches)}))
+
+(rf/reg-event-fx ::fn-response-handler
+  [rf/trim-v]
+  (fn [_ [f ctx]]
+    {::fn-response-handler [f ctx]}))
+
+(rf/reg-fx ::fn-response-handler
+  (fn [[f ctx]]
+    (f ctx)))
+
+(defn vectorize-dispatches
+  [xs]
+  (cond (nil? xs)             []
+        (fn? xs)              [[::fn-response-handler xs :$ctx]]
+        (keyword? (first xs)) [xs]
+        :else                 xs))
+
+(defn response-dispatches
+  "Combine default response dispatches with request-specific response dispatches"
+  [req {:keys [status] :as _resp}]
+  (let [{:keys [default-on on] :as _rdata} (get req 2)
+        default-dispatches (->> (if (= status :success)
+                                  (get default-on :success)
+                                  (get default-on status (get default-on :fail)))
+                                (vectorize-dispatches))
+        dispatches         (->> (if (= status :success)
+                                  (get on :success)
+                                  (get on status (get on :fail)))
+                                (vectorize-dispatches))]
+    (into default-dispatches dispatches)))
+
+(defn sync-response-handler
+  "Used by sync implementations (e.g. ajax) to create a response handler"
+  [req]
+  (fn anon-sync-response-handler [resp]
+    (let [rdata (get req 2)
+          $ctx                   (assoc (get rdata :$ctx {})
+                                        :resp resp
+                                        :req  req)]
+      (rf/dispatch [::sync-response
+                    (into [[::sync-finished req resp]]
+                          (->> (response-dispatches req resp)
+                               (walk/postwalk (fn [x] (if (= x :$ctx) $ctx x)))))]))))
+
 ;;-----------------------
 ;; dispatch sync requests
 ;;-----------------------
@@ -257,23 +268,18 @@
                             (:query-params opts))]
     (assoc opts :path path)))
 
-(defn ctx-db
-  "db coeffect in interceptor"
-  [ctx]
-  (get-in ctx [:coeffects :db]))
-
 (defn ctx-req
   "Retrieve request within interceptor"
   [ctx]
   (get-in ctx [:coeffects :event 1]))
 
-(defn update-ctx-req-opts
-  [ctx f]
-  (update-in ctx [:coeffects :event 1] f))
+(defn update-ctx-req
+  [ctx f & args]
+  (apply update-in ctx [:coeffects :event 1] f args))
 
 (defn ctx-sync-state
   [ctx]
-  (sync-state (ctx-db ctx) (ctx-req ctx)))
+  (sync-state (dfe/ctx-db ctx) (ctx-req ctx)))
 
 ;;---
 ;; sync interceptors
@@ -287,22 +293,19 @@
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-ctx-req-opts
-              ctx
-              (fn [req]
-                (merge {::sync-dispatch-fn (-> ctx
-                                               (get-in [:coeffects :db])
-                                               (p/get-path :donut-component)
-                                               :sync-dispatch-fn)}
-                       req))))
+             (update-ctx-req ctx #(merge {::sync-dispatch-fn (-> ctx
+                                                                 (dfe/ctx-db)
+                                                                 (p/get-path :donut-component)
+                                                                 :sync-dispatch-fn)}
+                                         %)))
    :after  identity})
 
 (def add-auth-header
   "Adds the 'Authorization' http header when there's an auth token present"
   {:id     ::add-auth-header
    :before (fn [ctx]
-             (if-let [auth-token (p/get-path (ctx-db ctx) :auth [:auth-token])]
-               (update-ctx-req-opts ctx #(assoc-in % [:headers "Authorization"] auth-token))
+             (if-let [auth-token (p/get-path (dfe/ctx-db ctx) :auth [:auth-token])]
+               (update-ctx-req ctx update-in [:headers "Authorization"] #(or % auth-token))
                ctx))
    :after  identity})
 
