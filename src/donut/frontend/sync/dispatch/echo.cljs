@@ -23,7 +23,7 @@
     (response-handler echo)))
 
 (defn sync-dispatch-fn
-  [[_method _route-name {:keys [::echo]} :as req]]
+  [{:keys [::echo] :as req}]
   (if-not req
     (do
       (rfl/console :error
