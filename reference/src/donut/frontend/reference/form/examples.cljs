@@ -3,6 +3,7 @@
    ["marked" :as marked]
    [donut.frontend.core.flow :as dcf]
    [donut.frontend.core.utils :as dcu]
+   [donut.frontend.events :as dfe]
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.form.flow :as dff]
@@ -38,7 +39,8 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            2000}
-                  :on         {:success [::dff/clear *form-key]}}))}
+                  ::dfe/on    {:success [::dfe/default
+                                         [::dff/clear *form-key]]}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -264,13 +266,13 @@
        [ui/explain
         [ui/button
          {:on-click
-          #(rf/dispatch [::dsf/get
-                         :post
-                         {:id         1
-                          ::dsde/echo {:status        :success
-                                       :response-data {:id      1
-                                                       :content "post content"}}
-                          :on         {:success [::dff/set-form-from-sync :$ctx *form-layout]}}])}
+          #(rf/dispatch [::dsf/get {:id         1
+                                    :route-name :post
+                                    ::dsde/echo {:status        :success
+                                                 :response-data {:id      1
+                                                                 :content "post content"}}
+                                    ::dfe/on    {:success [::dfe/default
+                                                           [::dff/set-form-from-sync {::dff/form-layout *form-layout}]]}}])}
          "populate from sync"]]
        [*field :text :content {:class input-class}]])]])
 
@@ -321,8 +323,9 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            0}
-                  :on         {:success [[::dff/clear *form-key]
-                                         [::initial-values-success :$ctx]]}}))}
+                  ::dfe/on    {:success [::dfe/default
+                                         [::dff/clear *form-key]
+                                         [::initial-values-success]]}}))}
    "submit"])
 
 (rf/reg-event-db ::initial-values-success

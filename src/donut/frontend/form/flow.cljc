@@ -426,13 +426,10 @@
 ;; fun little helpers
 ;;--------------------
 
-;; example:
-;; [::dff/set-form-from-sync :$ctx *form-layout]
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
-  (fn [db [ctx form-layout]]
-    (set-form db form-layout {:buffer (dsf/single-entity ctx)})))
-
+  (fn [db [{:keys [::dsf/req] :as sync-response}]]
+    (set-form db (::form-layout req) {:buffer (dsf/single-entity sync-response)})))
 
 (defn set-form-with-routed-entity
   [db form-layout entity-key param-key & [form-opts]]
