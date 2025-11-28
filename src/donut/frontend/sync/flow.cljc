@@ -282,7 +282,7 @@
 (def sync-interceptors
   [set-request-defaults
    add-auth-header
-   dfe/tx
+   dfe/xf
    dfe/pre
    rf/trim-v])
 

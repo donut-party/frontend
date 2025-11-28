@@ -42,10 +42,10 @@
                  ctx)))
    :after  identity})
 
-(def tx
-  {:id ::tx
+(def xf
+  {:id ::xf
    :before (fn [ctx]
-             (if-let [tx (-> ctx event-opts ::tx)]
+             (if-let [tx (-> ctx event-opts ::xf)]
                (reduce (fn [ctx' tx-fn]
                          (tx-fn ctx'))
                        ctx
