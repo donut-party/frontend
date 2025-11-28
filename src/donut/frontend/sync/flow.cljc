@@ -195,7 +195,10 @@
   (fn [{:keys [db] :as cofx} [{:keys [::req ::resp] :as request-response-map}]]
     (let [status (if (= (:status resp) :success) :success :fail)]
       {:db (sync-finished db request-response-map)
-       :fx (dfe/triggered-callback-fx req cofx status request-response-map)})))
+       :fx (dfe/triggered-callback-fx
+            (update req ::dfe/merge merge request-response-map)
+            cofx
+            status)})))
 
 (rf/reg-event-fx ::fn-response-handler
   [rf/trim-v]

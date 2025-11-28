@@ -11,21 +11,19 @@
   (get-in ctx [:coeffects :db]))
 
 (defn triggered-callback-fx
-  ([event-opts cofx event-name]
-   (triggered-callback-fx event-opts cofx event-name {}))
-  ([event-opts cofx event-name common-opts]
-   (let [defaults  (get-in event-opts [::default :on event-name])
-         callbacks (get-in event-opts [::on event-name])]
-     (->> callbacks
-          (reduce (fn [re-frame-events callback]
-                    (cond
-                      (= ::default callback) (into re-frame-events defaults)
-                      (fn? callback)         (into re-frame-events (callback cofx))
-                      (vector? callback)     (conj re-frame-events callback)
-                      :else                  (throw (ex-info "unrecognize ::dfe/on callback form" {:callback callback}))))
-                  [])
-          (mapv (fn [re-frame-event]
-                  [:dispatch (update re-frame-event 1 dcu/>merge common-opts)]))))))
+  [event-opts cofx event-name]
+  (let [defaults   (get-in event-opts [::default :on event-name])
+        callbacks  (get-in event-opts [::on event-name])]
+    (->> callbacks
+         (reduce (fn [re-frame-events callback]
+                   (cond
+                     (= ::default callback) (into re-frame-events defaults)
+                     (fn? callback)         (into re-frame-events (callback cofx))
+                     (vector? callback)     (conj re-frame-events callback)
+                     :else                  (throw (ex-info "unrecognize ::dfe/on callback form" {:callback callback}))))
+                 [])
+         (mapv (fn [re-frame-event]
+                 [:dispatch (update re-frame-event 1 dcu/>merge (::merge event-opts))])))))
 
 (defn event-opts
   [ctx]

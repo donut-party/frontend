@@ -339,13 +339,13 @@
             :route-params (or route-params params)
             ;; by default don't allow a form to be submitted
             ;; when we're waiting for a response
-            ::form-layout form-layout
-            ::dfe/default {:on {:success [[::submit-form-sync-success]
-                                          [::dsf/default-sync-success]]
-                                :fail    [[::submit-form-sync-fail]]}}
-            ::dfe/pre     [dsf/not-active]
-            ::dfe/on      {:success [::dfe/default]
-                           :fail    [::dfe/default]}}
+            ::dfe/default {:on (merge dsf/default-handlers
+                                      {:success [[::dsf/default-sync-success]
+                                                 [::submit-form-sync-success]]
+                                       :fail    [[::dsf/default-sync-fail]
+                                                 [::submit-form-sync-fail]]})}
+            ::dfe/merge   {::form-layout form-layout}
+            ::dfe/pre     [dsf/not-active]}
            (dissoc sync-opts :params))))
 
 (defn submit-form
