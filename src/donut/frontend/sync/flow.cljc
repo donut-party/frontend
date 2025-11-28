@@ -5,6 +5,7 @@
   The term 'sync' is used instead of AJAX"
   (:require
    [cognitect.anomalies :as anom]
+   [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.failure.flow :as dfaf]
    [donut.frontend.path :as p]
@@ -194,7 +195,7 @@
   (fn [{:keys [db] :as cofx} [{:keys [::req ::resp] :as request-response-map}]]
     (let [status (if (= (:status resp) :success) :success :fail)]
       {:db (sync-finished db request-response-map)
-       :fx (dfe/compose-triggered-callback-fx cofx [[req status]] request-response-map)})))
+       :fx (dfe/triggered-callback-fx req cofx status request-response-map)})))
 
 (rf/reg-event-fx ::fn-response-handler
   [rf/trim-v]
@@ -259,12 +260,14 @@
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-ctx-req ctx #(merge {::dfe/on           default-handlers
-                                          ::sync-dispatch-fn (-> ctx
-                                                                 (dfe/ctx-db)
-                                                                 (p/get-path :donut-component)
-                                                                 :sync-dispatch-fn)}
-                                         %)))
+             (update-ctx-req ctx dcu/>merge {::dfe/default      {:on default-handlers}
+                                             ::dfe/on           {:success           [::dfe/default]
+                                                                 :fail              [::dfe/default]
+                                                                 ::anom/unavailable [::dfe/default]}
+                                             ::sync-dispatch-fn (-> ctx
+                                                                    (dfe/ctx-db)
+                                                                    (p/get-path :donut-component)
+                                                                    :sync-dispatch-fn)}))
    :after  identity})
 
 (def add-auth-header
@@ -350,8 +353,8 @@
 ;;---------------
 
 (defn single-entity
-  [ctx]
-  (get-in ctx [:resp :response-data]))
+  [sync-response]
+  (get-in sync-response [::resp :response-data]))
 
 ;;---------------
 ;; sync subs

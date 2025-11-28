@@ -10,49 +10,22 @@
   [ctx]
   (get-in ctx [:coeffects :db]))
 
-(defn compose-handler-fx
-  "Builds up an fx vector. ex:
-
-  (compose-handler-fx
-   cofx
-   [[:event-1 {}]
-    (fn [cofx] [:event-2 {}])])
-  "
-  ([cofx callback-fx]
-   (compose-handler-fx cofx callback-fx {}))
-  ([cofx callback-fx common-opts]
-   (if (fn? callback-fx)
-     (callback-fx cofx)
-     (->> callback-fx
-          (mapv (fn [handler-event]
-                  (if (fn? handler-event)
-                    (handler-event cofx)
-                    handler-event)))
-          (filter identity)
-          (mapv (fn [handler-event]
-                  [:dispatch (update handler-event 1 dcu/>merge common-opts)]))))))
-
-(defn compose-triggered-callback-fx
-  "takes many \"candidates\" which are tuples of
-  [map-that-provides-callback event-name]
-  and creates a final vector of fx
-
-  ex:
-  (compose-triggered-callback-fx
-   [[{::on {:success x, :fail y}} :success]
-    [{::on {:success x, :fail y}} :success]])"
-  ([cofx candidates]
-   (compose-triggered-callback-fx cofx candidates {} []))
-  ([cofx candidates common-opts]
-   (compose-triggered-callback-fx cofx candidates common-opts []))
-  ([cofx candidates common-opts fx]
-   (reduce (fn [final-fx [m event-name]]
-             (if-let [callback-fx (get-in m [::on event-name])]
-               (into final-fx
-                     (compose-handler-fx cofx callback-fx common-opts))
-               final-fx))
-           (or fx [])
-           candidates)))
+(defn triggered-callback-fx
+  ([event-opts cofx event-name]
+   (triggered-callback-fx event-opts cofx event-name {}))
+  ([event-opts cofx event-name common-opts]
+   (let [defaults  (get-in event-opts [::default :on event-name])
+         callbacks (get-in event-opts [::on event-name])]
+     (->> callbacks
+          (reduce (fn [re-frame-events callback]
+                    (cond
+                      (= ::default callback) (into re-frame-events defaults)
+                      (fn? callback)         (into re-frame-events (callback cofx))
+                      (vector? callback)     (conj re-frame-events callback)
+                      :else                  (throw (ex-info "unrecognize ::dfe/on callback form" {:callback callback}))))
+                  [])
+          (mapv (fn [re-frame-event]
+                  [:dispatch (update re-frame-event 1 dcu/>merge common-opts)]))))))
 
 (defn event-opts
   [ctx]
@@ -64,7 +37,7 @@
   {:id     ::pre
    :before (fn [ctx]
              (let [pre-fns (-> ctx event-opts ::pre)]
-               (if (some #(% ctx) pre-fns)
+               (if (some #(not (% ctx)) pre-fns)
                  {:queue []}
                  ctx)))
    :after  identity})

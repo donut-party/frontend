@@ -186,11 +186,12 @@
   [cofx]
   (let [{:keys [scope old-route new-route]} (::route-change cofx)
         route-change?                       (= scope :route)]
-    (->> [(when route-change? [old-route :exit])
-          (when route-change? [new-route :enter])
-          [new-route :param-change]]
-         (dfe/compose-triggered-callback-fx cofx)
-         (into [[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]))))
+    (into []
+          cat
+          [[[:dispatch-later {:ms 0 :dispatch [::nav-loaded]}]]
+           (when route-change? (dfe/triggered-callback-fx old-route cofx :exit))
+           (when route-change? (dfe/triggered-callback-fx new-route cofx :enter))
+           (dfe/triggered-callback-fx new-route cofx :param-change)])))
 
 (defn change-route-fx
   "Composes all effects returned by lifecycle methods"
@@ -379,5 +380,5 @@
 
 (rf/reg-event-fx ::navigate-to-synced-entity
   [rf/trim-v]
-  (fn [_ [route-name ctx]]
-    {:dispatch [::navigate (dfr/path route-name (dsf/single-entity ctx))]}))
+  (fn [_ [{:keys [route-name] :as sync-response}]]
+    {:dispatch [::navigate (dfr/path route-name (dsf/single-entity sync-response))]}))

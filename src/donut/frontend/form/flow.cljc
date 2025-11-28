@@ -1,10 +1,10 @@
 (ns donut.frontend.form.flow
   (:require
+   [donut.frontend.events :as dfe]
+   [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
    [donut.frontend.sync.flow :as dsf]
-   [donut.frontend.nav.utils :as dnu]
    [donut.sugar.utils :as dsu]
-   [meta-merge.core :refer [meta-merge]]
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]))
 
@@ -274,7 +274,7 @@
 
 (rf/reg-event-db ::clear-form
   [rf/trim-v]
-  (fn [db [form-layout]]
+  (fn [db [{::keys [form-layout]}]]
     (clear-form db form-layout)))
 
 ;; TODO validate clear
@@ -331,20 +331,22 @@
   - the `:sync` key of form spec can customize the sync request"
   [{:donut.form/keys [key] :as form-layout} buffer-data sync-opts]
   (let [[method form-handle route-params] key
-        route-name (get sync-opts :sync-route-name form-handle)
-        method     (get sync-opts :method method)
-        params     (merge (:params sync-opts) buffer-data)
-        sync-opts  (meta-merge {:default-on   {:success [[::submit-form-success :$ctx]
-                                                         [::dsf/default-sync-success :$ctx]]
-                                               :fail    [[::submit-form-fail :$ctx]]}
-                                :$ctx         form-layout
-                                :params       params
-                                :route-params (or route-params params)
-                                ;; by default don't allow a form to be submitted
-                                ;; when we're waiting for a response
-                                :rules        #{:when-not-active}}
-                               (dissoc sync-opts :params))]
-    [method route-name sync-opts]))
+        route-name                        (get sync-opts :sync-route-name form-handle)
+        params                            (merge (:params sync-opts) buffer-data)]
+    (merge {:route-name   route-name
+            :method       method
+            :params       params
+            :route-params (or route-params params)
+            ;; by default don't allow a form to be submitted
+            ;; when we're waiting for a response
+            ::form-layout form-layout
+            ::dfe/default {:on {:success [[::submit-form-sync-success]
+                                          [::dsf/default-sync-success]]
+                                :fail    [[::submit-form-sync-fail]]}}
+            ::dfe/pre     [dsf/not-active]
+            ::dfe/on      {:success [::dfe/default]
+                           :fail    [::dfe/default]}}
+           (dissoc sync-opts :params))))
 
 (defn submit-form
   "build form request. update db with :submit input event for form"
@@ -380,44 +382,45 @@
 ;;--------------------
 
 ;; TODO handle id-key in a universal manner
-(comment
-  (defn delete-entity-optimistic-fn
-    "Returns a handler that can be used to both send a delete sync and
+#_
+(defn delete-entity-optimistic-fn
+  "Returns a handler that can be used to both send a delete sync and
   remove the entity from the ent db"
-    [ent-type & [id-key]]
-    (let [id-key (or id-key :id)]
-      (fn [{:keys [db] :as cofx} [entity :as args]]
-        (merge ((dsf/sync-fx-handler [:delete ent-type]) cofx args)
-               {:db (update-in db [:entity ent-type] dissoc (id-key entity))})))))
+  [ent-type & [id-key]]
+  (let [id-key (or id-key :id)]
+    (fn [{:keys [db] :as cofx} [entity :as args]]
+      (merge ((dsf/sync-fx-handler [:delete ent-type]) cofx args)
+             {:db (update-in db [:entity ent-type] dissoc (id-key entity))}))))
 
 ;;--------------------
 ;; handle form success/fail
 ;;--------------------
 
 (defn response-error
-  [$ctx]
+  [event-opts]
   ;; assumes response-data is something like [:errors {}]
-  (get-in $ctx [:resp :response-data 0 1]))
+  (get-in event-opts [::dsf/resp :response-data 0 1]))
 
-(rf/reg-event-db ::submit-form-success
+(rf/reg-event-db ::submit-form-sync-success
   [rf/trim-v]
-  (fn [db [ctx]]
-    (let [{:donut.form.layout/keys [input-events]} (form-paths ctx)]
+  (fn [db [{:keys [::dsf/req]}]]
+    (let [{:donut.form.layout/keys [input-events]} (form-paths (::form-layout req))]
       (assoc-in db input-events nil))))
 
-(defn submit-form-fail
+(defn submit-form-sync-fail
   [db [{:donut.form/keys [key]
-        :keys            [resp] :as $ctx}]]
-  (let [{:donut.form.layout/keys [feedback input-events]} (form-paths $ctx)]
+        :keys            [::dsf/resp]
+        :as              event-opts}]]
+  (let [{:donut.form.layout/keys [feedback input-events]} (form-paths event-opts)]
     (rfl/console :log "form submit fail:" key resp)
     (-> db
-        (assoc-in (conj feedback :errors) (or (response-error $ctx)
+        (assoc-in (conj feedback :errors) (or (response-error event-opts)
                                               {:cause :unknown}))
         (assoc-in input-events nil))))
 
-(rf/reg-event-db ::submit-form-fail
+(rf/reg-event-db ::submit-form-sync-fail
   [rf/trim-v]
-  submit-form-fail)
+  submit-form-sync-fail)
 
 ;;--------------------
 ;; fun little helpers
