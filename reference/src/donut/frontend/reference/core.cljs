@@ -9,7 +9,6 @@
    [donut.frontend.reference.frontend-routes :as frontend-routes]
    [donut.frontend.sync.dispatch.echo :as dsde]
    [donut.system :as ds]
-   [meta-merge.core :as meta-merge]
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
@@ -28,15 +27,16 @@
                   :ent-type :post
                   :id-key   :id}]])
 
+(defmethod ds/named-system :base
+  [_]
+  dconf/default-config)
+
 (defmethod ds/named-system :frontend-dev
   [_]
-  (meta-merge/meta-merge
-   dconf/default-config
-   {::ds/defs
-    {:donut.frontend
-     {:sync-dispatch-fn dsde/sync-dispatch-fn
-      :sync-router      {::ds/config {:routes fake-endpoint-routes}}
-      :frontend-router  {::ds/config {:routes frontend-routes/routes}}}}}))
+  (ds/system :base
+    {[::ds/defs :donut.frontent :sync-dispatch-fn] dsde/sync-dispatch-fn
+     [::ds/defs :donut.frontent :sync-router ::ds/config :routes] fake-endpoint-routes
+     [::ds/defs :donut.frontent :frontend-router ::ds/config :routes] frontend-routes/routes}))
 
 (defonce root (createRoot (dcu/el-by-id "app")))
 
