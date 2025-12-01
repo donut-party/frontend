@@ -270,13 +270,13 @@
   set-form-from-path)
 
 (defn clear-form
-  [db form-layout]
-  (set-form db form-layout nil))
+  [db form-config]
+  (set-form db form-config nil))
 
 (rf/reg-event-db ::clear-form
   [rf/trim-v]
-  (fn [db [{::keys [form-layout]}]]
-    (clear-form db form-layout)))
+  (fn [db [{::keys [form-config]}]]
+    (clear-form db form-config)))
 
 ;; TODO validate clear
 (defn clear-selected-keys
