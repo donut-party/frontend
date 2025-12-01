@@ -126,8 +126,8 @@
 
 (rf/reg-event-db ::default-sync-success
   [rf/trim-v]
-  (fn [db [{:keys [::resp]}]]
-    (dfsr/handle-sync-response-data db resp)))
+  (fn [db [sync-lifecycle]]
+    (dfsr/handle-sync-response-data db sync-lifecycle)))
 
 (rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]

@@ -34,23 +34,19 @@
           db
           ents))
 
-(defn response-data
-  [response]
-  (get-in response [:resp :response-data]))
-
 (def response-data-types
   "Response data types and predicates are broken out from sync-success like this
   to at least make it possible to alter them with set!"
-  [[:entity   (fn [response]
-                (map? (response-data response)))]
-   [:entities (fn [response]
-                (let [rd (response-data response)]
-                  (and (vector? rd) (map? (first rd)))))]
-   [:segments (fn [response]
-                (let [rd (response-data response)]
-                  (and (vector? rd) (vector? (first rd)))))]
-   [:empty    (fn [response]
-                (empty? (response-data response)))]])
+  [[:entity   (fn [response-data]
+                (map? response-data))]
+   [:entities (fn [response-data]
+                (and (vector? response-data)
+                     (map? (first response-data))))]
+   [:segments (fn [response-data]
+                (and (vector? response-data)
+                     (vector? (first response-data))))]
+   [:empty    (fn [response-data]
+                (empty? response-data))]])
 
 
 (defmulti apply-sync-segment
@@ -70,28 +66,30 @@
   identically; they're considered to be either a singal instance or collection
   of entities. Those entities are placed in the entity-db, replacing whatever's
   there. "
-  (fn [_db {{:keys [response-data]} :resp :as full-response}]
+  (fn [_db {{:keys [response-data]} :donut.frontend.sync.flow/resp}]
     (loop [[[dt-name pred] & dts] response-data-types]
       (when (nil? dt-name)
         (throw (ex-info "could not determine response data type"
                         {:response-data response-data})))
-      (if (pred full-response)
+      (if (pred response-data)
         dt-name
         (recur dts)))))
 
 (defmethod handle-sync-response-data :entity
-  [db {{:keys [response-data]} :resp :as response}]
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
+       :as sync-lifecycle}]
   ;; it's easier to forward to a base case, bruv
-  (handle-sync-response-data db (assoc-in response [:resp :response-data] [response-data])))
+  (handle-sync-response-data
+   db
+   (assoc-in sync-lifecycle [:donut.frontend.sync.flow/resp :response-data] [response-data])))
 
 ;; Updates db by replacing each entity with return value
 (defmethod handle-sync-response-data :entities
-  [db {{:keys [response-data]} :resp
-       :keys                   [req]
-       :as                     _response}]
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
+       :keys [:donut.frontend.sync.flow/req]}]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
   (let [sync-router     (p/get-path db :donut-component [:sync-router])
-        sync-route-name (second req)
+        sync-route-name (:route-name req)
         sync-route      (drp/route sync-router sync-route-name)
         ent-type        (:ent-type sync-route)
         id-key          (:id-key sync-route)]
@@ -104,19 +102,16 @@
     (replace-ents db ent-type id-key response-data)))
 
 (defmethod handle-sync-response-data :segments
-  [db {{:keys [response-data]} :resp
-       :as                     _response}]
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp}]
   (reduce apply-sync-segment db response-data))
 
 (defmethod handle-sync-response-data :empty [db _] db)
 
 (defmethod handle-sync-response-data :default
-  [db {{:keys [response-data]} :resp
-       :keys                   [req]
-       :as                     _response}]
-
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
+       :keys [:donut.frontend.sync.flow/req]}]
   (rfl/console :warn
                "sync response data type was not recognized"
                {:response-data response-data
-                :req (into [] (take 2 req))})
+                :req req})
   db)
