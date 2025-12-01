@@ -9,32 +9,31 @@
     body))
 
 (defmacro with-form
-  [form-key & body]
-  (let [possible-form-config (first body)
-        possible-form-config (when (map? possible-form-config)
-                               possible-form-config)]
-    `(let [~'*form-key    ~form-key
-           ~'*form-config (form-config ~'*form-key ~possible-form-config)
-           ~'*sync-key    (:*sync-key ~'*form-config)
-           ~'*form-layout (select-keys ~'*form-config form-layout-keys)
+  [form-config & body]
+  `(let [~'*form-config (form-config ~form-config)
+         ~'*sync-key    (:*sync-key ~'*form-config)
+         ~'*form-key    (:*form-key ~'*form-config)
+         ~'*form-layout (select-keys ~'*form-config form-layout-keys)
 
-           {:keys [~'*form-ui-state
-                   ~'*form-feedback
-                   ~'*form-buffer
-                   ~'*form-dirty?
+         {:keys [~'*form-ui-state
+                 ~'*form-feedback
+                 ~'*form-buffer
+                 ~'*form-dirty?
 
-                   ~'*sync-state
-                   ~'*sync-active?
-                   ~'*sync-success?
-                   ~'*sync-fail?]
-            :as ~'*form-subs}
-           (form-subs ~'*form-config)]
-       (let [{:keys [~'*submit
-                     ~'*input-opts
-                     ~'*input
-                     ~'*field
-                     ~'*attr-buffer]
-              :as   ~'*form-components}
-             (form-components ~'*form-config)
-             ~'*form (merge ~'*form-subs ~'*form-components)]
-         ~@(form-body body)))))
+                 ~'*sync-state
+                 ~'*sync-active?
+                 ~'*sync-success?
+                 ~'*sync-fail?]
+          :as ~'*form-subs}
+         (form-subs ~'*form-config)
+
+         {:keys [~'*sync-form
+                 ~'*input-opts
+                 ~'*input
+                 ~'*field
+                 ~'*attr-buffer]
+          :as   ~'*form-components}
+         (form-components ~'*form-config)
+
+         ~'*form (merge ~'*form-subs ~'*form-components)]
+     ~@(form-body body)))

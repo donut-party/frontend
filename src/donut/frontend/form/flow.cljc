@@ -1,5 +1,6 @@
 (ns donut.frontend.form.flow
   (:require
+   [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
@@ -314,7 +315,7 @@
 
 ;; TODO spec set of possible actions
 
-(defn form-sync-opts
+(defn form-req
   "Returns a request that the sync handler can use
 
   `form-handle`, the second element in a partial form path, is usually the route
@@ -329,44 +330,38 @@
   - `form-spec` is a way to pass on whatevs data to the request completion
     handler.
   - the `:sync` key of form spec can customize the sync request"
-  [{:donut.form/keys [key] :as form-layout} buffer-data sync-opts]
-  (let [[method form-handle route-params] key
-        route-name                        (get sync-opts :sync-route-name form-handle)
-        params                            (merge (:params sync-opts) buffer-data)]
-    (merge {:route-name   route-name
-            :method       method
-            :params       params
-            :route-params (or route-params params)
-            ;; by default don't allow a form to be submitted
-            ;; when we're waiting for a response
-            ::dfe/default {:on (merge dsf/default-handlers
-                                      {:success [[::dsf/default-sync-success]
-                                                 [::submit-form-sync-success]]
-                                       :fail    [[::dsf/default-sync-fail]
-                                                 [::submit-form-sync-fail]]})}
-            ::dfe/merge   {::form-layout form-layout}
-            ::dfe/pre     [dsf/not-active]}
-           (dissoc sync-opts :params))))
+  [form-config buffer-data req]
+  (-> req
+      (update :params merge buffer-data)
+      (dcu/>merge {;; by default don't allow a form to be submitted
+                   ;; when we're waiting for a response
+                   ::dfe/default {:on (merge dsf/default-handlers
+                                             {:success [[::dsf/default-sync-success]
+                                                        [::submit-form-sync-success]]
+                                              :fail    [[::dsf/default-sync-fail]
+                                                        [::submit-form-sync-fail]]})}
+                   ::dfe/merge   {::form-config form-config}
+                   ::dfe/pre     [dsf/not-active]})))
 
-(defn submit-form
+(defn sync-form
   "build form request. update db with :submit input event for form"
-  [db form-layout & [sync-opts]]
-  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-layout)]
+  [db form-config & [sync-opts]]
+  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-config)]
     {:db       (-> db
                    (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-sync-opts form-layout
-                                           (dsu/deep-merge
-                                            (:buffer (:donut.form/initial-state form-layout))
-                                            (get-in db buffer))
-                                           sync-opts)]}))
+     :dispatch [::dsf/sync (form-req form-config
+                                     (dsu/deep-merge
+                                      (:buffer (:donut.form/initial-state form-config))
+                                      (get-in db buffer))
+                                     sync-opts)]}))
 
-(rf/reg-event-fx ::submit-form
+(rf/reg-event-fx ::sync-form
   [rf/trim-v]
   (fn [{:keys [db]} [form-layout sync-opts]]
-    (submit-form db form-layout sync-opts)))
+    (sync-form db form-layout sync-opts)))
 
 (rf/reg-event-db ::record-form-submit
   [rf/trim-v]

@@ -2,17 +2,15 @@
 
 (defprotocol Router
   (path
-    [this route-name]
-    [this route-name route-params]
-    [this route-name route-params query-params]
+    [this req]
     "generate a path")
 
   (req-id
-    [this route-name]
-    [this route-name route-params]
+    [this req]
     "a req-id is used to distinguish multiple requests to the same
     resource by their params for sync bookkeeping")
 
+  ;; TODO update this to just take request
   (route
     [this path-or-name]
     [this path-or-name route-params]

@@ -31,32 +31,16 @@
 ;;---
 
 (defn sync-key
-  "returns a 'normalized' req key for a request.
-
-  normalized in the sense that when it comes to distinguishing requests in order
-  to track them, some of the variations between requests are significant, and
-  some aren't:
-  [:get :foo {:id 1, :params {:content \"vader\"}}]
-  probably shouldn't be distinguished from
-  [:get :foo {:id 1, :params {:content \"chewbacca\"}}].
-
-  The first two elements of the request, `method` and `route-name`, are always
-  significant. Where things get tricky is with `opts`. We don't want to use
-  `opts` itself because the variation would lead to \"identical\" requests being
-  treated as separate.
-
-  Therefore we use `dfr/req-id` to select a subset of opts to distinguish
-  requests with the same `method` and `route-name`. Sync routes can specify a
-  `:id-key`, a keyword like `:id` or `:db/id` that identifies an entity.
-  `dfr/req-id` will use that value if present.
-
-  It's also possible to completely specify the sync-key with `:donut.sync/key`."
-  [{:keys [method route-name route-params] :as req}]
+  "returns a 'normalized' req key for a request. uses :donut.sync/key if present,
+  otherwise uses a best-guess default of a projection of the request map that's
+  likely to meaningfully distinguish different requests you want to track.
+  `:donut.sync/key`."
+  [req]
   (or (:donut.sync/key req)
-      (let [req-id (dfr/req-id route-name route-params)]
-        (if (empty? req-id)
-          [method route-name]
-          [method route-name req-id]))))
+      (let [req-id (dfr/req-id req)]
+        (-> req
+            (select-keys [:method :route-name])
+            (assoc :route-params req-id)))))
 
 ;;--------------------
 ;; specs
@@ -230,13 +214,9 @@
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
-  [{:keys [route-name] :as opts} router]
-  (when-let [path (drp/path router
-                            route-name
-                            (or (:route-params opts)
-                                (:params opts))
-                            (:query-params opts))]
-    (assoc opts :path path)))
+  [req router]
+  (when-let [path (drp/path router req)]
+    (assoc req :path path)))
 
 (defn ctx-req
   "Retrieve request within interceptor"
@@ -364,12 +344,11 @@
 ;;---------------
 
 (defn sync-subs
-  [req-id]
-  {:sync-state    (rf/subscribe [::sync-state req-id])
-   :sync-active?  (rf/subscribe [::sync-state req-id :active])
-   :sync-success? (rf/subscribe [::sync-state req-id :success])
-   :sync-fail?    (rf/subscribe [::sync-state req-id :fail])})
-
+  [sync-key]
+  {:sync-state    (rf/subscribe [::sync-state sync-key])
+   :sync-active?  (rf/subscribe [::sync-state sync-key :active])
+   :sync-success? (rf/subscribe [::sync-state sync-key :success])
+   :sync-fail?    (rf/subscribe [::sync-state sync-key :fail])})
 
 ;;---------------
 ;; sync req data handlers
@@ -409,7 +388,6 @@
   (dfe/opts-merge-db-vals
    ctx
    {:route-params (p/path :nav [:route :params])}))
-
 
 (defn not-active
   [ctx]

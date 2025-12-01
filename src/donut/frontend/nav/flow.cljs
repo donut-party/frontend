@@ -126,12 +126,12 @@
   [rf/trim-v]
   navigate-handler)
 
-;; even for using a route-based approach to nav
+;; event for using a route-based approach to nav
 (rf/reg-event-fx ::navigate-route
   [rf/trim-v]
-  (fn [{:keys [db] :as cofx} [route-name route-params query-params]]
+  (fn [{:keys [db] :as cofx} [req]]
     (let [router (p/get-path db :donut-component [:frontend-router])]
-      (when-let [path (drp/path router route-name route-params query-params)]
+      (when-let [path (drp/path router req)]
         (navigate-handler cofx [path])))))
 
 ;; ------
@@ -365,7 +365,7 @@
                               :family-current? (let [family-parts (route-parts route-family)]
                                                  (= (take (count family-parts) current-route-parts)
                                                     family-parts))
-                              :path            (dfr/path route-name)}))
+                              :path            (dfr/path {:route-name route-name})}))
        {}
        nav-items))))
 
@@ -381,4 +381,5 @@
 (rf/reg-event-fx ::navigate-to-synced-entity
   [rf/trim-v]
   (fn [_ [{:keys [route-name] :as sync-response}]]
-    {:dispatch [::navigate (dfr/path route-name (dsf/single-entity sync-response))]}))
+    {:dispatch [::navigate (dfr/path {:route-name   route-name
+                                      :route-params (dsf/single-entity sync-response)})]}))

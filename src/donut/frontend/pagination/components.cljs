@@ -29,12 +29,15 @@
       (< (last central-range)(dec page-count)) (#(into % [nil]))
       (not= (last central-range) page-count)   (#(into % [page-count])))))
 
+;; TODO revisit this
 (defn page-nav
   "A component that displays a link to each page. Current page has the
   `active-class` class (`active` by default)"
   [{:keys [pager-id window-size active-class
            space-component link-component]}]
   (let [{:keys [query page-count]}                    @(rf/subscribe [::dpf/pager pager-id])
+        ;; TODO should path-params be route-params? believe it's the return
+        ;; value of reitit match
         {:keys [path-params query-params route-name]} @(rf/subscribe [::dnf/route])
         current-page                                  (:page query)
         page-nums                                     (if (and window-size (< window-size page-count))
@@ -44,7 +47,9 @@
     (->> page-nums
          (map (fn [page]
                 (if page
-                  (let [href         (dfr/path route-name path-params (assoc query-params :page page))
+                  (let [href         (dfr/path {:route-name   route-name
+                                                :route-params path-params
+                                                :query-params (assoc query-params :page page)})
                         active-page? (= (:page query) page)]
                     (if link-component
                       [link-component {:href         href

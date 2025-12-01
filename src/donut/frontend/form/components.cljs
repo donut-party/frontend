@@ -2,6 +2,7 @@
   (:require
    [cljs-time.core :as ct]
    [cljs-time.format :as tf]
+   [clojure.set :as set]
    [clojure.string :as str]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.form.feedback :as dffk]
@@ -493,25 +494,24 @@
              input-type
              (all-input-opts-fn input-type attr-path input-opts))]))
 
-(defn submit
+(defn sync-form
   [form-config & [sync-opts]]
   (when-not (:donut.form/prevent-submit? sync-opts)
-    (rf/dispatch [::dff/submit-form form-config sync-opts])))
+    (rf/dispatch [::dff/sync-form form-config sync-opts])))
 
 (defn form-config
-  [form-key & [m]]
-  (merge {:donut.form/key   form-key
-          :donut.form/sync? true
-          :donut.sync/key   (dsf/sync-key form-key)}
-         m))
+  [{:keys [donut.form/key] :as f-config}]
+  (merge {:donut.form/sync? true
+          :donut.sync/key   key}
+         f-config))
 
 (defn form-sync-subs
   [sync-key]
-  (let [req [nil nil {:donut.sync/key sync-key}]]
-    {:*sync-state    (rf/subscribe [::dsf/sync-state req])
-     :*sync-active?  (rf/subscribe [::dsf/sync-active? req])
-     :*sync-success? (rf/subscribe [::dsf/sync-success? req])
-     :*sync-fail?    (rf/subscribe [::dsf/sync-fail? req])}))
+  (set/rename-keys (dsf/sync-subs sync-key)
+                   {:sync-state    :*sync-state
+                    :sync-active?  :*sync-active?
+                    :sync-success? :*sync-success?
+                    :sync-fail?    :*sync-fail?}))
 
 (defn form-subs
   [{:keys [:donut.form/sync?] :as form-config}]
@@ -528,7 +528,7 @@
 (defn form-components
   [form-config]
   (let [input-opts-fn (partial all-input-opts form-config)]
-    {:*submit      (partial submit form-config)
+    {:*sync-form   (partial sync-form form-config)
      :*input-opts  input-opts-fn
      :*input       (input-component input-opts-fn)
      :*field       (field-component input-opts-fn)

@@ -60,14 +60,8 @@
 (defrecord ReititRouter [routes router on-no-path on-no-route]
   drp/Router
   (drp/path
-    [this route-name]
-    (drp/path this route-name {} {}))
-  (drp/path
-    [this route-name route-params]
-    (drp/path this route-name route-params {}))
-  (drp/path
-    [_this route-name route-params query-params]
-    (let [{{:keys [prefix]} :data :as match} (rc/match-by-name router route-name route-params)]
+    [_this {:keys [route-name route-params query-params params] :as _req}]
+    (let [{{:keys [prefix]} :data :as match} (rc/match-by-name router route-name (merge params route-params))]
       (if (and match (not (:required match)))
         (cond-> match
           true                     (rc/match->path)
@@ -78,15 +72,11 @@
           nil))))
 
   (drp/req-id
-    [this route-name]
-    (drp/req-id this route-name {}))
-  (drp/req-id
-    [_this route-name opts]
-    (when (and (some? opts) (not (map? opts)))
-      (rfl/console :error "req-id opts should be a map" {:opts opts}))
-    (let [params (or (:route-params opts)
-                     (:params opts)
-                     opts)]
+    [_this {:keys [route-name] :as req}]
+    (when (and (some? req) (not (map? req)))
+      (rfl/console :error "req-id req should be a map" {:req req}))
+    (let [params (merge (:params req)
+                        (:route-params req))]
       (select-keys params (:required (rc/match-by-name router route-name)))))
 
   (drp/route

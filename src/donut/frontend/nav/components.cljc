@@ -7,20 +7,19 @@
 
 
 (defn simple-route-link
-  [{:keys [route-name route-params query-params] :as link-opts}
-   & children]
-  (into [:a (merge {:href (dfr/path route-name route-params query-params)}
+  [link-opts & children]
+  (into [:a (merge {:href (dfr/path link-opts)}
                    (dissoc link-opts :route-name :route-params :query-params))]
         children))
 
 (defn route-link
-  [{:keys [route-name route-params query-params class current-class]
+  [{:keys [route-name class current-class]
     :as link-opts}
    & children]
   (let [current-route (rf/subscribe [::dnf/route-name])
         link-opts (assoc link-opts :class (if (and current-class (= @current-route route-name))
                                             current-class
                                             class))]
-    (into [:a (merge {:href (dfr/path route-name route-params query-params)}
+    (into [:a (merge {:href (dfr/path link-opts)}
                      (dissoc link-opts :route-name :route-params :query-params :current-class))]
           children)))

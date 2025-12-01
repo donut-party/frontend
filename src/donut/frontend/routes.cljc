@@ -9,20 +9,20 @@
 (def sync-router nil)
 
 (defn path
-  [route-name & [route-params query-params]]
-  (drp/path frontend-router route-name route-params query-params))
+  [req]
+  (drp/path frontend-router req))
 
 (defn route
   [path-or-name & [route-params query-params]]
   (drp/route frontend-router path-or-name route-params query-params))
 
 (defn api-path
-  [route-name & [route-params query-params]]
-  (drp/path sync-router route-name route-params query-params))
+  [req]
+  (drp/path sync-router req))
 
 (defn req-id
-  [route-name & [route-params]]
-  (drp/req-id sync-router route-name route-params))
+  [req]
+  (drp/req-id sync-router req))
 
 (defn start-frontend-router
   [{:keys [:donut.system/config]}]
