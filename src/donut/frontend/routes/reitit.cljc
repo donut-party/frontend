@@ -7,7 +7,8 @@
    [reitit.coercion :as coercion]
    [reitit.coercion.malli :as rm]
    [reitit.core :as rc]
-   [reitit.frontend :as reif]))
+   [reitit.frontend :as reif]
+   [clojure.walk :as walk]))
 
 (defn no-path-data
   [route-name match route-params]
@@ -55,7 +56,8 @@
 (def config-defaults
   {:use         :reitit
    :on-no-path  on-no-path-warn
-   :on-no-route on-no-route-warn})
+   :on-no-route on-no-route-warn
+   :entities    [:donut.system/local-ref [:entities]]})
 
 (defrecord ReititRouter [routes router on-no-path on-no-route]
   drp/Router
@@ -100,10 +102,29 @@
         (on-no-route path-or-name route-params query-params)
         nil))))
 
+(defn merge-entity
+  [entities [_path {:keys [ent-type] :as route-opts} :as route]]
+  (if ent-type
+    (let [entity-opts (ent-type entities)
+          route-opts (merge (assoc (:route entity-opts) :id-key (:id-key entity-opts))
+                            route-opts)]
+      (assoc route 1 route-opts))
+    route))
+
+(defn merge-entities
+  [entities routes]
+  (walk/postwalk (fn [x]
+                   (if (and (vector? x)
+                            (map? (second x)))
+                     (merge-entity entities x)
+                     x))
+                 routes))
+
 (defmethod drp/router :reitit
-  [{:keys [routes router-opts] :as config}]
-  (let [router (rc/router routes (merge {:compile coercion/compile-request-coercers
-                                         :data {:coercion rm/coercion}}
+  [{:keys [routes router-opts entities] :as config}]
+  (let [routes (merge-entities entities routes)
+        router (rc/router routes (merge {:compile coercion/compile-request-coercers
+                                         :data    {:coercion rm/coercion}}
                                         router-opts))]
     (map->ReititRouter (merge {:routes routes
                                :router router}

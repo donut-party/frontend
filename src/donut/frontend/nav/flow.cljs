@@ -52,7 +52,7 @@
 (def RouteChange
   [:map
    [:can-change-route? boolean?]
-   [:scope [:enum :route :parmas]]
+   [:scope [:enum :route :params]]
    [:old-route :any]
    [:new-route :any]])
 
