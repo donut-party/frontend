@@ -427,10 +427,10 @@
     (set-form db (::form-layout req) {:buffer (dsf/single-entity sync-response)})))
 
 (defn set-form-with-routed-entity
-  [db form-layout entity-key param-key & [form-opts]]
+  [db form-config entity-key param-key & [form-opts]]
   (let [ent (dnu/routed-entity db entity-key param-key)]
     (set-form db
-              form-layout
+              form-config
               (merge {:buffer ent} form-opts))))
 
 ;; example:

@@ -28,10 +28,14 @@
 (defn routed-entity
   "Returns an entity by looking up its entity-key in nav params"
   [db entity-key param-key]
-  (p/get-path db
-              :entity
-              [entity-key
-               (p/get-path db :nav [:route :params param-key])]))
+  (let [[entity-key param-key] (if (and entity-key param-key)
+                                 [entity-key param-key]
+                                 [(p/get-path db :nav [:route :ent-type])
+                                  (p/get-path db :nav [:route :id-key])])]
+    (p/get-path db
+                :entity
+                [entity-key
+                 (p/get-path db :nav [:route :params param-key])])))
 
 (defn routed-entity-form
   [db form-key param-key]
