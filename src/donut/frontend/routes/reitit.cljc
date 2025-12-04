@@ -102,28 +102,29 @@
         (on-no-route path-or-name route-params query-params)
         nil))))
 
-(defn merge-entity
-  [entities [_path {:keys [ent-type] :as route-opts} :as route]]
-  (if ent-type
-    (let [entity-opts (ent-type entities)
-          route-opts (merge (assoc (:route entity-opts) :id-key (:id-key entity-opts))
-                            route-opts)]
-      (assoc route 1 route-opts))
-    route))
+(comment
+  ;; experiment
+  (defn merge-entity
+    [entities [_path {:keys [ent-type] :as route-opts} :as route]]
+    (if ent-type
+      (let [entity-opts (ent-type entities)
+            route-opts (merge (assoc (:route entity-opts) :id-key (:id-key entity-opts))
+                              route-opts)]
+        (assoc route 1 route-opts))
+      route))
 
-(defn merge-entities
-  [entities routes]
-  (walk/postwalk (fn [x]
-                   (if (and (vector? x)
-                            (map? (second x)))
-                     (merge-entity entities x)
-                     x))
-                 routes))
+  (defn merge-entities
+    [entities routes]
+    (walk/postwalk (fn [x]
+                     (if (and (vector? x)
+                              (map? (second x)))
+                       (merge-entity entities x)
+                       x))
+                   routes)))
 
 (defmethod drp/router :reitit
-  [{:keys [routes router-opts entities] :as config}]
-  (let [routes (merge-entities entities routes)
-        router (rc/router routes (merge {:compile coercion/compile-request-coercers
+  [{:keys [routes router-opts] :as config}]
+  (let [router (rc/router routes (merge {:compile coercion/compile-request-coercers
                                          :data    {:coercion rm/coercion}}
                                         router-opts))]
     (map->ReititRouter (merge {:routes routes
