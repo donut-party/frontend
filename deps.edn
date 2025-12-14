@@ -13,6 +13,7 @@
          metosin/malli               {:mvn/version "0.7.5"}
          metosin/reitit-core         {:mvn/version "0.5.15"}
          metosin/reitit-frontend     {:mvn/version "0.5.15"}
+         party.donut/compose         {:mvn/version "0.0.13"}
          party.donut/sugar           {:mvn/version "0.0.16"}
          party.donut/system          {:mvn/version "0.0.167"}
          rads/anomalies              {:mvn/version "0.1.13"}
@@ -20,8 +21,9 @@
 
  :aliases
  {:dev
-  {:override-deps {party.donut/sugar  {:local/root "../sugar"}
-                   party.donut/system {:local/root "../system"}}}
+  {:override-deps {party.donut/compose {:local/root "../compose"}
+                   party.donut/sugar   {:local/root "../sugar"}
+                   party.donut/system  {:local/root "../system"}}}
 
   :test-cljs
   {:extra-paths ["test"]

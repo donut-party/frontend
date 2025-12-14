@@ -5,6 +5,7 @@
   The term 'sync' is used instead of AJAX"
   (:require
    [cognitect.anomalies :as anom]
+   [donut.compose :as dc]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.failure.flow :as dfaf]
@@ -209,6 +210,9 @@
    :fail              [[::default-sync-fail]]
    ::anom/unavailable [[::default-sync-unavailable]]})
 
+(def default-callbacks
+  {::dfe/on default-handlers})
+
 ;;---
 ;; helpers
 
@@ -243,14 +247,11 @@
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-ctx-req ctx dcu/>merge {::dfe/default      {:on default-handlers}
-                                             ::dfe/on           {:success           [::dfe/default]
-                                                                 :fail              [::dfe/default]
-                                                                 ::anom/unavailable [::dfe/default]}
-                                             ::sync-dispatch-fn (-> ctx
-                                                                    (dfe/ctx-db)
-                                                                    (p/get-path :donut-component)
-                                                                    :sync-dispatch-fn)}))
+             (update-ctx-req ctx dc/>compose {::dfe/on           default-handlers
+                                              ::sync-dispatch-fn (-> ctx
+                                                                     (dfe/ctx-db)
+                                                                     (p/get-path :donut-component)
+                                                                     :sync-dispatch-fn)}))
    :after  identity})
 
 (def add-auth-header

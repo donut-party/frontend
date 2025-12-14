@@ -1,5 +1,6 @@
 (ns donut.frontend.form.flow
   (:require
+   [donut.compose :as dc]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.nav.utils :as dnu]
@@ -315,6 +316,19 @@
 
 ;; TODO spec set of possible actions
 
+(defn form-event-defaults
+  [form-config]
+  (dc/compose
+   dsf/default-callbacks
+   { ;; by default don't allow a form to be submitted
+    ;; when we're waiting for a response
+    ::dfe/default {:on {:success (dc/into [[::dsf/default-sync-success]
+                                           [::submit-form-sync-success]])
+                        :fail    (dc/into [[::dsf/default-sync-fail]
+                                           [::submit-form-sync-fail]])}}
+    ::dfe/merge   {::form-config form-config}
+    ::dfe/pre     [dsf/not-active]}))
+
 (defn form-req
   "Returns a request that the sync handler can use
 
@@ -331,17 +345,8 @@
     handler.
   - the `:sync` key of form spec can customize the sync request"
   [form-config buffer-data req]
-  (-> req
-      (update :params merge buffer-data)
-      (dcu/>merge {;; by default don't allow a form to be submitted
-                   ;; when we're waiting for a response
-                   ::dfe/default {:on (merge dsf/default-handlers
-                                             {:success [[::dsf/default-sync-success]
-                                                        [::submit-form-sync-success]]
-                                              :fail    [[::dsf/default-sync-fail]
-                                                        [::submit-form-sync-fail]]})}
-                   ::dfe/merge   {::form-config form-config}
-                   ::dfe/pre     [dsf/not-active]})))
+  (dc/compose (form-event-defaults form-config)
+              (update req :params merge buffer-data)))
 
 (defn sync-form
   "build form request. update db with :submit input event for form"

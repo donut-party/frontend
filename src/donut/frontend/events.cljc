@@ -11,19 +11,18 @@
   (get-in ctx [:coeffects :db]))
 
 (defn triggered-callback-fx
-  [event-opts cofx event-name]
-  (let [defaults   (get-in event-opts [::default :on event-name])
-        callbacks  (get-in event-opts [::on event-name])]
+  "returns a vector of dispatch fx's for callbacks that are triggered by a given event-name"
+  [callback-opts cofx event-name]
+  (let [callbacks (get-in callback-opts [::on event-name])]
     (->> callbacks
          (reduce (fn [re-frame-events callback]
                    (cond
-                     (= ::default callback) (into re-frame-events defaults)
                      (fn? callback)         (into re-frame-events (callback cofx))
                      (vector? callback)     (conj re-frame-events callback)
                      :else                  (throw (ex-info "unrecognize ::dfe/on callback form" {:callback callback}))))
                  [])
          (mapv (fn [re-frame-event]
-                 [:dispatch (update re-frame-event 1 dcu/>merge (::merge event-opts))])))))
+                 [:dispatch (update re-frame-event 1 dcu/>merge (::merge callback-opts))])))))
 
 (defn event-opts
   [ctx]
@@ -41,6 +40,7 @@
    :after  identity})
 
 (def xf
+  "Intercepter that will transform the ctx"
   {:id ::xf
    :before (fn [ctx]
              (if-let [tx (-> ctx event-opts ::xf)]
@@ -63,3 +63,16 @@
   [ctx key->db-path]
   (let [db (ctx-db ctx)]
     (update-in ctx event-opts-path dcu/merge-retrieved-vals db key->db-path)))
+
+(comment ;;notes
+  ;; specify behavior composition for events
+  ;; - data shape that's expected
+  ;;
+  ;; need to be able to do:
+  ;; - not overwrite defaults, or what's there already
+  ;; - merge the same value into every event
+  ;; - control when events will be dispatched
+  ;;
+  ;; consider
+  ;; - possible to make defaults opt-in by default? explicitly opt out?
+  )
