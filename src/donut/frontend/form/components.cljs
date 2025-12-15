@@ -1,4 +1,8 @@
 (ns donut.frontend.form.components
+  "- input just the input element
+  - field input element with label and wrapper
+  - form subscriptions
+  - form system"
   (:require
    [cljs-time.core :as ct]
    [cljs-time.format :as tf]
@@ -41,6 +45,23 @@
          [:donut.form/feedback-fn]]))
 
 (def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
+
+;;~~~~~~~~~~~~~~~~~~
+;; class helpers
+;;~~~~~~~~~~~~~~~~~~
+
+(defn feedback-classes
+  [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
+  (->> @attr-feedback
+       (remove #(empty? (second %)))
+       (map first)
+       (map #(get feedback-class-mapping % (dsu/full-name %)))
+       (str/join " ")))
+
+(defn map-feedback-classes
+  [mapping]
+  (fn [input-opts]
+    (feedback-classes input-opts mapping)))
 
 ;;--------------------
 ;; events
@@ -433,23 +454,6 @@
                                 (:donut.input/attr-path input-type)
                                 input-type)
              (all-input-opts-fn input-type attr-path input-opts))]))
-
-;;~~~~~~~~~~~~~~~~~~
-;; class helpers
-;;~~~~~~~~~~~~~~~~~~
-
-(defn feedback-classes
-  [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
-  (->> @attr-feedback
-       (remove #(empty? (second %)))
-       (map first)
-       (map #(get feedback-class-mapping % (dsu/full-name %)))
-       (str/join " ")))
-
-(defn map-feedback-classes
-  [mapping]
-  (fn [input-opts]
-    (feedback-classes input-opts mapping)))
 
 ;;~~~~~~~~~~~~~~~~~~
 ;; interface fns
