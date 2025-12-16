@@ -19,7 +19,7 @@
                    (cond
                      (fn? callback)         (into re-frame-events (callback cofx))
                      (vector? callback)     (conj re-frame-events callback)
-                     :else                  (throw (ex-info "unrecognize ::dfe/on callback form" {:callback callback}))))
+                     :else                  (throw (ex-info "unrecognized ::dfe/on callback form" {:callback callback}))))
                  [])
          (mapv (fn [re-frame-event]
                  [:dispatch (update re-frame-event 1 dcu/>merge (::merge callback-opts))])))))
