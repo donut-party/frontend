@@ -46,9 +46,9 @@
 
 (def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
 
-;;~~~~~~~~~~~~~~~~~~
+;;---
 ;; class helpers
-;;~~~~~~~~~~~~~~~~~~
+;;---
 
 (defn feedback-classes
   [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
@@ -63,9 +63,9 @@
   (fn [input-opts]
     (feedback-classes input-opts mapping)))
 
-;;--------------------
+;;---
 ;; events
-;;--------------------
+;;---
 
 ;; TODO make class prefix configurable, e.g. "donut-required" can be
 ;; "x-required" or just "required"
@@ -118,22 +118,9 @@
   [{:donut.input/keys [form-id form-key attr-path]} & suffix]
   (str form-id form-key attr-path (str/join "" suffix)))
 
-;; composition helpers
-(defn pre-wrap
-  [f1 f2]
-  (fn [& args]
-    (apply f2 args)
-    (apply f1 args)))
-
-(defn post-wrap
-  [f1 f2]
-  (fn [& args]
-    (apply f1 args)
-    (apply f2 args)))
-
-;;~~~~~~~~~~~~~~~~~~
+;;---
 ;; input opts
-;;~~~~~~~~~~~~~~~~~~
+;;---
 
 (def field-opts
   "used in the field component"
@@ -156,9 +143,9 @@
      :donut.input/select-options
      :donut.input/select-option-components
      :donut.input/form-key
-     :donut.form/feedback-fn
      :donut.input/format-read
-     :donut.input/format-write}
+     :donut.input/format-write
+     :donut.form/feedback-fn}
    dff/form-layout-keys))
 
 (def donut-key-filter
@@ -346,9 +333,9 @@
   [opts]
   [:input (donut-opts->react-opts opts)])
 
-;;~~~~~~~~~~~~~~~~~~
+;;---
 ;; 'field' interface, wraps inputs with messages and labels
-;;~~~~~~~~~~~~~~~~~~
+;;---
 
 (defn default-feedback-classes
   [feedback]
@@ -455,15 +442,15 @@
                                 input-type)
              (all-input-opts-fn input-type attr-path input-opts))]))
 
-;;~~~~~~~~~~~~~~~~~~
+;;---
 ;; interface fns
-;;~~~~~~~~~~~~~~~~~~
+;;---
 (defn submit-when-ready
   [on-submit-handler form-feedback]
   (fn [e]
-    (if-not (:prevent-submit? @form-feedback)
-      (on-submit-handler e)
-      (.preventDefault e))))
+    (if (:prevent-submit? @form-feedback)
+      (.preventDefault e)
+      (on-submit-handler e))))
 
 (defn all-input-opts
   [form-config input-type attr-path & [opts]]
