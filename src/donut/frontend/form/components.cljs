@@ -266,6 +266,17 @@
         (merge {:type    :checkbox
                 :checked (boolean (checkbox-set value))}))))
 
+(defn all-input-opts
+  [form-config input-type attr-path & [opts]]
+  (-> {:type                   input-type
+       :donut.input/attr-path  attr-path
+       :donut.form/feedback-fn (:donut.form/feedback-fn form-config)}
+      (merge (select-keys form-config dff/form-layout-keys))
+      (merge (:donut.form/default-input-opts form-config))
+      (merge opts)
+      (framework-input-opts)
+      (input-type-opts)))
+
 ;; date handling
 (defn unparse [fmt x]
   (when x (tf/unparse fmt (js/goog.date.DateTime. x))))
@@ -439,13 +450,14 @@
   rather than something like
 
   [input (all-input-opts form-config :text :user/username {:x :y})]"
-  [all-input-opts-fn]
+  [form-config]
   (fn [input-type & [attr-path input-opts]]
     [field (if (map? input-type)
-             (all-input-opts-fn (:type input-type)
-                                (:donut.input/attr-path input-type)
-                                input-type)
-             (all-input-opts-fn input-type attr-path input-opts))]))
+             (all-input-opts form-config
+                             (:type input-type)
+                             (:donut.input/attr-path input-type)
+                             input-type)
+             (all-input-opts form-config input-type attr-path input-opts))]))
 
 ;;---
 ;; interface fns
@@ -456,17 +468,6 @@
     (if (:prevent-submit? @form-feedback)
       (.preventDefault e)
       (on-submit-handler e))))
-
-(defn all-input-opts
-  [form-config input-type attr-path & [opts]]
-  (-> {:type                   input-type
-       :donut.input/attr-path  attr-path
-       :donut.form/feedback-fn (:donut.form/feedback-fn form-config)}
-      (merge (select-keys form-config dff/form-layout-keys))
-      (merge (:donut.form/default-input-opts form-config))
-      (merge opts)
-      (framework-input-opts)
-      (input-type-opts)))
 
 (defn input-component
   "Adapts the interface to `input` so that the caller can supply either
@@ -484,11 +485,11 @@
   rather than something like
 
   `[input (all-input-opts :form-key :text :user/username {:x :y})]`"
-  [all-input-opts-fn]
+  [form-config]
   (fn [input-type & [attr-path input-opts]]
     [input (if (map? input-type)
-             input-type
-             (all-input-opts-fn input-type attr-path input-opts))]))
+             (merge form-config input-type)
+             (all-input-opts form-config input-type attr-path input-opts))]))
 
 (defn sync-form
   [form-config & [sync-opts]]
@@ -523,12 +524,10 @@
 
 (defn form-components
   [form-config]
-  (let [input-opts-fn (partial all-input-opts form-config)]
-    {:*sync-form   (partial sync-form form-config)
-     :*input-opts  input-opts-fn
-     :*input       (input-component input-opts-fn)
-     :*field       (field-component input-opts-fn)
-     :*attr-buffer (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))}))
+  {:*sync-form   (partial sync-form form-config)
+   :*input       (input-component form-config)
+   :*field       (field-component form-config)
+   :*attr-buffer (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))})
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
