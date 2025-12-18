@@ -90,7 +90,7 @@
   [input-config value & [opts]]
   (rf/dispatch-sync
    [::dff/attr-input-event (merge input-config
-                                  {:donut.input/value value}
+                                  {:value value}
                                   opts)]))
 
 ;;--------------------
@@ -171,9 +171,9 @@
 
 (defn default-event-handlers
   [opts]
-  {:donut.input/on-change #(dispatch-attr-input-event % opts true)
-   :donut.input/on-blur   #(dispatch-attr-input-event % opts false)
-   :donut.input/on-focus  #(dispatch-attr-input-event % opts false)})
+  {:on-change #(dispatch-attr-input-event % opts true)
+   :on-blur   #(dispatch-attr-input-event % opts false)
+   :on-focus  #(dispatch-attr-input-event % opts false)})
 
 (defn merge-event-handlers
   "Merges custom event handlers with the default framework handlers in such a way
@@ -187,7 +187,7 @@
 
 (defn donut-opts->react-opts
   [opts]
-  (let [input-class (:donut.input/class opts)
+  (let [input-class (:class opts)
         opts'       (->> opts
                          (medley/remove-keys donut-key-filter)
                          (medley/map-keys (comp keyword name)))]
@@ -195,22 +195,23 @@
       (fn? input-class) (assoc :class (input-class opts)))))
 
 (defn input-type-opts-default
-  [{:donut.input/keys [attr-path attr-buffer type]
+  [{:keys [type]
+    :donut.input/keys [attr-path attr-buffer]
     :as               opts}]
   (let [{:keys [:donut.input/format-read] :as opts} (merge #:donut.input{:format-read  identity
                                                                          :format-write identity}
                                                            opts)]
-    (-> {:donut.input/type  (or type :text)
-         :donut.input/id    (label-for opts)
-         :donut.input/class (str "donut-input " (attr-path-str attr-path))
-         :donut.input/value (format-read @attr-buffer)}
+    (-> {:type  (or type :text)
+         :id    (label-for opts)
+         :class (str "donut-input " (attr-path-str attr-path))
+         :value (format-read @attr-buffer)}
         (merge opts)
         (merge-event-handlers))))
 
 (defmulti input-type-opts
   "Different input types expect different options. For example, a radio
   button has a `:checked` attribute."
-  :donut.input/type)
+  :type)
 
 (defmethod input-type-opts :default
   [opts]
@@ -227,12 +228,14 @@
       (input-type-opts-default)))
 
 (defmethod input-type-opts :radio
-  [{:donut.input/keys [format-read format-write attr-buffer value] :as opts}]
+  [{:keys [value]
+    :donut.input/keys [format-read format-write attr-buffer]
+    :as opts}]
   (let [format-read  (or format-read identity)
         format-write (or format-write (constantly value))]
     (-> (merge opts {:donut.input/format-write format-write})
         (input-type-opts-default)
-        (assoc :donut.input/checked (= value (format-read @attr-buffer))))))
+        (assoc :checked (= value (format-read @attr-buffer))))))
 
 (defmethod input-type-opts :checkbox
   [{:donut.input/keys [attr-buffer format-read format-write] :as opts}]
@@ -242,8 +245,8 @@
     (-> opts
         (assoc :donut.input/format-write format-write)
         (input-type-opts-default)
-        (merge {:donut.input/checked (boolean value)})
-        (dissoc :donut.input/value))))
+        (merge {:checked (boolean value)})
+        (dissoc :value))))
 
 (defn toggle-set-membership
   [s v]
@@ -251,15 +254,17 @@
     (if (empty? new-s) #{} new-s)))
 
 (defmethod input-type-opts :checkbox-set
-  [{:donut.input/keys [attr-buffer value format-read format-write] :as opts}]
+  [{:keys [value]
+    :donut.input/keys [attr-buffer format-read format-write]
+    :as opts}]
   (let [format-read  (or format-read identity)
         checkbox-set (or (format-read @attr-buffer) #{})
         format-write (or format-write (constantly (toggle-set-membership checkbox-set value)))]
     (-> opts
         (assoc :donut.input/format-write format-write)
         input-type-opts-default
-        (merge {:donut.input/type    :checkbox
-                :donut.input/checked (boolean (checkbox-set value))}))))
+        (merge {:type    :checkbox
+                :checked (boolean (checkbox-set value))}))))
 
 ;; date handling
 (defn unparse [fmt x]
@@ -279,7 +284,7 @@
   (-> opts
       (assoc :donut.input/format-write format-write-date)
       input-type-opts-default
-      (assoc :donut.input/value (unparse date-fmt @attr-buffer))))
+      (assoc :value (unparse date-fmt @attr-buffer))))
 
 (defn format-write-number
   [v]
@@ -289,16 +294,16 @@
 (defmethod input-type-opts :number
   [opts]
   (assoc (input-type-opts-default opts)
-         :donut.input/on-change #(dispatch-attr-input-event
-                                  %
-                                  (merge {:donut.input/format-write format-write-number} opts)
-                                  true)))
+         :on-change #(dispatch-attr-input-event
+                      %
+                      (merge {:donut.input/format-write format-write-number} opts)
+                      true)))
 
 ;;~~~~~~~~~~~~~~~~~~
 ;; input components
 ;;~~~~~~~~~~~~~~~~~~
 
-(defmulti input :donut.input/type)
+(defmulti input :type)
 
 (defmethod input :textarea
   [opts]
@@ -311,7 +316,7 @@
     (r/create-class
      {:component-did-mount
       (fn [_]
-        (rf/dispatch [::dff/attr-init-buffer (assoc opts :donut.input/value (dcu/go-get @ref "value"))]))
+        (rf/dispatch [::dff/attr-init-buffer (assoc opts :value (dcu/go-get @ref "value"))]))
 
       :reagent-render
       (fn [{:donut.input/keys [select-options
@@ -372,7 +377,7 @@
         attr-feedback (into [(default-feedback-classes @attr-feedback)])
         true      (str/join " "))))
 
-(defmulti field :donut.input/type)
+(defmulti field :type)
 
 (defmethod field :default
   [{:donut.field/keys [tip required no-label?
@@ -437,7 +442,7 @@
   [all-input-opts-fn]
   (fn [input-type & [attr-path input-opts]]
     [field (if (map? input-type)
-             (all-input-opts-fn (:donut.input/type input-type)
+             (all-input-opts-fn (:type input-type)
                                 (:donut.input/attr-path input-type)
                                 input-type)
              (all-input-opts-fn input-type attr-path input-opts))]))
@@ -454,7 +459,7 @@
 
 (defn all-input-opts
   [form-config input-type attr-path & [opts]]
-  (-> {:donut.input/type       input-type
+  (-> {:type                   input-type
        :donut.input/attr-path  attr-path
        :donut.form/feedback-fn (:donut.form/feedback-fn form-config)}
       (merge (select-keys form-config dff/form-layout-keys))

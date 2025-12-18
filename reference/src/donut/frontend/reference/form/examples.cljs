@@ -1,6 +1,7 @@
 (ns donut.frontend.reference.form.examples
   (:require
    ["marked" :as marked]
+   [donut.compose :as dc]
    [donut.frontend.core.flow :as dcf]
    [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
@@ -39,8 +40,7 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            2000}
-                  ::dfe/on    {:success [::dfe/default
-                                         [::dff/clear *form-key]]}}))}
+                  ::dfe/on    {:success (dc/into [[::dff/clear *form-key]])}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -271,8 +271,7 @@
                                     ::dsde/echo {:status        :success
                                                  :response-data {:id      1
                                                                  :content "post content"}}
-                                    ::dfe/on    {:success [::dfe/default
-                                                           [::dff/set-form-from-sync {::dff/form-layout *form-layout}]]}}])}
+                                    ::dfe/on    {:success (dc/into [[::dff/set-form-from-sync {::dff/form-layout *form-layout}]])}}])}
          "populate from sync"]]
        [*field :text :content {:class input-class}]])]])
 
@@ -323,9 +322,8 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            0}
-                  ::dfe/on    {:success [::dfe/default
-                                         [::dff/clear *form-key]
-                                         [::initial-values-success]]}}))}
+                  ::dfe/on    {:success (dc/into [[::dff/clear *form-key]
+                                                  [::initial-values-success]])}}))}
    "submit"])
 
 (rf/reg-event-db ::initial-values-success
