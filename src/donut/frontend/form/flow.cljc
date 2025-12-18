@@ -54,6 +54,7 @@
 (def FormLayout
   [:map
    [:donut.form/key :any]
+   [:donut.form/sync? :boolean]
    [:donut.form/initial-state map?]
    [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
    [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
