@@ -162,8 +162,8 @@
 (defn common-input-opts
   "input opts common to all inputs of any type"
   [{:donut.input/keys [attr-path]
-    :keys             [type]
-    :as               input-opts}]
+    :keys [type]
+    :as input-opts}]
   (let [sub-opts (select-keys input-opts input-injected-opts)]
     {:type                          (or type :text)
      :id                            (label-for input-opts)
@@ -188,6 +188,8 @@
   {:on-change #(dispatch-attr-input-event % input-opts true)
    :on-blur   #(dispatch-attr-input-event % input-opts false)
    :on-focus  #(dispatch-attr-input-event % input-opts false)})
+
+;; begin input-type-opts
 
 (defn merge-default-event-handlers
   [input-opts]
@@ -259,32 +261,6 @@
         (merge {:type    :checkbox
                 :checked (boolean (checkbox-set value))}))))
 
-#_
-(defn all-input-opts
-  [form-config input-type attr-path & [opts]]
-  (-> {:type                   input-type
-       :donut.input/attr-path  attr-path
-       :donut.form/feedback-fn (:donut.form/feedback-fn form-config)}
-      (merge (select-keys form-config dff/form-layout-keys))
-      (merge (:donut.form/default-input-opts form-config))
-      (merge opts)
-      (common-input-opts)
-      (input-type-opts)))
-
-(defn merge-input-type-opts
-  [input-opts]
-  (merge input-opts (input-type-opts input-opts)))
-
-(defn all-input-opts
-  [form-config input-type attr-path & [input-opts]]
-  (-> form-config
-      (merge input-opts)
-      (merge {:type                  input-type
-              :donut.input/attr-path attr-path})
-      (merge-common-input-opts)
-      (merge-input-type-opts)
-      (dc/compose input-opts)))
-
 ;; date handling
 (defn unparse [fmt x]
   (when x (tf/unparse fmt (js/goog.date.DateTime. x))))
@@ -317,6 +293,31 @@
                       %
                       (merge {:donut.input/format-write format-write-number} opts)
                       true)))
+
+(defn merge-input-type-opts
+  [input-opts]
+  (merge input-opts (input-type-opts input-opts)))
+
+;; end input-type-opts
+
+(defn all-input-opts
+  "Top-level coordination of composing input opts.
+  Produces default opts at different levels of specificity:
+  - common-input-opts are not reified by input type
+  - input-type opts specify type-specific behavior, like how selects or checkboxes should work
+  - input-opts should be able to override any of these framework defaults"
+  [form-config input-type attr-path & [input-opts]]
+  (->
+   ;; construct framework default input opts
+   form-config
+   (merge input-opts)
+   (merge {:type                  input-type
+           :donut.input/attr-path attr-path})
+   (merge-common-input-opts)
+   (merge-input-type-opts)
+   ;; add onto the framework default input opts
+   (dc/compose input-opts)))
+
 
 ;;~~~~~~~~~~~~~~~~~~
 ;; input components
