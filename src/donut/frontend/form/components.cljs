@@ -184,7 +184,7 @@
 (defn input-opts->react-opts
   [input-opts]
   (let [input-class (:class input-opts)
-        opts'       (medley/remove-keys donut-key-filter input-opts)]
+        opts'       (medley/remove-keys namespace input-opts)]
     (cond-> opts'
       (fn? input-class) (assoc :class (input-class input-opts)))))
 
@@ -315,13 +315,15 @@
   (->
    ;; construct framework default input opts
    form-config
-   (merge input-opts)
+   (merge (medley/filter-keys #(let [n (namespace %)]
+                                 (or (nil? n) (= "donut.input" n)))
+                              input-opts))
    (merge {:type                  input-type
            :donut.input/attr-path attr-path})
    (merge-common-input-opts)
    (merge-input-type-opts)
-   ;; add onto the framework default input opts
-   (dc/compose input-opts)))
+   (dc/compose input-opts)
+   ))
 
 
 ;;~~~~~~~~~~~~~~~~~~
@@ -383,7 +385,7 @@
   [_ errors]
   (->> errors
        (map (fn [x] ^{:key (str "donut-error-" x)} [:li x]))
-       (into [:ul {:class "donut-error-messages"}])))
+       (into [:ul {:class ["donut-error-messages"]}])))
 (defmethod format-attr-feedback :default [_ _] nil)
 
 (defn attr-description
@@ -394,21 +396,21 @@
            seq
            (into [:div.description])))
 
-(defn field-classes
+(defn field-wrapper-classes
   [{:donut.input/keys [attr-path attr-feedback]}]
-  (cond->> ["field" (dsu/kebab (attr-path-str attr-path))]
-    attr-feedback (into [(default-feedback-classes @attr-feedback)])
-    true      (str/join " ")))
+  (cond->> ["donut-field-wrapper" (dsu/kebab (attr-path-str attr-path))]
+    attr-feedback (into [(default-feedback-classes @attr-feedback)])))
 
 (defmulti field :type)
 
 (defmethod field :default
-  [{:donut.field/keys [tip required no-label?
+  [{:keys [required]
+    :donut.field/keys [tip no-label?
                        before-input after-input after-feedback]
     :donut.input/keys [attr-feedback]
     :as               opts}]
   (let [composable (dc/composable opts)]
-    [:div (composable :donut.field/field-wrapper-opts {:class (field-classes opts)})
+    [:div (composable :donut.field/field-wrapper-opts {:class (field-wrapper-classes opts)})
      (when (or tip (not no-label?))
        [:div (composable :donut.field/label-wrapper-opts {:class [(:donut.field/label-wrapper-class classes)]})
         (when-not no-label?
@@ -433,7 +435,7 @@
   [{:donut.field/keys [tip required no-label? attr-feedback]
     :as opts}]
   (let [composable (dc/composable opts)]
-    [:div (composable :donut.field/field-wrapper-opts {:class (field-classes opts)})
+    [:div (composable :donut.field/field-wrapper-opts {:class (field-wrapper-classes opts)})
      [:div (composable :donut.field/label-wrapper-opts {:class [(:donut.field/label-wrapper-class classes)]})
       (if no-label?
         [:span [input opts] [:i]]
