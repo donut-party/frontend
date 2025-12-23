@@ -6,6 +6,7 @@
   (:require
    [cljs-time.core :as ct]
    [cljs-time.format :as tf]
+   [clojure.data :as data]
    [clojure.set :as set]
    [clojure.string :as str]
    [donut.compose :as dc]
@@ -312,18 +313,18 @@
   - input-type opts specify type-specific behavior, like how selects or checkboxes should work
   - input-opts should be able to override any of these framework defaults"
   [form-config input-type attr-path & [input-opts]]
-  (->
-   ;; construct framework default input opts
-   form-config
-   (merge (medley/filter-keys #(let [n (namespace %)]
-                                 (or (nil? n) (= "donut.input" n)))
-                              input-opts))
-   (merge {:type                  input-type
-           :donut.input/attr-path attr-path})
-   (merge-common-input-opts)
-   (merge-input-type-opts)
-   (dc/compose input-opts)
-   ))
+  (let [passed-in-opts (merge form-config input-opts)
+        framework-opts (-> passed-in-opts
+                           (merge {:type                  input-type
+                                   :donut.input/attr-path attr-path})
+                           (merge-common-input-opts)
+                           (merge-input-type-opts))
+        ks             (->> (data/diff passed-in-opts framework-opts)
+                            (take 2)
+                            (mapcat keys)
+                            set)]
+    (dc/compose (select-keys framework-opts ks)
+                passed-in-opts)))
 
 
 ;;~~~~~~~~~~~~~~~~~~
