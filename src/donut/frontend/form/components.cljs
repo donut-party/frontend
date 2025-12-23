@@ -93,6 +93,14 @@
       true        (merge {:donut.input/event-type (keyword (dcu/go-get dom-event ["type"]))})
       update-val? (merge {:donut.input/value (format-write (dcu/tv dom-event))}))]))
 
+(defn dispatch-inline-start-editing
+  [_dom-event input-opts]
+  (rf/dispatch-sync [::dff/inline-start-editing input-opts]))
+
+(defn dispatch-inline-stop-editing
+  [_dom-event input-opts]
+  (rf/dispatch-sync [::dff/inline-stop-editing input-opts]))
+
 (defn dispatch-new-value
   "Helper when you want non-input elements to update a value"
   [input-config value & [opts]]
@@ -185,21 +193,33 @@
 (defn input-opts->react-opts
   [input-opts]
   (let [input-class (:class input-opts)
-        opts'       (medley/remove-keys namespace input-opts)]
+        opts'       (->> input-opts
+                         (medley/remove-keys namespace)
+                         (medley/remove-keys #{:route-name}))]
     (cond-> opts'
       (fn? input-class) (assoc :class (input-class input-opts)))))
 
-(defn default-event-handlers
+(defmulti input-event-handlers :donut.input/interaction-style)
+
+(defmethod input-event-handlers
+  :default
   [input-opts]
   {:on-change #(dispatch-attr-input-event % input-opts true)
    :on-blur   #(dispatch-attr-input-event % input-opts false)
    :on-focus  #(dispatch-attr-input-event % input-opts false)})
 
+(defmethod input-event-handlers
+  ::inline
+  [input-opts]
+  {:on-change #(dispatch-attr-input-event % input-opts true)
+   :on-blur   #(dispatch-inline-stop-editing % input-opts)
+   :on-focus  #(dispatch-inline-start-editing % input-opts)})
+
 ;; begin input-type-opts
 
 (defn merge-default-event-handlers
   [input-opts]
-  (merge input-opts (default-event-handlers input-opts)))
+  (merge input-opts (input-event-handlers input-opts)))
 
 (defn input-type-opts-default
   [{:donut.input/keys [attr-buffer format-read format-write] :as input-opts}]

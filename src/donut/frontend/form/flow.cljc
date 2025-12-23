@@ -1,7 +1,6 @@
 (ns donut.frontend.form.flow
   (:require
    [donut.compose :as dc]
-   [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
@@ -29,6 +28,7 @@
 (def FormInputEvents BufferViewMap)
 (def FormBufferInitVal [:map])
 (def FormUIState any?)
+(def FormInlineEditing [:map])
 
 (def Form
   [:map
@@ -36,7 +36,8 @@
    [:feedback {:optional true} [:map-of keyword? BufferView]]
    [:input-events {:optional true} FormInputEvents]
    [:buffer-init-val FormBufferInitVal]
-   [:ui-state {:optional true} FormUIState]])
+   [:ui-state {:optional true} FormUIState]
+   [:inline-editing {:optional true} FormInlineEditing]])
 
 ;;---
 ;; form submitting options
@@ -60,7 +61,8 @@
    [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
    [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
    [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
-   [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]])
+   [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]
+   [:donut.form.layout/inline-editing {:optional true} [:vector keyword?]]])
 
 (def form-layout-keys (mapv first (rest FormLayout)))
 
@@ -184,6 +186,30 @@
 (rf/reg-event-db ::attr-input-event
   [rf/trim-v]
   attr-input-event)
+
+(rf/reg-event-db ::inline-start-editing
+  [rf/trim-v]
+  (fn [db [{:donut.input/keys [attr-path]
+            :as input-opts}]]
+    (let [{:donut.form.layout/keys [buffer inline-editing]} (form-paths input-opts)
+          attr-path (dsu/vectorize attr-path)]
+      (assoc-in db
+                (into inline-editing attr-path)
+                (get-in db (into buffer attr-path))))))
+
+(rf/reg-event-fx ::inline-stop-editing
+  [rf/trim-v]
+  (fn [{:keys [db] :as _cofx} [{:donut.input/keys [attr-path]
+                                :as               input-opts}]]
+    (let [{:donut.form.layout/keys [inline-editing buffer]} (form-paths input-opts)
+          attr-path                                         (dsu/vectorize attr-path)
+          inline-stored-value                               (get-in db (into inline-editing attr-path))
+          current-value                                     (get-in db (into buffer attr-path))]
+      (cond-> {:db (update-in db
+                              (into inline-editing (butlast attr-path))
+                              dissoc
+                              (last attr-path))}
+        (not= inline-stored-value current-value) (assoc :dispatch [::sync-form input-opts (dissoc input-opts :type)])))))
 
 (defn attr-set-value
   "directly set the value of an attribute"
