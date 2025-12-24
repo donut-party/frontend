@@ -29,6 +29,7 @@
          {:keys [~'*sync-form
                  ~'*input-opts
                  ~'*input
+                 ~'*input-builder
                  ~'*field
                  ~'*attr-buffer]
           :as   ~'*form-components}

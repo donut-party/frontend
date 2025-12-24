@@ -23,6 +23,7 @@
 
                 *input-opts
                 *input
+                *input-builder
                 *field
                 *attr-buffer
 

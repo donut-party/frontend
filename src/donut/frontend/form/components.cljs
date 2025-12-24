@@ -66,10 +66,6 @@
 ;; events
 ;;---
 
-;; TODO make class prefix configurable, e.g. "donut-required" can be
-;; "x-required" or just "required"
-
-;; TODO update this with form layout
 (defn dispatch-form-input-event
   [form-config event-type]
   (rf/dispatch [::dff/form-input-event (assoc form-config :donut.input/event-type event-type)]))
@@ -541,6 +537,15 @@
              (merge form-config input-type)
              (all-input-opts form-config input-type attr-path input-opts))]))
 
+(defn input-builder
+  "Used when you want to access both the input component and the opts used to
+  create that component"
+  [form-config]
+  (fn [input-type attr-path & [input-opts]]
+    (let [input-opts (all-input-opts form-config input-type attr-path input-opts)]
+      {:input [input input-opts]
+       :input-opts input-opts})))
+
 (defn sync-form
   [form-config & [sync-opts]]
   (when-not (:donut.form/prevent-submit? sync-opts)
@@ -574,11 +579,12 @@
 
 (defn form-components
   [form-config]
-  {:*sync-form   (partial sync-form form-config)
-   :*input       (input-component form-config)
-   :*input-opts  (partial all-input-opts form-config)
-   :*field       (field-component form-config)
-   :*attr-buffer (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))})
+  {:*sync-form     (partial sync-form form-config)
+   :*input         (input-component form-config)
+   :*input-opts    (partial all-input-opts form-config)
+   :*input-builder (input-builder form-config)
+   :*field         (field-component form-config)
+   :*attr-buffer   (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))})
 
 (defn form
   "Returns an input builder function and subscriptions to all the form's keys"
