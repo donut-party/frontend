@@ -33,7 +33,12 @@
 ;;--------------------
 
 (def FeedbackType
-  [:enum :error :warn :info :ok])
+  [:enum
+   :donut.feedback/error
+   :donut.feedback/warn
+   :donut.feedback/info
+   :donut.feedback/ok])
+
 (def FeedbackMap
   [:map
    [:form {:optional true} [:sequential any?]
@@ -46,15 +51,15 @@
 
 (comment
   ;; feedback examples. top-level keys (:error, :info) are the feedback types
-  {:warn  {:form :submission-not-allowed}
-   :error {:form  :submission-failed
-           :attrs {:username [:attr-msg-1 :attr-msg-2]
-                   :address  {:city   [:attr-msg-1 :attr-msg-2]
-                              :street [:attr-msg-1 :attr-msg-2]}}}
-   :info  {:form  :can-submit!
-           :attrs {:username [:attr-msg-1 :attr-msg-2]
-                   :address  {:city   [:attr-msg-1 :attr-msg-2]
-                              :street [:attr-msg-1 :attr-msg-2]}}}})
+  {:donut.feedback/warn  {:form :submission-not-allowed}
+   :donut.feedback/error {:form  :submission-failed
+                          :attrs {:username [:attr-msg-1 :attr-msg-2]
+                                  :address  {:city   [:attr-msg-1 :attr-msg-2]
+                                             :street [:attr-msg-1 :attr-msg-2]}}}
+   :donut.feedback/info  {:form  :can-submit!
+                          :attrs {:username [:attr-msg-1 :attr-msg-2]
+                                  :address  {:city   [:attr-msg-1 :attr-msg-2]
+                                             :street [:attr-msg-1 :attr-msg-2]}}}})
 
 (defn received-events?
   [input-events pred-events]

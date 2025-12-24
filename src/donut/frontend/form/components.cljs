@@ -29,17 +29,6 @@
 ;;---
 ;; input config
 ;;---
-(def form-config-keys
-  "this is needed for the with form macro.
-  TODO figure out better way to do this"
-  [:donut.form/key
-   :donut.form/sync?
-   :donut.form/feedback-class-mapping
-   :donut.form.layout/buffer
-   :donut.form.layout/feedback
-   :donut.form.layout/input-events
-   :donut.form.layout/buffer-init-val
-   :donut.form.layout/ui-state])
 
 (def InputConfig
   (into dff/FormConfig
@@ -54,19 +43,24 @@
 ;; class helpers
 ;;---
 
-(def classes
-  {:donut.field/label-wrapper-class "donut-field-label-wrapper"
-   :donut.field/label-class         "donut-field-label"
-   :donut.field/required-class      "donut-field-required"})
+(def css-classes
+  {:donut.field/field-wrapper-class ["donut-field-field-wrapper"]
+   :donut.field/label-wrapper-class ["donut-field-label-wrapper"]
+   :donut.field/label-class         ["donut-field-label"]
+   :donut.field/required-class      ["donut-field-required"]
+   :donut.feedback/error            ["donut-feedback-error"]
+   :donut.feedback/warn             ["donut-feedback-warn"]
+   :donut.feedback/info             ["donut-feedback-info"]
+   :donut.feedback/ok               ["donut-feedback-ok"]})
 
-(defn feedback-classes
-  [{:donut.form/keys [feedback-class-mapping]
-    :donut.input/keys [attr-feedback]}]
+(defn feedback-css-classes
+  [{:donut.form/keys  [feedback-class-mapping]
+    :donut.input/keys [attr-feedback]
+    :or {feedback-class-mapping css-classes}}]
   (->> @attr-feedback
        (remove #(empty? (second %)))
        (map first)
-       (map #(get feedback-class-mapping % (dsu/full-name %)))
-       (str/join " ")))
+       (mapv #(get feedback-class-mapping % (dsu/full-name %)))))
 
 ;;---
 ;; events
@@ -340,8 +334,9 @@
                             (take 2)
                             (mapcat keys)
                             set)]
-    (dc/compose (select-keys framework-opts ks)
-                passed-in-opts)))
+    (merge passed-in-opts
+           (dc/compose (select-keys framework-opts ks)
+                       (select-keys passed-in-opts ks)))))
 
 
 ;;~~~~~~~~~~~~~~~~~~
@@ -387,6 +382,7 @@
 ;; 'field' interface, wraps inputs with messages and labels
 ;;---
 
+;; TODO duplication
 (defn default-feedback-classes
   [feedback]
   (if (or (nil? feedback) (map? feedback))
@@ -415,9 +411,10 @@
            (into [:div.description])))
 
 (defn field-wrapper-classes
-  [{:donut.input/keys [attr-path attr-feedback]}]
-  (cond->> ["donut-field-wrapper" (dsu/kebab (attr-path-str attr-path))]
-    attr-feedback (into [(default-feedback-classes @attr-feedback)])))
+  [{:donut.input/keys [attr-path] :as input-opts}]
+  (-> (feedback-css-classes input-opts)
+      (into (:donut.field/field-wrapper-class css-classes))
+      (conj (str "donut-field-for-" (dsu/kebab (attr-path-str attr-path))))))
 
 (defmulti field :type)
 
@@ -430,17 +427,17 @@
   (let [composable (dc/composable opts)]
     [:div (composable :donut.field/field-wrapper-opts {:class (field-wrapper-classes opts)})
      (when (or tip (not no-label?))
-       [:div (composable :donut.field/label-wrapper-opts {:class [(:donut.field/label-wrapper-class classes)]})
+       [:div (composable :donut.field/label-wrapper-opts {:class (:donut.field/label-wrapper-class css-classes)})
         (when-not no-label?
           [:label
-           (composable :donut.field/label-opts {:for (label-for opts) :class [(:donut.field/label-class classes)]})
+           (composable :donut.field/label-opts {:for (label-for opts) :class (:donut.field/label-class css-classes)})
            (composable :donut.field/label-text (field-label-text opts))
            (when required
              [:span (composable :donut.field/required-wrapper
-                                {:class [(:donut.field/required-class classes)]})
+                                {:class (:donut.field/required-class css-classes)})
               (composable :donut.field/required-text "*")])])
         (when tip
-          [:div (composable :donut.field/tip-wrapper {:class [(:donut.field/tip-class classes)]})
+          [:div (composable :donut.field/tip-wrapper {:class (:donut.field/tip-class css-classes)})
            tip])])
      [:div (composable :donut.field/input-wrapper {})
       before-input
@@ -454,19 +451,19 @@
     :as opts}]
   (let [composable (dc/composable opts)]
     [:div (composable :donut.field/field-wrapper-opts {:class (field-wrapper-classes opts)})
-     [:div (composable :donut.field/label-wrapper-opts {:class [(:donut.field/label-wrapper-class classes)]})
+     [:div (composable :donut.field/label-wrapper-opts {:class (:donut.field/label-wrapper-class css-classes)})
       (if no-label?
         [:span [input opts] [:i]]
-        [:label (composable :donut.field/label-opts {:for (label-for opts) :class [(:donut.field/label-class classes)]})
+        [:label (composable :donut.field/label-opts {:for (label-for opts) :class (:donut.field/label-class css-classes)})
          [input opts]
          [:i]
          (composable :donut.field/label-text (field-label-text opts))
          (when required
            [:span (composable :donut.field/required-wrapper
-                              {:class [(:donut.field/required-class classes)]})
+                              {:class (:donut.field/required-class css-classes)})
             (composable :donut.field/required-text "*")])])
       (when tip
-        [:div (composable :donut.field/tip-wrapper {:class [(:donut.field/tip-class classes)]})
+        [:div (composable :donut.field/tip-wrapper {:class (:donut.field/tip-class css-classes)})
          tip])
       (when attr-feedback (attr-description @attr-feedback))]]))
 
