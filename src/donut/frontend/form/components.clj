@@ -13,7 +13,6 @@
   `(let [~'*form-config (form-config ~form-config)
          ~'*sync-key    (:*sync-key ~'*form-config)
          ~'*form-key    (:*form-key ~'*form-config)
-         ~'*form-layout (select-keys ~'*form-config form-layout-keys)
 
          {:keys [~'*form-ui-state
                  ~'*form-feedback

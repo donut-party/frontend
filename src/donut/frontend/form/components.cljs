@@ -29,11 +29,12 @@
 ;;---
 ;; input config
 ;;---
-(def form-layout-keys
+(def form-config-keys
   "this is needed for the with form macro.
   TODO figure out better way to do this"
   [:donut.form/key
    :donut.form/sync?
+   :donut.form/feedback-class-mapping
    :donut.form.layout/buffer
    :donut.form.layout/feedback
    :donut.form.layout/input-events
@@ -41,13 +42,13 @@
    :donut.form.layout/ui-state])
 
 (def InputConfig
-  (into dff/FormLayout
+  (into dff/FormConfig
         [[:donut.input/attr-path]
          [:donut.input/format-write]
          [:donut.input/format-read]
          [:donut.form/feedback-fn]]))
 
-(def attr-input-keys (conj dff/form-layout-keys :donut.input/attr-path))
+(def attr-input-keys (conj dff/form-config-keys :donut.input/attr-path))
 
 ;;---
 ;; class helpers
@@ -59,17 +60,13 @@
    :donut.field/required-class      "donut-field-required"})
 
 (defn feedback-classes
-  [{:donut.input/keys [attr-feedback]}  & [feedback-class-mapping]]
+  [{:donut.form/keys [feedback-class-mapping]
+    :donut.input/keys [attr-feedback]}]
   (->> @attr-feedback
        (remove #(empty? (second %)))
        (map first)
        (map #(get feedback-class-mapping % (dsu/full-name %)))
        (str/join " ")))
-
-(defn map-feedback-classes
-  [mapping]
-  (fn [input-opts]
-    (feedback-classes input-opts mapping)))
 
 ;;---
 ;; events
@@ -80,8 +77,8 @@
 
 ;; TODO update this with form layout
 (defn dispatch-form-input-event
-  [form-layout event-type]
-  (rf/dispatch [::dff/form-input-event (assoc form-layout :donut.input/event-type event-type)]))
+  [form-config event-type]
+  (rf/dispatch [::dff/form-input-event (assoc form-config :donut.input/event-type event-type)]))
 
 (defn dispatch-attr-input-event
   [dom-event
@@ -162,7 +159,7 @@
      :donut.input/format-read
      :donut.input/format-write
      :donut.form/feedback-fn}
-   dff/form-layout-keys))
+   dff/form-config-keys))
 
 (def donut-key-filter
   "used to remove donut keys from react component options"
@@ -170,7 +167,7 @@
 
 (def input-injected-opts
   (->> [:donut.input/attr-path :donut.form/feedback-fn]
-       (into dff/form-layout-keys)
+       (into dff/form-config-keys)
        set))
 
 (defn common-input-opts
@@ -508,6 +505,14 @@
              (all-input-opts form-config input-type attr-path input-opts))]))
 
 ;;---
+;; inline input
+;;---
+
+(defn inline-input
+  [input-opts]
+  [input input-opts])
+
+;;---
 ;; interface fns
 ;;---
 (defn submit-when-ready
@@ -574,6 +579,7 @@
   [form-config]
   {:*sync-form   (partial sync-form form-config)
    :*input       (input-component form-config)
+   :*input-opts  (partial all-input-opts form-config)
    :*field       (field-component form-config)
    :*attr-buffer (fn *attr-buffer [attr-path] (attr-buffer form-config attr-path))})
 

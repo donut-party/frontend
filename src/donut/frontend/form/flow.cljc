@@ -52,11 +52,12 @@
 ;; form config
 ;;---
 
-(def FormLayout
+(def FormConfig
   [:map
    [:donut.form/key :any]
    [:donut.form/sync? :boolean]
    [:donut.form/initial-state map?]
+   [:donut.form/feedback-class-mapping]
    [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
    [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
    [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
@@ -64,18 +65,18 @@
    [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]
    [:donut.form.layout/inline-editing {:optional true} [:vector keyword?]]])
 
-(def form-layout-keys (mapv first (rest FormLayout)))
+(def form-config-keys (mapv first (rest FormConfig)))
 
 (defn form-paths
   "By default all form data lives under [:donut :form form-key]. A form layout
   lets you specify different locations for form facets. This function translates
   your form layout into the actual paths to be used for subscriptions and
   events."
-  [form-layout]
-  (let [[form-key-key & layout-keys] form-layout-keys
-        form-key                     (form-key-key form-layout)]
+  [form-config]
+  (let [[form-key-key & layout-keys] form-config-keys
+        form-key                     (form-key-key form-config)]
     (reduce (fn [m k]
-              (assoc m k (or (k form-layout)
+              (assoc m k (or (k form-config)
                              (p/form-path [form-key (keyword (name k))]))))
             {}
             layout-keys)))
@@ -85,8 +86,8 @@
 ;;--------------------
 
 (defn merge-initial-state
-  [form-layout form]
-  (dsu/deep-merge (:donut.form/initial-state form-layout) (or form {})))
+  [form-config form]
+  (dsu/deep-merge (:donut.form/initial-state form-config) (or form {})))
 
 (rf/reg-sub ::form
   (fn [db [_ {:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state] :as form-layout}]]
@@ -106,8 +107,8 @@
        (p/get-path db :form [(:donut.form/key form-layout)])))))
 
 (defn form-signal
-  [[_ form-layout]]
-  (rf/subscribe [::form form-layout]))
+  [[_ form-config]]
+  (rf/subscribe [::form form-config]))
 
 (def sub-name->inner-key
   {::buffer          :buffer
@@ -128,8 +129,8 @@
 ;; Value for a specific form attribute
 (defn attr-facet-sub
   [facet]
-  (fn [[_ form-layout]]
-    (rf/subscribe [facet form-layout])))
+  (fn [[_ form-config]]
+    (rf/subscribe [facet form-config])))
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
@@ -158,9 +159,9 @@
 
 ;; Has the user modified the buffer?
 (rf/reg-sub ::form-dirty?
-  (fn [[_ form-layout]]
-    [(rf/subscribe [::buffer-init-val form-layout])
-     (rf/subscribe [::buffer form-layout])])
+  (fn [[_ form-config]]
+    [(rf/subscribe [::buffer-init-val form-config])
+     (rf/subscribe [::buffer form-config])])
   (fn [[buffer-init-val buffer]]
     (not= buffer-init-val buffer)))
 
@@ -235,8 +236,8 @@
 
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
-  [db [{:keys [form-layout event-type]}]]
-  (let [paths (form-paths form-layout)]
+  [db [{:keys [:donut.input/event-type] :as form-config}]]
+  (let [paths (form-paths form-config)]
     (update-in db
                (:donut.form.layout/input-events paths)
                (fnil conj #{})

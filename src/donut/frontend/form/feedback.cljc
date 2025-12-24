@@ -14,7 +14,7 @@
   The interface consists of:
 
   - a `::feedback` subscription. It takes a signle argument, `feedback-fn`,
-    which takes a form as an argument and returns data in the same described below
+    which takes a form as an argument and returns data in the shape described below
   - a `::form-feedback` subscription that takes a `form-layout` and
     `feedback-fn` to produce form-wide feedback. can be used to e.g. prevent
     form submission
@@ -46,7 +46,8 @@
 
 (comment
   ;; feedback examples. top-level keys (:error, :info) are the feedback types
-  {:error {:form  :prevent-submit
+  {:warn  {:form :submission-not-allowed}
+   :error {:form  :submission-failed
            :attrs {:username [:attr-msg-1 :attr-msg-2]
                    :address  {:city   [:attr-msg-1 :attr-msg-2]
                               :street [:attr-msg-1 :attr-msg-2]}}}
