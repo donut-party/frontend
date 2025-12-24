@@ -199,8 +199,12 @@
   ::inline
   [input-opts]
   {:on-change #(dispatch-attr-input-event % input-opts true)
-   :on-blur   #(dispatch-inline-stop-editing % input-opts)
-   :on-focus  #(dispatch-inline-start-editing % input-opts)})
+   :on-blur   (fn [e]
+                (dispatch-attr-input-event e input-opts false)
+                (dispatch-inline-stop-editing e input-opts))
+   :on-focus  (fn [e]
+                (dispatch-attr-input-event e input-opts false)
+                (dispatch-inline-start-editing e input-opts))})
 
 ;; begin input-type-opts
 
@@ -398,13 +402,19 @@
        (into [:ul {:class ["donut-error-messages"]}])))
 (defmethod format-attr-feedback :default [_ _] nil)
 
-(defn attr-description
+(defn feedback-messages
   [feedback]
-  (some->> feedback
+  (some->> (seq feedback)
            (map (fn [[k v]] (format-attr-feedback k v)))
            (filter identity)
-           seq
-           (into [:div.description])))
+           seq))
+
+(defn feedback-messages-component
+  [composable feedback]
+  (when (seq feedback)
+    [:div (composable :donut.field/feedback-messages-wrapper-opts
+                      {:class (:donut.field/feedback-messages-wrapper-class css-classes)})
+     [feedback-messages feedback]]))
 
 (defn field-wrapper-classes
   [{:donut.input/keys [attr-path] :as input-opts}]
@@ -439,7 +449,7 @@
       before-input
       [input opts]
       after-input
-      (when attr-feedback (attr-description @attr-feedback))
+      [feedback-messages-component composable @attr-feedback]
       after-feedback]]))
 
 (defn checkbox-field
@@ -461,7 +471,7 @@
       (when tip
         [:div (composable :donut.field/tip-wrapper {:class (:donut.field/tip-class css-classes)})
          tip])
-      (when attr-feedback (attr-description @attr-feedback))]]))
+      [feedback-messages-component composable @attr-feedback]]]))
 
 (defmethod field :checkbox
   [opts]
