@@ -186,7 +186,7 @@
     (cond-> opts'
       (fn? input-class) (assoc :class (input-class input-opts)))))
 
-(defmulti input-event-handlers :donut.input/interaction-style)
+(defmulti input-event-handlers :donut.input/interaction-mode)
 
 (defmethod input-event-handlers
   :default
