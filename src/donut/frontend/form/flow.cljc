@@ -37,7 +37,8 @@
    [:input-events {:optional true} FormInputEvents]
    [:buffer-init-val FormBufferInitVal]
    [:ui-state {:optional true} FormUIState]
-   [:inline-editing {:optional true} FormInlineEditing]])
+   [:scratch {:optional true} FormInlineEditing] ;; place internal data
+   ])
 
 ;;---
 ;; form submitting options
@@ -63,7 +64,7 @@
    [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
    [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
    [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]
-   [:donut.form.layout/inline-editing {:optional true} [:vector keyword?]]])
+   [:donut.form.layout/scratch {:optional true} [:vector keyword?]]])
 
 (def form-config-keys (mapv first (rest FormConfig)))
 
@@ -192,24 +193,30 @@
   [rf/trim-v]
   (fn [db [{:donut.input/keys [attr-path]
             :as input-opts}]]
-    (let [{:donut.form.layout/keys [buffer inline-editing]} (form-paths input-opts)
-          attr-path (dsu/vectorize attr-path)]
+    (let [{:donut.form.layout/keys [buffer scratch]} (form-paths input-opts)
+          attr-path (dsu/vectorize attr-path)
+          on-focus-path (->> attr-path
+                             (into [::on-focus-value])
+                             (into scratch))]
       (assoc-in db
-                (into inline-editing attr-path)
+                on-focus-path
                 (get-in db (into buffer attr-path))))))
 
 (rf/reg-event-fx ::inline-stop-editing
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [{:donut.input/keys [attr-path]
                                 :as               input-opts}]]
-    (let [{:donut.form.layout/keys [inline-editing buffer]} (form-paths input-opts)
-          attr-path                                         (dsu/vectorize attr-path)
-          inline-stored-value                               (get-in db (into inline-editing attr-path))
-          current-value                                     (get-in db (into buffer attr-path))]
+    (let [{:donut.form.layout/keys [scratch buffer]} (form-paths input-opts)
+          attr-path                                  (dsu/vectorize attr-path)
+          on-focus-path                              (->> attr-path
+                                                          (into [::on-focus-value])
+                                                          (into scratch))
+          inline-stored-value                        (get-in db on-focus-path)
+          current-value                              (get-in db (into buffer attr-path))]
       (cond-> {:db (update-in db
-                              (into inline-editing (butlast attr-path))
+                              (butlast on-focus-path)
                               dissoc
-                              (last attr-path))}
+                              (last on-focus-path))}
         (not= inline-stored-value current-value) (assoc :dispatch [::sync-form input-opts (dissoc input-opts :type)])))))
 
 (defn attr-set-value
