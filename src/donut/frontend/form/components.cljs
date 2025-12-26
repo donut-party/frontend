@@ -334,6 +334,7 @@
                             (take 2)
                             (mapcat keys)
                             set)]
+    ;; doing it this way prevents passed-in-opts from being prematurely composed
     (merge passed-in-opts
            (dc/compose (select-keys framework-opts ks)
                        (select-keys passed-in-opts ks)))))

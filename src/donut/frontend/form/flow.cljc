@@ -276,8 +276,8 @@
   reset-form-buffer)
 
 (defn set-form
-  [db form-layout {:keys [buffer] :as form}]
-  (let [paths (form-paths form-layout)
+  [db form-config {:keys [buffer] :as form}]
+  (let [paths (form-paths form-config)
         form  (update form :buffer-init-val #(or % buffer))]
     (-> db
         (assoc-in (:donut.form.layout/buffer paths) (:buffer form))
@@ -461,6 +461,9 @@
 ;; fun little helpers
 ;;--------------------
 
+;; TODO update this
+;; example:
+;; [::dff/set-form-from-sync {:donut.form/key [:put :option]} :option :option/id {:ui-state true}]
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
   (fn [db [{:keys [::dsf/req] :as sync-response}]]
@@ -473,12 +476,11 @@
               form-config
               (merge {:buffer ent} form-opts))))
 
-;; example:
-;; [::dff/set-form-from-sync {:donut.form/key [:put :option]} :option :option/id {:ui-state true}]
+;; TODO revisit this signature
 (rf/reg-event-db ::set-form-with-routed-entity
   [rf/trim-v]
-  (fn [db [form-layout entity-key param-key form-opts]]
-    (set-form-with-routed-entity db form-layout entity-key param-key form-opts)))
+  (fn [db [form-config entity-key param-key form-opts]]
+    (set-form-with-routed-entity db form-config entity-key param-key form-opts)))
 
 ;;--------------------
 ;; form ui
