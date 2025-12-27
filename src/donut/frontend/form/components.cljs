@@ -70,6 +70,14 @@
   [form-config event-type]
   (rf/dispatch [::dff/form-input-event (assoc form-config :donut.input/event-type event-type)]))
 
+(defn dispatch-new-value
+  "Helper when you want non-input elements to update a value"
+  [input-config value & [opts]]
+  (rf/dispatch-sync
+   [::dff/attr-input-event (merge input-config
+                                  {:donut.input/value value}
+                                  opts)]))
+
 (defn dispatch-attr-input-event
   [dom-event
    {:donut.input/keys [format-write] :as input-config}
@@ -87,14 +95,6 @@
 (defn dispatch-inline-stop-editing
   [_dom-event input-opts]
   (rf/dispatch-sync [::dff/inline-stop-editing input-opts]))
-
-(defn dispatch-new-value
-  "Helper when you want non-input elements to update a value"
-  [input-config value & [opts]]
-  (rf/dispatch-sync
-   [::dff/attr-input-event (merge input-config
-                                  {:donut.input/value value}
-                                  opts)]))
 
 ;;--------------------
 ;; html/react attr helpers
@@ -125,53 +125,17 @@
 ;; input opts
 ;;---
 
-(def field-opts
-  "used in the field component"
-  #{:donut.field/tip
-    :donut.field/before-input
-    :donut.field/after-input
-    :donut.field/after-feedback
-    :donut.field/label
-    :donut.field/no-label?
-    :donut.field/class})
-
-(def input-opts
-  "react doesn't recognize these and hates them. enumerate them to dissoc them
-  from react component"
-  (into
-   #{:donut.input/attr-buffer
-     :donut.input/attr-path
-     :donut.input/attr-input-events
-     :donut.input/attr-feedback
-     :donut.input/select-options
-     :donut.input/select-option-components
-     :donut.input/form-key
-     :donut.input/format-read
-     :donut.input/format-write
-     :donut.form/feedback-fn}
-   dff/form-config-keys))
-
-(def donut-key-filter
-  "used to remove donut keys from react component options"
-  (into field-opts input-opts))
-
-(def input-injected-opts
-  (->> [:donut.input/attr-path :donut.form/feedback-fn]
-       (into dff/form-config-keys)
-       set))
-
 (defn common-input-opts
   "input opts common to all inputs of any type"
   [{:donut.input/keys [attr-path]
     :keys [type]
     :as input-opts}]
-  (let [sub-opts (select-keys input-opts input-injected-opts)]
-    {:type                          (or type :text)
-     :id                            (label-for input-opts)
-     :class                         ["donut-input" (attr-path-str attr-path)]
-     :donut.input/attr-buffer       (rf/subscribe [::dff/attr-buffer sub-opts])
-     :donut.input/attr-feedback     (rf/subscribe [::dffk/attr-feedback sub-opts])
-     :donut.input/attr-input-events (rf/subscribe [::dff/attr-input-events sub-opts])}))
+  {:type                          (or type :text)
+   :id                            (label-for input-opts)
+   :class                         ["donut-input" (attr-path-str attr-path)]
+   :donut.input/attr-buffer       (rf/subscribe [::dff/attr-buffer input-opts])
+   :donut.input/attr-feedback     (rf/subscribe [::dffk/attr-feedback input-opts])
+   :donut.input/attr-input-events (rf/subscribe [::dff/attr-input-events input-opts])})
 
 (defn merge-common-input-opts
   [input-opts]
@@ -340,9 +304,9 @@
                        (select-keys passed-in-opts ks)))))
 
 
-;;~~~~~~~~~~~~~~~~~~
+;;---
 ;; input components
-;;~~~~~~~~~~~~~~~~~~
+;;---
 
 (defmulti input :type)
 
@@ -379,21 +343,31 @@
   [opts]
   [:input (input-opts->react-opts opts)])
 
+(defn input-component
+  "Adapts the interface to `input` so that the caller can supply either
+  a) a map of opts as the only argument or b) an `input-type`,
+  `attr-path`, and `input-opts`.
+
+  In the case of b, `input-opts` consists only of the opts specific to
+  this input (it doesn't include framework opts). Those opts are
+  passed to the `all-input-opts-fn` function.
+
+  This allows the developer to write something like
+
+  `[input :text :user/username {:x :y}]`
+
+  rather than something like
+
+  `[input (all-input-opts :form-key :text :user/username {:x :y})]`"
+  [form-config]
+  (fn [input-type & [attr-path input-opts]]
+    [input (if (map? input-type)
+             (merge form-config input-type)
+             (all-input-opts form-config input-type attr-path input-opts))]))
+
 ;;---
 ;; 'field' interface, wraps inputs with messages and labels
 ;;---
-
-;; TODO duplication
-(defn default-feedback-classes
-  [feedback]
-  (if (or (nil? feedback) (map? feedback))
-    (->> feedback
-         (medley/filter-vals seq)
-         keys
-         (map (comp #(str "donut-feedback-" %) name))
-         (str/join " ")
-         (str " "))
-    (rfl/console :warn ::invalid-type (str feedback "should be nil or a map"))))
 
 (defmulti format-attr-feedback (fn [k _v] k))
 (defmethod format-attr-feedback :errors
@@ -427,8 +401,7 @@
 
 (defmethod field :default
   [{:keys [required]
-    :donut.field/keys [tip no-label?
-                       before-input after-input after-feedback]
+    :donut.field/keys [tip no-label? before-input after-input after-feedback]
     :donut.input/keys [attr-feedback]
     :as               opts}]
   (let [composable (dc/composable opts)]
@@ -440,13 +413,13 @@
            (composable :donut.field/label-opts {:for (label-for opts) :class (:donut.field/label-class css-classes)})
            (composable :donut.field/label-text (field-label-text opts))
            (when required
-             [:span (composable :donut.field/required-wrapper
+             [:span (composable :donut.field/required-wrapper-opts
                                 {:class (:donut.field/required-class css-classes)})
               (composable :donut.field/required-text "*")])])
         (when tip
-          [:div (composable :donut.field/tip-wrapper {:class (:donut.field/tip-class css-classes)})
+          [:div (composable :donut.field/tip-wrapper-opts {:class (:donut.field/tip-class css-classes)})
            tip])])
-     [:div (composable :donut.field/input-wrapper {})
+     [:div (composable :donut.field/input-wrapper-opts {})
       before-input
       [input opts]
       after-input
@@ -466,11 +439,11 @@
          [:i]
          (composable :donut.field/label-text (field-label-text opts))
          (when required
-           [:span (composable :donut.field/required-wrapper
+           [:span (composable :donut.field/required-wrapper-opts
                               {:class (:donut.field/required-class css-classes)})
             (composable :donut.field/required-text "*")])])
       (when tip
-        [:div (composable :donut.field/tip-wrapper {:class (:donut.field/tip-class css-classes)})
+        [:div (composable :donut.field/tip-wrapper-opts {:class (:donut.field/tip-class css-classes)})
          tip])
       [feedback-messages-component composable @attr-feedback]]]))
 
@@ -509,44 +482,15 @@
              (all-input-opts form-config input-type attr-path input-opts))]))
 
 ;;---
-;; inline input
-;;---
-
-(defn inline-input
-  [input-opts]
-  [input input-opts])
-
-;;---
 ;; interface fns
 ;;---
+
 (defn submit-when-ready
   [on-submit-handler form-feedback]
   (fn [e]
     (if (:prevent-submit? @form-feedback)
       (.preventDefault e)
       (on-submit-handler e))))
-
-(defn input-component
-  "Adapts the interface to `input` so that the caller can supply either
-  a) a map of opts as the only argument or b) an `input-type`,
-  `attr-path`, and `input-opts`.
-
-  In the case of b, `input-opts` consists only of the opts specific to
-  this input (it doesn't include framework opts). Those opts are
-  passed to the `all-input-opts-fn` function.
-
-  This allows the developer to write something like
-
-  `[input :text :user/username {:x :y}]`
-
-  rather than something like
-
-  `[input (all-input-opts :form-key :text :user/username {:x :y})]`"
-  [form-config]
-  (fn [input-type & [attr-path input-opts]]
-    [input (if (map? input-type)
-             (merge form-config input-type)
-             (all-input-opts form-config input-type attr-path input-opts))]))
 
 (defn input-builder
   "Used when you want to access both the input component and the opts used to
