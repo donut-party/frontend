@@ -6,7 +6,6 @@
   (:require
    [cognitect.anomalies :as anom]
    [donut.compose :as dc]
-   [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.failure.flow :as dfaf]
    [donut.frontend.path :as p]
