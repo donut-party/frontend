@@ -17,7 +17,6 @@
    [donut.sugar.utils :as dsu]
    [medley.core :as medley]
    [re-frame.core :as rf]
-   [re-frame.loggers :as rfl]
    [reagent.core :as r])
   (:require-macros [donut.frontend.form.components]))
 
