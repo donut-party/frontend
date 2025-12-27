@@ -217,7 +217,7 @@
                               (butlast on-focus-path)
                               dissoc
                               (last on-focus-path))}
-        (not= inline-stored-value current-value) (assoc :dispatch [::sync-form input-opts (dissoc input-opts :type)])))))
+        (not= inline-stored-value current-value) (assoc :dispatch [::sync-form input-opts])))))
 
 (defn attr-set-value
   "directly set the value of an attribute"
@@ -385,8 +385,9 @@
 
 (defn sync-form
   "build form request. update db with :submit input event for form"
-  [db form-config & [sync-opts]]
-  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-config)]
+  [db form-config]
+  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-config)
+        req                                                      (:donut.sync/req form-config)]
     {:db       (-> db
                    (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
@@ -396,12 +397,12 @@
                                      (dsu/deep-merge
                                       (:buffer (:donut.form/initial-state form-config))
                                       (get-in db buffer))
-                                     sync-opts)]}))
+                                     req)]}))
 
 (rf/reg-event-fx ::sync-form
   [rf/trim-v]
-  (fn [{:keys [db]} [form-layout sync-opts]]
-    (sync-form db form-layout sync-opts)))
+  (fn [{:keys [db]} [form-config]]
+    (sync-form db form-config)))
 
 (rf/reg-event-db ::record-form-submit
   [rf/trim-v]
