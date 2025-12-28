@@ -286,11 +286,9 @@
   - common-input-opts are not reified by input type
   - input-type opts specify type-specific behavior, like how selects or checkboxes should work
   - input-opts should be able to override any of these framework defaults"
-  [form-config input-type attr-path & [input-opts]]
+  [form-config input-opts]
   (let [passed-in-opts (merge form-config input-opts)
         framework-opts (-> passed-in-opts
-                           (merge {:type                  input-type
-                                   :donut.input/attr-path attr-path})
                            (merge-common-input-opts)
                            (merge-input-type-opts))
         ks             (->> (data/diff passed-in-opts framework-opts)
@@ -343,26 +341,10 @@
   [:input (input-opts->react-opts opts)])
 
 (defn input-component
-  "Adapts the interface to `input` so that the caller can supply either
-  a) a map of opts as the only argument or b) an `input-type`,
-  `attr-path`, and `input-opts`.
-
-  In the case of b, `input-opts` consists only of the opts specific to
-  this input (it doesn't include framework opts). Those opts are
-  passed to the `all-input-opts-fn` function.
-
-  This allows the developer to write something like
-
-  `[input :text :user/username {:x :y}]`
-
-  rather than something like
-
-  `[input (all-input-opts :form-key :text :user/username {:x :y})]`"
+  "build an input with framework opts"
   [form-config]
-  (fn [input-type & [attr-path input-opts]]
-    [input (if (map? input-type)
-             (merge form-config input-type)
-             (all-input-opts form-config input-type attr-path input-opts))]))
+  (fn [input-opts]
+    [input (all-input-opts form-config input-opts)]))
 
 ;;---
 ;; 'field' interface, wraps inputs with messages and labels
@@ -467,26 +449,10 @@
   (checkbox-field opts))
 
 (defn field-component
-  "Adapts the interface to `field` so that the caller can supply either
-  a) a map of opts as the only argument or b) an `input-type`,
-  `attr-path`, and `input-opts`.
-
-  In the case of b, `input-opts` consists only of the opts specific to
-  this input (it doesn't include framework opts). Those opts are
-  passed to the `input-opts` function.
-
-  This allows the user to call [input :text :user/username {:x :y}]
-  rather than something like
-
-  [input (all-input-opts form-config :text :user/username {:x :y})]"
+  "build a field with framework opts"
   [form-config]
-  (fn [input-type & [attr-path input-opts]]
-    [field (if (map? input-type)
-             (all-input-opts form-config
-                             (:type input-type)
-                             (:donut.input/attr-path input-type)
-                             input-type)
-             (all-input-opts form-config input-type attr-path input-opts))]))
+  (fn [field-opts]
+    [field (all-input-opts form-config field-opts)]))
 
 ;;---
 ;; interface fns
@@ -503,9 +469,9 @@
   "Used when you want to access both the input component and the opts used to
   create that component"
   [form-config]
-  (fn [input-type attr-path & [input-opts]]
-    (let [input-opts (all-input-opts form-config input-type attr-path input-opts)]
-      {:input [input input-opts]
+  (fn [input-opts]
+    (let [input-opts (all-input-opts form-config input-opts)]
+      {:input      [input input-opts]
        :input-opts input-opts})))
 
 (defn sync-form
