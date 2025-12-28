@@ -21,12 +21,10 @@
   - an `::attr-feedback` subscription that produces feedback for a specific attr."
   (:require
    [clojure.set :as set]
-   [donut.frontend.form.flow :as dff]
    [donut.sugar.utils :as dsu]
    [malli.core :as m]
    [malli.error :as me]
-   [medley.core :as medley]
-   [re-frame.core :as rf]))
+   [medley.core :as medley]))
 
 ;;--------------------
 ;; specs
@@ -65,42 +63,6 @@
   [input-events pred-events]
   (seq (set/intersection input-events pred-events)))
 
-(rf/reg-sub ::feedback
-  (fn [[_ form-layout]]
-    (rf/subscribe [::dff/form form-layout]))
-  (fn [form [_ {:donut.form/keys [feedback-fn]}]]
-    (when feedback-fn
-      (feedback-fn form))))
-
-;; yields values of the form
-;; {:error [e1 e2 e3]
-;;  :info  [i1 i2 i3]
-(rf/reg-sub ::form-feedback
-  (fn [[_ form-layout]]
-    (rf/subscribe [::feedback form-layout]))
-  (fn [feedback _]
-    (reduce-kv (fn [form-feedback feedback-type all-feedback]
-                 (if-let [feedback (:form all-feedback)]
-                   (assoc form-feedback feedback-type feedback)
-                   form-feedback))
-               {}
-               feedback)))
-
-;; yields values of the form
-;; {:error [e1 e2 e3]
-;;  :info  [i1 i2 i3]
-(rf/reg-sub ::attr-feedback
-  (fn [[_ form-layout _attr-path]]
-    (rf/subscribe [::feedback form-layout]))
-  (fn [feedback [_ {:donut.input/keys [attr-path]}]]
-    (reduce-kv (fn [attr-feedback feedback-type all-feedback]
-                 (if-let [feedback (get (:attrs all-feedback)
-                                        (dsu/vectorize attr-path))]
-                   (assoc attr-feedback feedback-type feedback)
-                   attr-feedback))
-               {}
-               feedback)))
-
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
   [{:keys [feedback input-events]}]
@@ -135,7 +97,7 @@
 (defn malli-error-feedback-fn
   [schema & [error-overrides]]
   (fn [{:keys [buffer input-events]}]
-    {:errors
+    {:donut.feedback/error
      {:attrs (->> (-> schema
                       (m/explain (or buffer {}))
                       (feedback-humanize {:errors (merge me/default-errors
@@ -150,3 +112,9 @@
   [& fns]
   (fn [form]
     (apply dsu/deep-merge (map #(% form) fns))))
+
+(defn has-feedback?
+  [feedback k]
+  (let [{:keys [attrs form]} (get feedback k)]
+    (or (seq form)
+        (some seq (vals attrs)))))

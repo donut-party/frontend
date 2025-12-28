@@ -7,7 +7,8 @@
    [donut.frontend.sync.flow :as dsf]
    [donut.sugar.utils :as dsu]
    [re-frame.core :as rf]
-   [re-frame.loggers :as rfl]))
+   [re-frame.loggers :as rfl]
+   [donut.frontend.form.feedback :as dffk]))
 
 ;;--------------------
 ;; specs
@@ -68,6 +69,10 @@
 
 (def form-config-keys (mapv first (rest FormConfig)))
 
+;;---
+;; helpers
+;;---
+
 (defn form-paths
   "By default all form data lives under [:donut :form form-key]. A form layout
   lets you specify different locations for form facets. This function translates
@@ -82,30 +87,34 @@
             {}
             layout-keys)))
 
-;;--------------------
-;; Form subs
-;;--------------------
-
 (defn merge-initial-state
   [form-config form]
   (dsu/deep-merge (:donut.form/initial-state form-config) (or form {})))
 
+(defn form-data
+  [db form-config]
+  (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]} (form-paths form-config)]
+    {:buffer          (get-in db buffer)
+     :feedback        (get-in db feedback)
+     :input-events    (get-in db input-events)
+     :buffer-init-val (get-in db buffer-init-val)
+     :ui-state        (get-in db ui-state)}))
+
+(defn form-feedback
+  [db {:donut.form/keys [feedback-fn] :as form-config}]
+  (feedback-fn (form-data db form-config)))
+
+
+;; TODO helper for attr buffer values
+
+;;--------------------
+;; Form subs
+;;--------------------
+
 (rf/reg-sub ::form
-  (fn [db [_ {:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state] :as form-layout}]]
-    (if (or buffer feedback input-events buffer-init-val ui-state)
-      (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]}
-            (form-paths form-layout)]
-        ;; TODO this could be a drag on performance. could do this more precisely.
-        (merge-initial-state
-         form-layout
-         {:buffer          (get-in db buffer)
-          :feedback        (get-in db feedback)
-          :input-events    (get-in db input-events)
-          :buffer-init-val (get-in db buffer-init-val)
-          :ui-state        (get-in db ui-state)}))
-      (merge-initial-state
-       form-layout
-       (p/get-path db :form [(:donut.form/key form-layout)])))))
+  (fn [db [_ form-config]]
+    (merge-initial-state form-config
+                         (form-data db form-config))))
 
 (defn form-signal
   [[_ form-config]]
@@ -121,7 +130,7 @@
 (def inner-keys (set (vals sub-name->inner-key)))
 
 ;; register these subscriptions
-(doseq [[sub-name inner-key] sub-name->inner-key]
+(doseq [[sub-name inner-key] (dissoc sub-name->inner-key ::feedback)]
   (rf/reg-sub sub-name
     form-signal
     (fn [form _]
@@ -137,16 +146,6 @@
   (attr-facet-sub ::buffer)
   (fn [buffer [_ {:donut.input/keys [attr-path]}]]
     (get-in buffer (dsu/vectorize attr-path))))
-
-(rf/reg-sub ::attr-feedback
-  (attr-facet-sub ::feedback)
-  (fn [feedback [_ {:donut.input/keys [attr-path]}]]
-    (get-in feedback (into [:attrs] (dsu/vectorize attr-path)))))
-
-(rf/reg-sub ::form-feedback
-  (attr-facet-sub ::feedback)
-  (fn [feedback _]
-    (:form feedback)))
 
 (rf/reg-sub ::attr-input-events
   (attr-facet-sub ::input-events)
@@ -189,35 +188,43 @@
   [rf/trim-v]
   attr-input-event)
 
-(rf/reg-event-db ::inline-start-editing
+(defn inline-editing-paths
+  [{:donut.input/keys [attr-path] :as input-opts}]
+  (let [{:donut.form.layout/keys [scratch buffer]} (form-paths input-opts)
+        attr-path                                  (dsu/vectorize attr-path)
+        on-focus-path                              (->> attr-path
+                                                        (into [::on-focus-value])
+                                                        (into scratch))]
+    {:buffer-attr-path (into buffer attr-path)
+     :on-focus-path    on-focus-path}))
+
+(rf/reg-event-db ::inline-editing-stop
   [rf/trim-v]
-  (fn [db [{:donut.input/keys [attr-path]
-            :as input-opts}]]
-    (let [{:donut.form.layout/keys [buffer scratch]} (form-paths input-opts)
-          attr-path (dsu/vectorize attr-path)
-          on-focus-path (->> attr-path
-                             (into [::on-focus-value])
-                             (into scratch))]
+  (fn [db [input-opts]]
+    (let [{:keys [buffer-attr-path on-focus-path]} (inline-editing-paths input-opts)]
       (assoc-in db
                 on-focus-path
-                (get-in db (into buffer attr-path))))))
+                (get-in db buffer-attr-path)))))
 
-(rf/reg-event-fx ::inline-stop-editing
+(defn- dissoc-inline-value
+  "stop tracking the focused value"
+  [db on-focus-path]
+  (update-in db
+             (butlast on-focus-path)
+             dissoc
+             (last on-focus-path)))
+
+(rf/reg-event-fx ::inline-editing-start
   [rf/trim-v]
-  (fn [{:keys [db] :as _cofx} [{:donut.input/keys [attr-path]
-                                :as               input-opts}]]
-    (let [{:donut.form.layout/keys [scratch buffer]} (form-paths input-opts)
-          attr-path                                  (dsu/vectorize attr-path)
-          on-focus-path                              (->> attr-path
-                                                          (into [::on-focus-value])
-                                                          (into scratch))
-          inline-stored-value                        (get-in db on-focus-path)
-          current-value                              (get-in db (into buffer attr-path))]
-      (cond-> {:db (update-in db
-                              (butlast on-focus-path)
-                              dissoc
-                              (last on-focus-path))}
-        (not= inline-stored-value current-value) (assoc :dispatch [::sync-form input-opts])))))
+  (fn [{:keys [db] :as _cofx} [input-opts]]
+    (let [{:keys [buffer-attr-path on-focus-path]} (inline-editing-paths input-opts)
+          inline-stored-value                      (get-in db on-focus-path)
+          current-value                            (get-in db buffer-attr-path)
+          sync?                                    (and (not= inline-stored-value current-value)
+                                                        (not (dffk/has-feedback? (form-feedback db input-opts)
+                                                                                 :donut.feedback/error)))]
+      (cond-> {:db (dissoc-inline-value db on-focus-path)}
+        sync? (assoc :dispatch [::sync-form input-opts])))))
 
 (defn attr-set-value
   "directly set the value of an attribute"
@@ -501,3 +508,43 @@
 (rf/reg-event-db ::toggle-form
   [rf/trim-v]
   (fn [db [path data]] (toggle-form db path data)))
+
+;;---
+;; feedback
+;;---
+
+(rf/reg-sub ::feedback
+  (fn [[_ form-config]]
+    (rf/subscribe [::form form-config]))
+  (fn [form-data [_ {:donut.form/keys [feedback-fn]}]]
+    (when feedback-fn
+      (feedback-fn form-data))))
+
+;; yields values of the form
+;; {:error [e1 e2 e3]
+;;  :info  [i1 i2 i3]
+(rf/reg-sub ::form-feedback
+  (fn [[_ form-layout]]
+    (rf/subscribe [::feedback form-layout]))
+  (fn [feedback _]
+    (reduce-kv (fn [form-feedback feedback-type all-feedback]
+                 (if-let [feedback (:form all-feedback)]
+                   (assoc form-feedback feedback-type feedback)
+                   form-feedback))
+               {}
+               feedback)))
+
+;; yields values of the form
+;; {:error [e1 e2 e3]
+;;  :info  [i1 i2 i3]
+(rf/reg-sub ::attr-feedback
+  (fn [[_ form-layout _attr-path]]
+    (rf/subscribe [::feedback form-layout]))
+  (fn [feedback [_ {:donut.input/keys [attr-path]}]]
+    (reduce-kv (fn [attr-feedback feedback-type all-feedback]
+                 (if-let [feedback (get (:attrs all-feedback)
+                                        (dsu/vectorize attr-path))]
+                   (assoc attr-feedback feedback-type feedback)
+                   attr-feedback))
+               {}
+               feedback)))

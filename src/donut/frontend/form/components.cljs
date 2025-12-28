@@ -89,11 +89,11 @@
 
 (defn dispatch-inline-start-editing
   [_dom-event input-opts]
-  (rf/dispatch-sync [::dff/inline-start-editing input-opts]))
+  (rf/dispatch-sync [::dff/inline-editing-stop input-opts]))
 
 (defn dispatch-inline-stop-editing
   [_dom-event input-opts]
-  (rf/dispatch-sync [::dff/inline-stop-editing input-opts]))
+  (rf/dispatch-sync [::dff/inline-editing-start input-opts]))
 
 ;;--------------------
 ;; html/react attr helpers
@@ -133,7 +133,7 @@
    :id                            (label-for input-opts)
    :class                         ["donut-input" (attr-path-str attr-path)]
    :donut.input/attr-buffer       (rf/subscribe [::dff/attr-buffer input-opts])
-   :donut.input/attr-feedback     (rf/subscribe [::dffk/attr-feedback input-opts])
+   :donut.input/attr-feedback     (rf/subscribe [::dff/attr-feedback input-opts])
    :donut.input/attr-input-events (rf/subscribe [::dff/attr-input-events input-opts])})
 
 (defn merge-common-input-opts
@@ -368,20 +368,28 @@
 ;; 'field' interface, wraps inputs with messages and labels
 ;;---
 
-(defmulti format-attr-feedback (fn [k _v] k))
-(defmethod format-attr-feedback :errors
-  [_ errors]
-  (->> errors
-       (map (fn [x] ^{:key (str "donut-error-" x)} [:li x]))
-       (into [:ul {:class ["donut-error-messages"]}])))
-(defmethod format-attr-feedback :default [_ _] nil)
+(defmulti format-attr-feedback
+  (fn [feedback-key _messages] feedback-key))
+
+(defmethod format-attr-feedback :donut.feedback/error
+  [_ messages]
+  (->> messages
+       (map (fn [x] [:li {:key (str "donut-feedback-" x)} x]))
+       (into [:ul {:class ["donut-feedback-error"]}])))
+
+(defmethod format-attr-feedback
+  :default
+  [feedback-key messages]
+  (->> messages
+       (map (fn [x] ^{:key (str "donut-feedback-" x)} [:li x]))
+       (into [:ul {:class [(str "donut-feedback-" (name feedback-key))]}])))
 
 (defn feedback-messages
   [feedback]
   (some->> (seq feedback)
            (map (fn [[k v]] (format-attr-feedback k v)))
            (filter identity)
-           seq))
+           (into [:div])))
 
 (defn feedback-messages-component
   [composable feedback]
@@ -503,12 +511,13 @@
 (defn sync-form
   [form-config & [sync-opts]]
   (when-not (:donut.form/prevent-submit? sync-opts)
-    (rf/dispatch [::dff/sync-form form-config sync-opts])))
+    (rf/dispatch [::dff/sync-form (merge form-config sync-opts)])))
 
 (defn form-config
   [{:keys [donut.form/key] :as f-config}]
-  (merge {:donut.form/sync? true
-          :donut.sync/key   key}
+  (merge {:donut.form/sync?       true
+          :donut.form/feedback-fn dffk/stored-error-feedback
+          :donut.sync/key         key}
          f-config))
 
 (defn form-sync-subs
@@ -522,7 +531,7 @@
 (defn form-subs
   [{:keys [:donut.form/sync?] :as form-config}]
   (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state form-config])
-            :*form-feedback (rf/subscribe [::dffk/form-feedback form-config])
+            :*form-feedback (rf/subscribe [::dff/form-feedback form-config])
             :*form-buffer   (rf/subscribe [::dff/buffer form-config])
             :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-config])}
     sync? (merge (form-sync-subs (:donut.sync/key form-config)))))
