@@ -63,6 +63,7 @@
   [input-events pred-events]
   (seq (set/intersection input-events pred-events)))
 
+;; TODO fix this
 (defn stored-error-feedback
   "Shows errors for attrs when they haven't received focus"
   [{:keys [feedback input-events]}]
