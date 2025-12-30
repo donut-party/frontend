@@ -89,11 +89,11 @@
 
 (defn dispatch-inline-start-editing
   [_dom-event input-opts]
-  (rf/dispatch-sync [::dff/inline-editing-stop input-opts]))
+  (rf/dispatch-sync [::dff/inline-editing-start input-opts]))
 
 (defn dispatch-inline-stop-editing
   [_dom-event input-opts]
-  (rf/dispatch-sync [::dff/inline-editing-start input-opts]))
+  (rf/dispatch-sync [::dff/inline-editing-stop input-opts]))
 
 ;;--------------------
 ;; html/react attr helpers

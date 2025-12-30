@@ -10,5 +10,4 @@
   [::dsf/get {:route-name route-name
               ::dfe/pre   [dsf/not-active]
               ::dfe/xf    [dsf/use-current-route-params]
-              ::dfe/on    {:success (dc/into [[::dff/set-form-with-routed-entity
-                                               {:donut.form/key key}]])}}])
+              ::dfe/on    {:success (dc/into [[::dff/set-form-with-routed-entity {:donut.form/key key}]])}}])

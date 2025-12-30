@@ -392,3 +392,11 @@
 (defn not-active
   [ctx]
   (not= :active (ctx-sync-state ctx)))
+
+;;---
+;; sync event helpers
+;;---
+
+(defn response-data
+  [ctx]
+  (-> ctx ::resp :response-data))

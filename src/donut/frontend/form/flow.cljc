@@ -198,7 +198,7 @@
     {:buffer-attr-path (into buffer attr-path)
      :on-focus-path    on-focus-path}))
 
-(rf/reg-event-db ::inline-editing-stop
+(rf/reg-event-db ::inline-editing-start
   [rf/trim-v]
   (fn [db [input-opts]]
     (let [{:keys [buffer-attr-path on-focus-path]} (inline-editing-paths input-opts)]
@@ -214,7 +214,7 @@
              dissoc
              (last on-focus-path)))
 
-(rf/reg-event-fx ::inline-editing-start
+(rf/reg-event-fx ::inline-editing-stop
   [rf/trim-v]
   (fn [{:keys [db] :as _cofx} [input-opts]]
     (let [{:keys [buffer-attr-path on-focus-path]} (inline-editing-paths input-opts)
@@ -283,9 +283,10 @@
   reset-form-buffer)
 
 (defn set-form
-  [db form-config {:keys [buffer] :as form}]
-  (let [paths (form-paths form-config)
-        form  (update form :buffer-init-val #(or % buffer))]
+  [db {:keys [::set-form] :as form-config}]
+  (let [{:keys [buffer]} set-form
+        paths            (form-paths form-config)
+        form             (update set-form :buffer-init-val #(or % buffer))]
     (-> db
         (assoc-in (:donut.form.layout/buffer paths) (:buffer form))
         (assoc-in (:donut.form.layout/feedback paths) (:feedback form))
@@ -296,16 +297,17 @@
 ;; Populate form initial state
 (rf/reg-event-db ::set-form
   [rf/trim-v]
-  (fn [db [form-layout form]]
-    (set-form db form-layout form)))
+  (fn [db [opts]]
+    (set-form db opts)))
 
 (defn set-form-from-path
   [db [form-layout {:keys [data-path data-fn]
                     :or   {data-fn identity}
                     :as   form}]]
-  (set-form db form-layout (-> form
-                               (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
-                               (dissoc :data-path :data-fn))))
+  (set-form db (dc/compose {::set-form (-> form
+                                           (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
+                                           (dissoc :data-path :data-fn))}
+                           form-layout)))
 
 ;; Populate form initial state
 (rf/reg-event-db ::set-form-from-path
@@ -314,7 +316,7 @@
 
 (defn clear-form
   [db form-config]
-  (set-form db form-config nil))
+  (set-form db (assoc form-config ::set-form nil)))
 
 (rf/reg-event-db ::clear-form
   [rf/trim-v]
@@ -475,20 +477,20 @@
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
   (fn [db [{:keys [::dsf/req] :as sync-response}]]
-    (set-form db (::form-layout req) {:buffer (dsf/single-entity sync-response)})))
+    (set-form db (dc/compose {::set-form {:buffer (dsf/single-entity sync-response)}}
+                             req))))
 
 (defn set-form-with-routed-entity
-  [db form-config entity-key param-key & [form-opts]]
+  [db form-config entity-key param-key]
   (let [ent (dnu/routed-entity db entity-key param-key)]
-    (set-form db
-              form-config
-              (merge {:buffer ent} form-opts))))
+    (set-form db (dc/compose {::set-form {:buffer ent}}
+                             form-config))))
 
 ;; TODO revisit this signature
 (rf/reg-event-db ::set-form-with-routed-entity
   [rf/trim-v]
-  (fn [db [form-config entity-key param-key form-opts]]
-    (set-form-with-routed-entity db form-config entity-key param-key form-opts)))
+  (fn [db [form-config entity-key param-key]]
+    (set-form-with-routed-entity db form-config entity-key param-key)))
 
 ;;--------------------
 ;; form ui

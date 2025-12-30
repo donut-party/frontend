@@ -92,15 +92,15 @@
     node-or-selector))
 
 (rf/reg-fx ::focus
-  (fn [{:keys [node-or-selector timeout]}]
-    (let [focus #(.focus (node-to-focus node-or-selector))]
+  (fn [{:keys [node timeout]}]
+    (let [focus #(.focus (node-to-focus node))]
       (if timeout
         (js/setTimeout focus timeout)
         (focus)))))
 
 (rf/reg-event-fx ::focus
-  (fn [_ [_ node-or-selector timeout]]
-    {::focus {:node-or-selector node-or-selector
+  (fn [_ [_ {:keys [node timeout]}]]
+    {::focus {:node    node
               :timeout timeout}}))
 
 ;;---
