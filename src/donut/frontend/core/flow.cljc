@@ -63,6 +63,18 @@
     (update-in db path dsu/set-toggle val)))
 
 ;;---
+;; function application event
+;;---
+
+(rf/reg-event-fx ::apply-fn
+  [rf/trim-v]
+  (fn [_ctx [f]]
+    {::apply-fn f}))
+
+(rf/reg-fx ::apply-fn
+  (fn [f] (f)))
+
+;;---
 ;; entities
 ;;---
 

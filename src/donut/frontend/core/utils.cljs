@@ -1,6 +1,7 @@
 (ns donut.frontend.core.utils
   (:require
    [ajax.url :as url]
+   [clojure.string :as str]
    [donut.frontend.path :as p]
    [donut.sugar.utils :as dsu]
    [goog.object :as go]
@@ -140,3 +141,19 @@
   "merge with args reversed"
   [a b]
   (merge b a))
+
+(defn add-key-listener
+  "responds to key presses"
+  [{:keys [ref event-name] :as listeners}]
+  (when ref
+    (let [keydowns (fn [e]
+                     (let [modifiers (cond-> #{}
+                                       (.-ctrlKey e)  (conj :ctrl)
+                                       (.-shiftKey e) (conj :shift)
+                                       (.-altKey e)   (conj :alt)
+                                       (.-metaKey e)  (conj :meta))
+                           key       (-> (go-get e "key") str/lower-case keyword)]
+                       (when-let [listener (or (get-in listeners [key :any-modifier])
+                                               (get-in listeners [key modifiers]))]
+                         (listener e ref))))]
+      (.addEventListener ref (or event-name "keydown") keydowns true))))
