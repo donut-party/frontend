@@ -481,10 +481,10 @@
 
 (defn form-config
   [{:keys [donut.form/key] :as f-config}]
-  (merge {:donut.form/sync?       true
-          :donut.form/feedback-fn dffk/stored-error-feedback
-          :donut.sync/key         key}
-         f-config))
+  (dc/compose {:donut.form/sync?       true
+               :donut.form/feedback-fn dffk/stored-error-feedback
+               :donut.sync/req         {:donut.sync/key key}}
+              f-config))
 
 (defn form-sync-subs
   [sync-key]

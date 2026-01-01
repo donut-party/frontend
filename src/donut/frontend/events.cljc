@@ -17,6 +17,7 @@
     (->> callbacks
          (reduce (fn [re-frame-events callback]
                    (cond
+                     ;; TODO better handle functions
                      (fn? callback)         (into re-frame-events (callback cofx))
                      (vector? callback)     (conj re-frame-events callback)
                      :else                  (throw (ex-info "unrecognized ::dfe/on callback form" {:callback callback}))))

@@ -108,3 +108,19 @@ Run once with
 ```
 lein doo node test once
 ```
+
+# Development guidelines
+
+As much as possible, write re-frame subscriptions and event handlers so that
+they merely dispatch to functions. This increases reusability.
+
+Be consistent in how you write re-frame implementation functions. For example,
+re-frame subscription functions always take two arguments, where the second is
+always a vector of "rest args" passed in to `(rf/subscribe)`. The implementation
+functions should either always follow this signature too, or should always
+provide positional args. Pick one of these, not both:
+
+``` clojure
+(fn [a b c])
+(fn [a [b c]])
+```
