@@ -6,7 +6,6 @@
   (:require
    [cljs-time.core :as ct]
    [cljs-time.format :as tf]
-   [clojure.data :as data]
    [clojure.set :as set]
    [clojure.string :as str]
    [donut.compose :as dc]
@@ -78,14 +77,19 @@
                                   opts)]))
 
 (defn dispatch-attr-input-event
-  [dom-event
-   {:donut.input/keys [format-write] :as input-config}
-   & [update-val?]]
+  [dom-event input-opts]
   (rf/dispatch-sync
    [::dff/attr-input-event
-    (cond-> (select-keys input-config attr-input-keys)
-      true        (merge {:donut.input/event-type (keyword (dcu/event-type dom-event))})
-      update-val? (merge {:donut.input/value (format-write (dcu/tv dom-event))}))]))
+    (assoc (select-keys input-opts attr-input-keys)
+           :donut.input/event-type (keyword (dcu/e-type dom-event)))]))
+
+(defn dispatch-attr-update-value-input-event
+  [dom-event {:keys [:donut.input/dom-event->clj-value] :as input-opts}]
+  (rf/dispatch-sync
+   [::dff/attr-update-value
+    (assoc input-opts
+           :donut.input/event-type (keyword (dcu/e-type dom-event))
+           :donut.input/value (dom-event->clj-value dom-event))]))
 
 (defn dispatch-inline-start-editing
   [_dom-event input-opts]
@@ -124,21 +128,118 @@
 ;; input opts
 ;;---
 
-(defn common-input-opts
-  "input opts common to all inputs of any type"
+(defn default-base-donut-input-opts
   [{:donut.input/keys [attr-path]
-    :keys [type]
-    :as input-opts}]
-  {:type                          (or type :text)
-   :id                            (label-for input-opts)
-   :class                         ["donut-input" (attr-path-str attr-path)]
-   :donut.input/attr-buffer       (rf/subscribe [::dff/attr-buffer input-opts])
-   :donut.input/attr-feedback     (rf/subscribe [::dff/attr-feedback input-opts])
-   :donut.input/attr-input-events (rf/subscribe [::dff/attr-input-events input-opts])})
+    :keys             [type]
+    :as               input-opts}]
+  {:type                              type
+   :id                                (label-for input-opts)
+   :class                             ["donut-input" (attr-path-str attr-path)]
+   :donut.input/attr-buffer           (rf/subscribe [::dff/attr-buffer input-opts])
+   :donut.input/attr-feedback         (rf/subscribe [::dff/attr-feedback input-opts])
+   :donut.input/attr-input-events     (rf/subscribe [::dff/attr-input-events input-opts])
+   :donut.input/attr-value-update     (fn [buffer attr-path value]
+                                        (assoc-in buffer attr-path value))
+   :donut.input/clj-value->input-opts (fn [v] {:value v})
+   :donut.input/dom-event->clj-value  (fn [dom-event] (dcu/tv dom-event))})
 
-(defn merge-common-input-opts
+(defmulti base-donut-input-opts-for-type :type)
+
+(defmethod base-donut-input-opts-for-type
+  :default
   [input-opts]
-  (merge input-opts (common-input-opts input-opts)))
+  (default-base-donut-input-opts input-opts))
+
+(defmethod base-donut-input-opts-for-type
+  :select
+  [input-opts]
+  (assoc (default-base-donut-input-opts input-opts)
+         :donut.input/clj-value->input-opts (fn [v] {:value (or v "")})))
+
+(defmethod base-donut-input-opts-for-type
+  :radio
+  [{:keys [value] :as input-opts}]
+  (assoc (default-base-donut-input-opts input-opts)
+         :donut.input/clj-value->input-opts (fn [clj-value]
+                                              {:checked (= value clj-value)})
+         :donut.input/dom-event->clj-value (fn [_dom-event] (constantly value))))
+
+(defn input-opts>checked-value
+  [input-opts]
+  (cond
+    (contains? input-opts :donut.input/checked-value) (:donut.input/checked-value input-opts)
+    (contains? input-opts :value)                     (:value input-opts)
+    :else                                             true))
+
+(defmethod base-donut-input-opts-for-type
+  :checkbox
+  [input-opts]
+  (let [checked-value   (input-opts>checked-value input-opts)
+        unchecked-value (get input-opts :donut.input/unchecked-value false)]
+    (assoc (default-base-donut-input-opts input-opts)
+           :donut.input/checked-value         checked-value
+           :donut.input/unchecked-value       unchecked-value
+           :donut.input/clj-value->input-opts (fn [value]
+                                                {:checked (= value checked-value)})
+           :donut.input/dom-event->clj-value  (fn [dom-event]
+                                                (if (dcu/e-checked dom-event)
+                                                  checked-value
+                                                  unchecked-value)))))
+
+(defmethod base-donut-input-opts-for-type
+  :checkbox-set
+  [input-opts]
+  (let [checked-value (input-opts>checked-value input-opts)]
+    (assoc (default-base-donut-input-opts input-opts)
+           :type :checkbox
+           :donut.input/checked-value checked-value
+           :donut.input/clj-value->input-opts (fn [value] {:checked ((or value #{}) checked-value)})
+           :donut.input/dom-event->clj-value  (constantly checked-value)
+           :donut.input/attr-value-update (fn [buffer attr-path value]
+                                            (update-in buffer attr-path dsu/set-toggle value)))))
+
+(def default-date-fmt (:date tf/formatters))
+
+(defn read-date-formatter
+  [fmt]
+  (fn [x]
+    (when x (tf/unparse fmt (js/goog.date.DateTime. x)))))
+
+(defn write-date-formatter
+  [date-fmt]
+  (fn [v]
+    (if (empty? v)
+      nil
+      (let [parsed (tf/parse date-fmt v)]
+        (js/Date. (ct/year parsed) (dec (ct/month parsed)) (ct/day parsed))))))
+
+
+(defmethod base-donut-input-opts-for-type :date
+  [input-opts]
+  (let [date-format  (:donut.input/date-format input-opts default-date-fmt)
+        format-read  (read-date-formatter date-format)
+        format-write (write-date-formatter date-format)]
+    (assoc (default-base-donut-input-opts input-opts)
+           :donut.input/date-format date-format
+           :donut.input/clj-value->input-opts (fn [value] {:value (format-read value)})
+           :donut.input/dom-event->clj-value (fn [dom-event] (format-write (dcu/tv dom-event))))))
+
+(defmethod base-donut-input-opts-for-type :number
+  [input-opts]
+  (assoc (default-base-donut-input-opts input-opts)
+         :donut.input/dom-event->clj-value (fn [dom-event] (dcu/tv-number dom-event))))
+
+(defmethod base-donut-input-opts-for-type :int
+  [input-opts]
+  (assoc (default-base-donut-input-opts input-opts)
+         :type :number
+         :donut.input/dom-event->clj-value (fn [dom-event] (.floor js/Math (dcu/tv-number dom-event)))))
+
+;; TODO dissoc-when
+
+(defn derived-donut-input-opts
+  [{:donut.input/keys [attr-buffer clj-value->input-opts] :as _base}]
+  (clj-value->input-opts @attr-buffer))
 
 (defn input-opts->react-opts
   [input-opts]
@@ -154,131 +255,20 @@
 (defmethod input-event-handlers
   :default
   [input-opts]
-  {:on-change #(dispatch-attr-input-event % input-opts true)
-   :on-blur   #(dispatch-attr-input-event % input-opts false)
-   :on-focus  #(dispatch-attr-input-event % input-opts false)})
+  {:on-change #(dispatch-attr-update-value-input-event % input-opts)
+   :on-blur   #(dispatch-attr-input-event % input-opts)
+   :on-focus  #(dispatch-attr-input-event % input-opts)})
 
 (defmethod input-event-handlers
   ::inline
   [input-opts]
-  {:on-change #(dispatch-attr-input-event % input-opts true)
+  {:on-change #(dispatch-attr-update-value-input-event % input-opts)
    :on-blur   (fn [e]
-                (dispatch-attr-input-event e input-opts false)
+                (dispatch-attr-input-event e input-opts)
                 (dispatch-inline-stop-editing e input-opts))
    :on-focus  (fn [e]
-                (dispatch-attr-input-event e input-opts false)
+                (dispatch-attr-input-event e input-opts)
                 (dispatch-inline-start-editing e input-opts))})
-
-;; begin input-type-opts
-
-(defn merge-default-event-handlers
-  [input-opts]
-  (merge input-opts (input-event-handlers input-opts)))
-
-(defn input-type-opts-default
-  [{:donut.input/keys [attr-buffer format-read format-write] :as input-opts}]
-  ;; must defer format-read, format-write, value until this point because
-  ;; input-type-opts methods can set the `format-read` appropriate to them
-  (let [format-read  (or format-read identity)
-        format-write (or format-write identity)]
-    (-> input-opts
-        (assoc :value (format-read @attr-buffer)
-               :donut.input/format-read format-read
-               :donut.input/format-write format-write)
-        merge-default-event-handlers)))
-
-(defmulti input-type-opts
-  "Different input types expect different options and can have different defaults
-  for format-read and format-write. For example, a radio button has a `:checked`
-  attribute."
-  :type)
-
-(defmethod input-type-opts :default
-  [input-opts]
-  (input-type-opts-default input-opts))
-
-(defmethod input-type-opts :textarea
-  [input-opts]
-  (input-type-opts-default input-opts))
-
-(defmethod input-type-opts :select
-  [input-opts]
-  (-> input-opts
-      (dc/compose {:donut.input/format-read (dc/or #(or % ""))})
-      (input-type-opts-default)))
-
-(defmethod input-type-opts :radio
-  [{:donut.input/keys [format-read attr-buffer]
-    :keys [value]
-    :as opts}]
-  (let [format-read (or format-read identity)]
-    (-> opts
-        (dc/compose {:donut.input/format-write (dc/or (constantly value))})
-        (input-type-opts-default)
-        (assoc :checked (= value (format-read @attr-buffer))))))
-
-(defmethod input-type-opts :checkbox
-  [{:donut.input/keys [attr-buffer format-read format-write] :as opts}]
-  (let [format-read  (or format-read identity)
-        value        (format-read @attr-buffer)
-        format-write (or format-write (constantly (not value)))]
-    (-> opts
-        (assoc :donut.input/format-write format-write)
-        (input-type-opts-default)
-        (merge {:checked (boolean value)})
-        (dissoc :value))))
-
-(defmethod input-type-opts :checkbox-set
-  [{:keys [value]
-    :donut.input/keys [attr-buffer format-read format-write]
-    :as opts}]
-  (let [format-read  (or format-read identity)
-        checkbox-set (or (format-read @attr-buffer) #{})
-        format-write (or format-write (constantly (dsu/set-toggle checkbox-set value)))]
-    (-> opts
-        (assoc :donut.input/format-write format-write)
-        input-type-opts-default
-        (merge {:type    :checkbox
-                :checked (boolean (checkbox-set value))}))))
-
-;; date handling
-(defn unparse [fmt x]
-  (when x (tf/unparse fmt (js/goog.date.DateTime. x))))
-
-(def date-fmt (:date tf/formatters))
-
-(defn format-write-date
-  [v]
-  (if (empty? v)
-    nil
-    (let [parsed (tf/parse date-fmt v)]
-      (js/Date. (ct/year parsed) (dec (ct/month parsed)) (ct/day parsed)))))
-
-(defmethod input-type-opts :date
-  [{:donut.input/keys [attr-buffer] :as opts}]
-  (-> opts
-      (assoc :donut.input/format-write format-write-date)
-      input-type-opts-default
-      (assoc :value (unparse date-fmt @attr-buffer))))
-
-(defn format-write-number
-  [v]
-  (let [parsed (js/parseInt v)]
-    (if (js/isNaN parsed) nil parsed)))
-
-(defmethod input-type-opts :number
-  [opts]
-  (assoc (input-type-opts-default opts)
-         :on-change #(dispatch-attr-input-event
-                      %
-                      (merge {:donut.input/format-write format-write-number} opts)
-                      true)))
-
-(defn merge-input-type-opts
-  [input-opts]
-  (merge input-opts (input-type-opts input-opts)))
-
-;; end input-type-opts
 
 (defn all-input-opts
   "Top-level coordination of composing input opts.
@@ -288,17 +278,13 @@
   - input-opts should be able to override any of these framework defaults"
   [form-config input-opts]
   (let [passed-in-opts (merge form-config input-opts)
-        framework-opts (-> passed-in-opts
-                           (merge-common-input-opts)
-                           (merge-input-type-opts))
-        ks             (->> (data/diff passed-in-opts framework-opts)
-                            (take 2)
-                            (mapcat keys)
-                            set)]
-    ;; doing it this way prevents passed-in-opts from being prematurely composed
-    (merge passed-in-opts
-           (dc/compose (select-keys framework-opts ks)
-                       (select-keys passed-in-opts ks)))))
+        base           (base-donut-input-opts-for-type passed-in-opts)
+        derived        (derived-donut-input-opts base)
+        framework-opts (dc/compose-contained (merge base derived) passed-in-opts)
+        input-handlers (dc/compose-contained (input-event-handlers (merge passed-in-opts framework-opts))
+                                             passed-in-opts)
+        all-fw-opts    (merge framework-opts input-handlers)]
+    (merge passed-in-opts all-fw-opts)))
 
 
 ;;---

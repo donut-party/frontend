@@ -73,9 +73,17 @@
   [e]
   (go-get e ["target" "value"]))
 
-(defn event-type
+(defn tv-number
+  [e]
+  (go-get e ["target" "valueAsNumber"]))
+
+(defn e-type
   [e]
   (go-get e ["type"]))
+
+(defn e-checked
+  [e]
+  (go-get e ["target" "checked"]))
 
 (def loaded-scripts
   (atom #{}))

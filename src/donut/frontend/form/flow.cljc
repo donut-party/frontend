@@ -144,7 +144,7 @@
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
-  (fn [buffer [_ {:donut.input/keys [attr-path]}]]
+  (fn [buffer [_ {:donut.input/keys [attr-path] :as otps}]]
     (get-in buffer (dsu/vectorize attr-path))))
 
 (rf/reg-sub ::attr-input-events
@@ -170,8 +170,23 @@
 ;;------
 
 (defn attr-input-event
-  "Meant to handle all input events: focus, blur, change, etc"
-  [db [{:donut.input/keys [attr-path value event-type]
+  "record that a dom event happened: focus, blur, etc"
+  [db [{:donut.input/keys [attr-path event-type]
+        :as               opts}]]
+  (let [{:donut.form.layout/keys [input-events]} (form-paths opts)]
+    (cond-> db
+      event-type
+      (update-in (conj input-events (dsu/vectorize attr-path))
+                 (fnil conj #{})
+                 event-type))))
+
+(rf/reg-event-db ::attr-input-event
+  [rf/trim-v]
+  attr-input-event)
+
+(defn attr-update-value
+  "handle events that update a value in a buffer"
+  [db [{:donut.input/keys [attr-path attr-value-update value event-type]
         :as               opts}]]
   (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
     (cond-> db
@@ -181,12 +196,11 @@
                  event-type)
 
       (contains? opts :donut.input/value)
-      (assoc-in (into buffer (dsu/vectorize attr-path))
-                value))))
+      (attr-value-update (into buffer (dsu/vectorize attr-path)) value))))
 
-(rf/reg-event-db ::attr-input-event
+(rf/reg-event-db ::attr-update-value
   [rf/trim-v]
-  attr-input-event)
+  attr-update-value)
 
 (defn inline-editing-paths
   [{:donut.input/keys [attr-path] :as input-opts}]
