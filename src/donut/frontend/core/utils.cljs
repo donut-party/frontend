@@ -73,6 +73,10 @@
   [e]
   (go-get e ["target" "value"]))
 
+(defn event-type
+  [e]
+  (go-get e ["type"]))
+
 (def loaded-scripts
   (atom #{}))
 

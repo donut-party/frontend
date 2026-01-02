@@ -83,8 +83,8 @@
    & [update-val?]]
   (rf/dispatch-sync
    [::dff/attr-input-event
-    (cond-> (merge (select-keys input-config attr-input-keys))
-      true        (merge {:donut.input/event-type (keyword (dcu/go-get dom-event ["type"]))})
+    (cond-> (select-keys input-config attr-input-keys)
+      true        (merge {:donut.input/event-type (keyword (dcu/event-type dom-event))})
       update-val? (merge {:donut.input/value (format-write (dcu/tv dom-event))}))]))
 
 (defn dispatch-inline-start-editing
