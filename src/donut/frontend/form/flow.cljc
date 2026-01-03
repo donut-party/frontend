@@ -186,7 +186,7 @@
 
 (defn attr-update-value
   "handle events that update a value in a buffer"
-  [db [{:donut.input/keys [attr-path attr-value-update value event-type]
+  [db [{:donut.input/keys [attr-path attr-buffer-update value event-type]
         :as               opts}]]
   (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
     (cond-> db
@@ -196,7 +196,7 @@
                  event-type)
 
       (contains? opts :donut.input/value)
-      (attr-value-update (into buffer (dsu/vectorize attr-path)) value))))
+      (attr-buffer-update (into buffer (dsu/vectorize attr-path)) value))))
 
 (rf/reg-event-db ::attr-update-value
   [rf/trim-v]

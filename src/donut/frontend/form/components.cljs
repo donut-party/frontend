@@ -84,12 +84,12 @@
            :donut.input/event-type (keyword (dcu/e-type dom-event)))]))
 
 (defn dispatch-attr-update-value-input-event
-  [dom-event {:keys [:donut.input/dom-event->clj-value] :as input-opts}]
+  [dom-event {:keys [:donut.input/dom-event->buffer-value] :as input-opts}]
   (rf/dispatch-sync
    [::dff/attr-update-value
     (assoc input-opts
            :donut.input/event-type (keyword (dcu/e-type dom-event))
-           :donut.input/value (dom-event->clj-value dom-event))]))
+           :donut.input/value (dom-event->buffer-value dom-event))]))
 
 (defn dispatch-inline-start-editing
   [_dom-event input-opts]
@@ -132,16 +132,16 @@
   [{:donut.input/keys [attr-path]
     :keys             [type]
     :as               input-opts}]
-  {:type                              type
-   :id                                (label-for input-opts)
-   :class                             ["donut-input" (attr-path-str attr-path)]
-   :donut.input/attr-buffer           (rf/subscribe [::dff/attr-buffer input-opts])
-   :donut.input/attr-feedback         (rf/subscribe [::dff/attr-feedback input-opts])
-   :donut.input/attr-input-events     (rf/subscribe [::dff/attr-input-events input-opts])
-   :donut.input/attr-value-update     (fn [buffer attr-path value]
-                                        (assoc-in buffer attr-path value))
-   :donut.input/clj-value->input-opts (fn [v] {:value v})
-   :donut.input/dom-event->clj-value  (fn [dom-event] (dcu/tv dom-event))})
+  {:type                                 type
+   :id                                   (dsu/slugify (label-for input-opts))
+   :class                                ["donut-input" (attr-path-str attr-path)]
+   :donut.input/attr-buffer              (rf/subscribe [::dff/attr-buffer input-opts])
+   :donut.input/attr-feedback            (rf/subscribe [::dff/attr-feedback input-opts])
+   :donut.input/attr-input-events        (rf/subscribe [::dff/attr-input-events input-opts])
+   :donut.input/attr-buffer-update       (fn [buffer attr-path value]
+                                           (assoc-in buffer attr-path value))
+   :donut.input/buffer-value->input-opts (fn [v] {:value v})
+   :donut.input/dom-event->buffer-value  (fn [dom-event] (dcu/tv dom-event))})
 
 (defmulti base-donut-input-opts-for-type :type)
 
@@ -154,15 +154,15 @@
   :select
   [input-opts]
   (assoc (default-base-donut-input-opts input-opts)
-         :donut.input/clj-value->input-opts (fn [v] {:value (or v "")})))
+         :donut.input/buffer-value->input-opts (fn [v] {:value (or v "")})))
 
 (defmethod base-donut-input-opts-for-type
   :radio
   [{:keys [value] :as input-opts}]
   (assoc (default-base-donut-input-opts input-opts)
-         :donut.input/clj-value->input-opts (fn [clj-value]
-                                              {:checked (= value clj-value)})
-         :donut.input/dom-event->clj-value (fn [_dom-event] (constantly value))))
+         :donut.input/buffer-value->input-opts (fn [clj-value]
+                                                 {:checked (= value clj-value)})
+         :donut.input/dom-event->buffer-value (fn [_dom-event] (constantly value))))
 
 (defn input-opts>checked-value
   [input-opts]
@@ -177,14 +177,14 @@
   (let [checked-value   (input-opts>checked-value input-opts)
         unchecked-value (get input-opts :donut.input/unchecked-value false)]
     (assoc (default-base-donut-input-opts input-opts)
-           :donut.input/checked-value         checked-value
-           :donut.input/unchecked-value       unchecked-value
-           :donut.input/clj-value->input-opts (fn [value]
-                                                {:checked (= value checked-value)})
-           :donut.input/dom-event->clj-value  (fn [dom-event]
-                                                (if (dcu/e-checked dom-event)
-                                                  checked-value
-                                                  unchecked-value)))))
+           :donut.input/checked-value            checked-value
+           :donut.input/unchecked-value          unchecked-value
+           :donut.input/buffer-value->input-opts (fn [value]
+                                                   {:checked (= value checked-value)})
+           :donut.input/dom-event->buffer-value  (fn [dom-event]
+                                                   (if (dcu/e-checked dom-event)
+                                                     checked-value
+                                                     unchecked-value)))))
 
 (defmethod base-donut-input-opts-for-type
   :checkbox-set
@@ -192,11 +192,11 @@
   (let [checked-value (input-opts>checked-value input-opts)]
     (assoc (default-base-donut-input-opts input-opts)
            :type :checkbox
-           :donut.input/checked-value checked-value
-           :donut.input/clj-value->input-opts (fn [value] {:checked ((or value #{}) checked-value)})
-           :donut.input/dom-event->clj-value  (constantly checked-value)
-           :donut.input/attr-value-update (fn [buffer attr-path value]
-                                            (update-in buffer attr-path dsu/set-toggle value)))))
+           :donut.input/checked-value            checked-value
+           :donut.input/buffer-value->input-opts (fn [value] {:checked ((or value #{}) checked-value)})
+           :donut.input/dom-event->buffer-value  (constantly checked-value)
+           :donut.input/attr-buffer-update        (fn [buffer attr-path value]
+                                                    (update-in buffer attr-path dsu/set-toggle value)))))
 
 (def default-date-fmt (:date tf/formatters))
 
@@ -221,25 +221,25 @@
         format-write (write-date-formatter date-format)]
     (assoc (default-base-donut-input-opts input-opts)
            :donut.input/date-format date-format
-           :donut.input/clj-value->input-opts (fn [value] {:value (format-read value)})
-           :donut.input/dom-event->clj-value (fn [dom-event] (format-write (dcu/tv dom-event))))))
+           :donut.input/buffer-value->input-opts (fn [value] {:value (format-read value)})
+           :donut.input/dom-event->buffer-value (fn [dom-event] (format-write (dcu/tv dom-event))))))
 
 (defmethod base-donut-input-opts-for-type :number
   [input-opts]
   (assoc (default-base-donut-input-opts input-opts)
-         :donut.input/dom-event->clj-value (fn [dom-event] (dcu/tv-number dom-event))))
+         :donut.input/dom-event->buffer-value (fn [dom-event] (dcu/tv-number dom-event))))
 
 (defmethod base-donut-input-opts-for-type :int
   [input-opts]
   (assoc (default-base-donut-input-opts input-opts)
          :type :number
-         :donut.input/dom-event->clj-value (fn [dom-event] (.floor js/Math (dcu/tv-number dom-event)))))
+         :donut.input/dom-event->buffer-value (fn [dom-event] (.floor js/Math (dcu/tv-number dom-event)))))
 
 ;; TODO dissoc-when
 
 (defn derived-donut-input-opts
-  [{:donut.input/keys [attr-buffer clj-value->input-opts] :as _base}]
-  (clj-value->input-opts @attr-buffer))
+  [{:donut.input/keys [attr-buffer buffer-value->input-opts] :as _base}]
+  (buffer-value->input-opts @attr-buffer))
 
 (defn input-opts->react-opts
   [input-opts]
