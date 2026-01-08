@@ -105,10 +105,12 @@
 
 (defn attr-path-str
   [attr-path]
-  (some-> (if (vector? attr-path)
-            (last attr-path)
-            attr-path)
-          name))
+  (when-let [x (some-> (if (vector? attr-path)
+                         (last attr-path)
+                         attr-path))]
+    (if (keyword? x)
+      (name x)
+      (str x))))
 
 (defn field-label-text [{:keys [:donut.input/attr-path]}]
   (dsu/kw-title (attr-path-str attr-path)))
@@ -233,7 +235,9 @@
   [input-opts]
   (assoc (default-base-donut-input-opts input-opts)
          :type :number
-         :donut.input/dom-event->buffer-value (fn [dom-event] (.floor js/Math (dcu/tv-number dom-event)))))
+         :donut.input/dom-event->buffer-value (fn [dom-event]
+                                                (when-not (str/blank? (dcu/tv dom-event))
+                                                  (.floor js/Math (dcu/tv-number dom-event))))))
 
 ;; TODO dissoc-when
 
@@ -280,7 +284,7 @@
   (let [passed-in-opts (merge form-config input-opts)
         base           (base-donut-input-opts-for-type passed-in-opts)
         derived        (derived-donut-input-opts base)
-        framework-opts (dc/compose-contained (merge base derived) passed-in-opts)
+        framework-opts (dc/compose-contained (merge base derived) (dissoc passed-in-opts :type))
         input-handlers (dc/compose-contained (input-event-handlers (merge passed-in-opts framework-opts))
                                              passed-in-opts)
         all-fw-opts    (merge framework-opts input-handlers)]
@@ -294,8 +298,8 @@
 (defmulti input :type)
 
 (defmethod input :textarea
-  [opts]
-  [:textarea (input-opts->react-opts opts)])
+  [input-opts]
+  [:textarea (input-opts->react-opts input-opts)])
 
 (defmethod input :select
   [opts]
