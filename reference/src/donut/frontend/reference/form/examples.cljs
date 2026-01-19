@@ -32,17 +32,18 @@
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
 (defn submit-button
-  [{:keys [*sync-form *form-buffer *form-key]}]
+  [{:keys [*sync-form *form-buffer :donut.form/key]}]
   [ui/button
    {:on-click (dcu/prevent-default
                #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
                  {:donut.sync/req
-                  {:route-name :users
-                   ::dsde/echo {:status        :success
-                                :response-data (assoc @*form-buffer :id (rand-int 1000))
-                                :ms            2000}
-                   ::dfe/on    {:success (dc/into [[::dff/clear *form-key]])}}}))}
+                  {:route-name     :users
+                   :donut.sync/key key
+                   ::dsde/echo     {:status        :success
+                                    :response-data (assoc @*form-buffer :id (rand-int 1000))
+                                    :ms            2000}
+                   ::dfe/on        {:success (dc/into [[::dff/clear]])}}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -335,7 +336,7 @@
        [*input :text :blah {:class input-class}]]])])
 
 (defn initial-values-submit-button
-  [{:keys [*submit *form-buffer *form-key]}]
+  [{:keys [*submit *form-buffer :donut.form/key]}]
   [ui/button
    {:on-click (dcu/prevent-default
                #(*submit
@@ -343,7 +344,7 @@
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            0}
-                  ::dfe/on    {:success (dc/into [[::dff/clear *form-key]
+                  ::dfe/on    {:success (dc/into [[::dff/clear key]
                                                   [::initial-values-success]])}}))}
    "submit"])
 

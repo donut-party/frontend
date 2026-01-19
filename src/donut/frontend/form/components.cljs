@@ -314,8 +314,11 @@
     (r/create-class
      {:component-did-mount
       (fn [_]
-        (when-let [val (dcu/go-get @ref "value")]
-          (rf/dispatch [::dff/attr-init-buffer (assoc opts :value val)])))
+        (when-let [selected (->> opts
+                                 :donut.input/select-options
+                                 (filter (fn [[_ _ {:keys [selected]}]] selected))
+                                 ffirst)]
+          (rf/dispatch [::dff/attr-init-buffer (assoc opts :value selected)])))
 
       :reagent-render
       (fn [{:donut.input/keys [select-options
@@ -485,8 +488,8 @@
               f-config))
 
 (defn form-sync-subs
-  [sync-key]
-  (set/rename-keys (dsf/sync-subs sync-key)
+  [form-config]
+  (set/rename-keys (dsf/sync-subs (:donut.sync/req form-config))
                    {:sync-state    :*sync-state
                     :sync-active?  :*sync-active?
                     :sync-success? :*sync-success?
@@ -498,7 +501,7 @@
             :*form-feedback (rf/subscribe [::dff/form-feedback form-config])
             :*form-buffer   (rf/subscribe [::dff/buffer form-config])
             :*form-dirty?   (rf/subscribe [::dff/form-dirty? form-config])}
-    sync? (merge (form-sync-subs (:donut.sync/key form-config)))))
+    sync? (merge (form-sync-subs form-config))))
 
 (defn attr-buffer
   [form-config attr-path]

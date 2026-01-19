@@ -11,7 +11,6 @@
 (defmacro with-form
   [form-config & body]
   `(let [~'*form-config (form-config ~form-config)
-         ~'*form-key    (:donut.form/key ~'*form-config)
 
          {:keys [~'*form-ui-state
                  ~'*form-feedback
@@ -34,5 +33,5 @@
           :as   ~'*form-components}
          (form-components ~'*form-config)
 
-         ~'*form (merge ~'*form-subs ~'*form-components)]
+         ~'*form (merge ~'*form-config ~'*form-subs ~'*form-components)]
      ~@(form-body body)))
