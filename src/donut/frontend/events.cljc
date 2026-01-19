@@ -15,7 +15,7 @@
   "returns a vector of dispatch fx's for callbacks that are triggered by a given event-name"
   [callback-opts cofx event-name]
   (let [callbacks (get-in callback-opts [::on event-name])
-        callbacks (if (fn? callbacks) [callbacks] [])]
+        callbacks (if (fn? callbacks) [callbacks] callbacks)]
     (->> callbacks
          (reduce (fn [re-frame-events callback]
                    (cond

@@ -37,10 +37,12 @@
    {:on-click (dcu/prevent-default
                #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
-                 {::dsde/echo {:status        :success
-                               :response-data (assoc @*form-buffer :id (rand-int 1000))
-                               :ms            2000}
-                  ::dfe/on    {:success (dc/into [[::dff/clear *form-key]])}}))}
+                 {:donut.sync/req
+                  {:route-name :users
+                   ::dsde/echo {:status        :success
+                                :response-data (assoc @*form-buffer :id (rand-int 1000))
+                                :ms            2000}
+                   ::dfe/on    {:success (dc/into [[::dff/clear *form-key]])}}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -90,10 +92,13 @@
                   :donut.input/attr-path :form-attribute-name-goes-here}]]
         [most-basic-form-value *form-buffer]]]]]))
 
+(def user-form-config
+  {:donut.form/key           :new-user
+   :donut.form.layout/buffer [:test-buffer]})
+
 (defn form-example-features
   []
-  (dfc/with-form {:donut.form/key           :form-example-features
-                  :donut.form.layout/buffer [:test-buffer]}
+  (dfc/with-form user-form-config
     [ui/example
      [:div {:class "p-4"}
       [:form
@@ -213,7 +218,7 @@
 
 (defn activity-example
   []
-  (dfc/with-form [:post :users]
+  (dfc/with-form user-form-config
     [ui/example
      [:div {:class "p-4"}
       [ui/explain
@@ -378,8 +383,8 @@
    [ui/h1 "form examples"]
    [most-basic-form]
    [form-example-features]
-   #_#_#_#_#_#_#_
    [activity-example]
+   #_#_#_#_#_#_
    [validation-example-stored-errors]
    [validation-example-dynamic]
    [sync-and-init-example]

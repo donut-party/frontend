@@ -182,7 +182,6 @@
            :donut.input/buffer-value->input-opts (fn [value]
                                                    {:checked (= value checked-value)})
            :donut.input/dom-event->buffer-value  (fn [dom-event]
-                                                   (prn "checked value" checked-value)
                                                    (if (dcu/e-checked dom-event)
                                                      checked-value
                                                      unchecked-value)))))
@@ -315,7 +314,8 @@
     (r/create-class
      {:component-did-mount
       (fn [_]
-        (rf/dispatch [::dff/attr-init-buffer (assoc opts :value (dcu/go-get @ref "value"))]))
+        (when-let [val (dcu/go-get @ref "value")]
+          (rf/dispatch [::dff/attr-init-buffer (assoc opts :value val)])))
 
       :reagent-render
       (fn [{:donut.input/keys [select-options
