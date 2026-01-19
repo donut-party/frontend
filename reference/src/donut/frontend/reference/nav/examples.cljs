@@ -134,8 +134,7 @@
     [ui/explain
      "To try this, toggle nav prevention with the button below and then try to
       navigate new a new route. This is just a demo; a real example would
-      probably have a prompt like, Are you sure you want to leave?? We don't
-      want you to leave!!!"]
+      probably have a prompt like, Are you sure you want to leave?"]
     [ui/example-offset
      [nav-links]
      [ui/button

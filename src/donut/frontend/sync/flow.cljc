@@ -17,15 +17,6 @@
    [re-frame.core :as rf]
    [re-frame.loggers :as rfl]))
 
-(doseq [t [::anom/incorrect
-           ::anom/forbidden
-           ::anom/not-found
-           ::anom/unsupported
-           ::anom/fault
-           ::anom/unavailable
-           :fail]]
-  (derive t ::fail))
-
 ;;---
 ;; utils
 ;;---

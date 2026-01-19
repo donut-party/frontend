@@ -1,12 +1,13 @@
 (ns donut.frontend.reference.sync.examples
   (:require
    [donut.frontend.core.flow :as dcf]
+   [donut.frontend.events :as dfe]
    [donut.frontend.path :as p]
    [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.dispatch.echo :as dsde]
    [donut.frontend.sync.flow :as dsf]
-   [reagent.core :as r]
-   [re-frame.core :as rf]))
+   [re-frame.core :as rf]
+   [reagent.core :as r]))
 
 
 ;; TODO list
@@ -31,11 +32,10 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get
-                                :users
-                                {::dsde/echo {:status        :success
-                                              :response-data {:id   1
-                                                              :name (random-string)}}}])}
+      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+                                           ::dsde/echo {:status        :success
+                                                        :response-data {:id   1
+                                                                        :name (random-string)}}}])}
       "click to simulate a map response"]
      [:div {:class "mt-3"}
       [:div "This subscription returns the entity at [:user 1]: "]
@@ -54,13 +54,12 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get
-                                :users
-                                {::dsde/echo {:status        :success
-                                              :response-data [{:id   2
-                                                               :name (random-string)}
-                                                              {:id   3
-                                                               :name (random-string)}]}}])}
+      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+                                           ::dsde/echo {:status        :success
+                                                        :response-data [{:id   2
+                                                                         :name (random-string)}
+                                                                        {:id   3
+                                                                         :name (random-string)}]}}])}
       "click to simulate a vector-of-maps response"]
      [:div {:class "mt-3"}
       [:div "entities at [:user]:"]
@@ -93,8 +92,8 @@
       ;; TODO make name random
       {:on-click
        #(rf/dispatch [::dsf/get
-                      :users
-                      {::dsde/echo {:status        :success
+                      {:route-name :users
+                       ::dsde/echo {:status        :success
                                     :response-data [[:entities [:post :id [{:id      1
                                                                             :content (random-string)}]]]
                                                     [:entities [:post :id [{:id      2
@@ -118,30 +117,33 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get :users {::dsde/echo {:status :success
-                                                               :ms     1000}}])}
+      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+                                           ::dsde/echo {:status :success
+                                                        :ms     1000}}])}
       "click to simulate a successful sync request that takes 1 second"]
      [:div {:class "mt-3"}
-      "Sync state: " @(rf/subscribe [::dsf/sync-state [:get :users]])]]]])
-
+      "Sync state: " @(rf/subscribe [::dsf/sync-state {:route-name :users
+                                                       :method     :get}])]]]])
 
 (defn sync-rules-example
   []
   (let [success-count (r/atom 0)
-        sync-req      [:get :users {::dsde/echo     {:status :success
-                                                     :ms     2000}
-                                    ::dsf/rules     #{::dsf/when-not-active}
-                                    :donut.sync/key :rules-example
-                                    :on             {:success #(swap! success-count inc)}}]]
+        sync-req      {:method         :get
+                       :route-name     :users
+                       :donut.sync/key :rules-example
+                       ::dsde/echo     {:status :success
+                                        :ms     2000}
+                       ::dfe/pre       [dsf/not-active]
+                       ::dfe/on        {:success #(swap! success-count inc)}}]
     (fn []
       [ui/example
        [:div {:class "p-4"}
-        [ui/h2 "sync rules"]
-        [ui/explain "You can configure sync requests to take rules that modify their
-    behavior, for example by only firing if the request is not active."]
+        [ui/h2 "sync preconditions"]
+        [ui/explain "You can configure sync requests to specify preconditions that must be met
+for the request to be sent."]
 
         [ui/h3 "sync not active example"]
-        [ui/explain "This sycn request takes two second. If you click the button
+        [ui/explain "This sync request takes two second. If you click the button
         below multiple times within that two second window, it will not not
         'send' additional requests, and the success count will only increment by 1."]
         [ui/example-offset

@@ -14,18 +14,22 @@
 (defn triggered-callback-fx
   "returns a vector of dispatch fx's for callbacks that are triggered by a given event-name"
   [callback-opts cofx event-name]
-  (let [callbacks (get-in callback-opts [::on event-name])]
+  (let [callbacks (get-in callback-opts [::on event-name])
+        callbacks (if (fn? callbacks) [callbacks] [])]
     (->> callbacks
          (reduce (fn [re-frame-events callback]
                    (cond
                      ;; TODO better handle functions
-                     (fn? callback)         (into re-frame-events (callback cofx))
+                     (fn? callback)         (let [x (callback cofx)]
+                                              (if (sequential? x)
+                                                (into re-frame-events x)
+                                                re-frame-events))
                      (vector? callback)     (conj re-frame-events callback)
                      :else                  (throw (ex-info "unrecognized ::dfe/on callback form" {:callback callback}))))
                  [])
          (mapv (fn [re-frame-event]
                  ;; TODO handle when this is not mergeable
-                 [:dispatch (update re-frame-event 1 #(if (map? %)
+                 [:dispatch (update re-frame-event 1 #(if (or (map? %) (nil? %))
                                                         (dc/compose (::merge callback-opts) %)
                                                         %))])))))
 
@@ -39,6 +43,7 @@
   {:id     ::pre
    :before (fn [ctx]
              (let [pre-fns (-> ctx event-opts ::pre)]
+               (assert (or (nil? pre-fns) (seqable? pre-fns)))
                (if (some #(not (% ctx)) pre-fns)
                  {:queue []}
                  ctx)))
