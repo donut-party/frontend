@@ -78,20 +78,21 @@
 
 (defn most-basic-form
   []
-  (dfc/with-form [:most-basic-form]
+  (dfc/with-form {:donut.form/key :most-basic-form}
     [ui/example
      [:div {:class "p-4"}
       [:form
        [:div
         [:div
          [ui/h2 "A simple text field"]
-         [*input :text :form-attribute-name-goes-here {:class input-class}]]
+         [*input {:type :text
+                  :class input-class
+                  :donut.input/attr-path :form-attribute-name-goes-here}]]
         [most-basic-form-value *form-buffer]]]]]))
 
 (defn form-example-features
   []
-  (dfc/with-form [:post :users]
-    {:donut.form.layout/buffer [:test-buffer]}
+  (dfc/with-form {:donut.form.layout/buffer [:test-buffer]}
     [ui/example
      [:div {:class "p-4"}
       [:form
@@ -118,9 +119,7 @@
             ;; submitting.
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
-             #(rf/dispatch [::dff/set-form
-                            *form-config
-                            {:buffer {:username "marcy"}}]))}
+             #(rf/dispatch [::dff/set-form {::dff/set-form {:buffer {:username "marcy"}}}]))}
            "populate form"]
           " sets the username value to 'marcy'"]
          [ui/explain "input components manage state in the global app db:"]
@@ -130,56 +129,74 @@
            :username
            [:div
             [:div
-             [*input :text :username {:class input-class :ref (dcu/focus-node-fn)}]]
+             [*input  {:type                  :text
+                       :class                 input-class
+                       :ref                   (dcu/focus-node-fn)
+                       :donut.input/attr-path :username}]]
             [:div "(this automatically gains focus)"]]]
           [input-example-row *form :email
-           [*input :email :email {:class input-class}]]
+           [*input {:type                  :email
+                    :class                 input-class
+                    :donut.input/attr-path :email}]]
           [input-example-row *form :active?
-           [*input :checkbox :active?
-            {:donut.input/value true
-             :class checkbox-class}]]
+           [*input {:type                      :checkbox
+                    :class                     checkbox-class
+                    :donut.input/checked-value true
+                    :donut.input/attr-path     :active?}]]
           [input-example-row *form :remind-on
-           [*input :date :remind-on {:class input-class}]]
+           [*input {:type                  :date
+                    :class                 input-class
+                    :donut.input/attr-path :remind-on}]]
           [input-example-row *form :score
-           [*input :number :score {:class input-class}]]
+           [*input {:type                  :number
+                    :class                 input-class
+                    :donut.input/attr-path :score}]]
           [input-example-row
            *form
            :email-preferences
            [:div
             [:div
-             [*field :checkbox-set :email-preferences
-              {:donut.field/label "gimme marketing emails, i am a weirdo"
-               :donut.input/value :marketing
-               :donut.input/class checkbox-class}]
-             [*field :checkbox-set :email-preferences
-              {:donut.field/label "gimme service emails"
-               :donut.input/value :service
-               :donut.input/class checkbox-class}]]]]
+             [*field
+              {:type                      :checkbox-set
+               :class                     checkbox-class
+               :donut.field/label-text    "gimme marketing emails, i am a weirdo"
+               :donut.input/checked-value :marketing
+               :donut.input/attr-path     :email-preferences}]
+             [*field
+              {:type                      :checkbox-set
+               :class                     checkbox-class
+               :donut.field/label-text    "gimme service emails"
+               :donut.input/attr-path     :email-preferences
+               :donut.input/checked-value :service}]]]]
           [input-example-row
            *form
            :favorite-pet
-           [*input :select :favorite-pet
-            {:donut.input/select-options [[nil "Select one"]
-                                          [:dozer "Dozer"]
-                                          [:janie "Janie"]
-                                          [:cloud "Cloud"]
-                                          [:link "Link"]
-                                          [:rory "Rory"]]
-             :class input-class}]]
+           [*input {:type                       :select
+                    :class                      input-class
+                    :donut.input/attr-path      :favorite-pet
+                    :donut.input/select-options [[nil "Select one"]
+                                                 [:dozer "Dozer"]
+                                                 [:janie "Janie"]
+                                                 [:cloud "Cloud"]
+                                                 [:link "Link"]
+                                                 [:rory "Rory"]]}]]
           [input-example-row
            *form
            :dream-vacation
            [:div
             [:div
-             [*field :radio :dream-vacation
-              {:donut.field/label "mountains"
-               :donut.input/value :mountains
-               :class checkbox-class}]
-             [*field :radio :dream-vacation
-              {:donut.field/label "beach"
-               :donut.input/value :beach
-               :class checkbox-class}]]]]
+             [*field {:type                      :radio
+                      :class                     checkbox-class
+                      :donut.input/attr-path     :dream-vacation
+                      :donut.field/label-text    "mountains"
+                      :donut.input/checked-value :mountains}]
+             [*field {:type                      :radio
+                      :class                     checkbox-class
+                      :donut.input/attr-path     :dream-vacation
+                      :donut.field/label-text    "beach"
+                      :donut.input/checked-value :beach}]]]]
 
+          #_
           [:div
            [:div ":profile"]
            [:div
@@ -360,6 +377,7 @@
    [ui/h1 "form examples"]
    [most-basic-form]
    [form-example-features]
+   #_#_#_#_#_#_#_
    [activity-example]
    [validation-example-stored-errors]
    [validation-example-dynamic]

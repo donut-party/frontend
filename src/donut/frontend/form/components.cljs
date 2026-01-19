@@ -118,9 +118,9 @@
 (defn label-for
   [{:keys [id]
     :donut.field/keys [form-id]
-    :donut.input/keys [attr-path]}]
+    :donut.input/keys [attr-path checked-value]}]
   (or id
-      (str form-id (attr-path-str attr-path))))
+      (str form-id (attr-path-str attr-path) checked-value)))
 
 (defn input-key
   [{:donut.input/keys [form-id form-key attr-path]} & suffix]
@@ -415,7 +415,8 @@
       after-feedback]]))
 
 (defn checkbox-field
-  [{:donut.field/keys [tip required no-label? attr-feedback]
+  [{:donut.field/keys [tip required no-label?]
+    :donut.input/keys [attr-feedback]
     :as opts}]
   (let [composable (dc/composable opts)]
     [:div (composable :donut.field/field-wrapper-opts {:class (field-wrapper-classes opts)})
