@@ -1,5 +1,6 @@
 (ns donut.frontend.events
   (:require
+   [donut.compose :as dc]
    [donut.frontend.core.utils :as dcu]))
 
 
@@ -23,7 +24,10 @@
                      :else                  (throw (ex-info "unrecognized ::dfe/on callback form" {:callback callback}))))
                  [])
          (mapv (fn [re-frame-event]
-                 [:dispatch (update re-frame-event 1 dcu/>merge (::merge callback-opts))])))))
+                 ;; TODO handle when this is not mergeable
+                 [:dispatch (update re-frame-event 1 #(if (map? %)
+                                                        (dc/compose (::merge callback-opts) %)
+                                                        %))])))))
 
 (defn event-opts
   [ctx]

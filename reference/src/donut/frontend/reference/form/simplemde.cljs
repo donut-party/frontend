@@ -5,9 +5,9 @@
    [donut.frontend.form.components :as dfc]
    [clojure.string :as str]))
 
-(defmethod dfc/input-type-opts :simplemde
+(defmethod dfc/base-donut-input-opts-for-type :simplemde
   [opts]
-  (-> (dfc/input-type-opts-default opts)
+  (-> (dfc/base-donut-input-opts-for-type opts)
       (dissoc :type)))
 
 (defn- set-change-obj-text
@@ -22,7 +22,7 @@
   [{:donut.input/keys [value] :as opts}]
   (let [markdown-text (atom nil)]
     [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-value opts val))
-                   :onBlur    (fn [e] (dfc/dispatch-attr-input-event e opts false))
+                   :onBlur    (fn [e] (dfc/dispatch-attr-input-event e opts))
                    :value     value
                    :events    #js{:beforeChange (fn [_ change-obj]
                                                   (when-let [text @markdown-text]
@@ -41,6 +41,5 @@
                                       (-> cm
                                           .getTextArea
                                           (.closest "form")
-                                          (.querySelector
-                                           "input[type=submit]")
+                                          (.querySelector "input[type=submit]")
                                           .focus))}}]))

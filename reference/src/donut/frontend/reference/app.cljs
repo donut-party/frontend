@@ -9,15 +9,15 @@
   "text-gray-600 hover:bg-gray-50 hover:text-gray-900
    group flex items-center px-2 py-2 text-sm font-medium rounded-md")
 
-(def sidenav-active-classes
+(def sidenav-current-classes
   "bg-gray-100 text-gray-900 group flex items-center
    px-2 py-2 text-sm font-medium rounded-md")
 
 (defn sidenav-link
   [route-name text]
-  [dnc/route-link {:route-name   route-name
-                   :class        sidenav-classes
-                   :active-class sidenav-active-classes}
+  [dnc/route-link {:route-name    route-name
+                   :class         sidenav-classes
+                   :current-class sidenav-current-classes}
    text])
 
 (defn app

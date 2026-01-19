@@ -34,9 +34,9 @@
 (defmethod ds/named-system :frontend-dev
   [_]
   (ds/system :base
-    {[::ds/defs :donut.frontent :sync-dispatch-fn] dsde/sync-dispatch-fn
-     [::ds/defs :donut.frontent :sync-router ::ds/config :routes] fake-endpoint-routes
-     [::ds/defs :donut.frontent :frontend-router ::ds/config :routes] frontend-routes/routes}))
+    {:donut.frontend {:sync-dispatch-fn dsde/sync-dispatch-fn
+                      :sync-router      {::ds/config {:routes fake-endpoint-routes}}
+                      :frontend-router  {::ds/config {:routes frontend-routes/routes}}}}))
 
 (defonce root (createRoot (dcu/el-by-id "app")))
 

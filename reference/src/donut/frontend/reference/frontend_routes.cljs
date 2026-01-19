@@ -1,12 +1,13 @@
 (ns donut.frontend.reference.frontend-routes
   (:require
-   [re-frame.core :as rf]
+   [donut.frontend.events :as dfe]
    [donut.frontend.form.flow :as dff]
    [donut.frontend.reference.components.home :as home]
    [donut.frontend.reference.core.examples :as dece]
    [donut.frontend.reference.form.examples :as defe]
    [donut.frontend.reference.nav.examples :as dene]
    [donut.frontend.reference.sync.examples :as dese]
+   [re-frame.core :as rf]
    [reitit.coercion.malli :as rm]))
 
 (rf/reg-event-fx ::param-change-example
@@ -41,16 +42,16 @@
 
    ["/nav.flow/1"
     {:name       :nav.flow-1
-     :lifecycle  {:enter     [[::dene/inc-flow-1-lifecycle-fire-count]]
-                  :can-exit? nav-flow-can-exit?}
+     ::dfe/on    {:enter [[::dene/inc-flow-1-lifecycle-fire-count]]}
+     ::dfe/can?  {:exit nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 
    ["/nav.flow/2"
     {:name       :nav.flow-2
-     :lifecycle  {:enter     (fn [_old-route _new-route _params]
-                               [[::dene/set-flow-2-val (str (random-uuid))]])
-                  :can-exit? nav-flow-can-exit?}
+     ::dfe/on    {:enter [(fn [_]
+                            [[::dene/set-flow-2-val (str (random-uuid))]])]}
+     ::dfe/can?  {:exit nav-flow-can-exit?}
      :components {:main [dene/examples]}
      :title      "Donut Examples"}]
 

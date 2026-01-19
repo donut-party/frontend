@@ -32,10 +32,10 @@
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
 (defn submit-button
-  [{:keys [*submit *form-buffer *form-key]}]
+  [{:keys [*sync-form *form-buffer *form-key]}]
   [ui/button
    {:on-click (dcu/prevent-default
-               #(*submit
+               #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
@@ -232,8 +232,8 @@
       [:div
        [*field :text :first-name {:class input-class}]
        [ui/button
-        {:on-click #(*submit {::dsde/echo {:status        :fail
-                                           :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]}})}
+        {:on-click #(*sync-form {::dsde/echo {:status        :fail
+                                              :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]}})}
         "populate errors"]])]])
 
 (def UserSchema
@@ -271,7 +271,7 @@
                                     ::dsde/echo {:status        :success
                                                  :response-data {:id      1
                                                                  :content "post content"}}
-                                    ::dfe/on    {:success (dc/into [[::dff/set-form-from-sync {::dff/form-layout *form-layout}]])}}])}
+                                    ::dfe/on    {:success (dc/into [[::dff/set-form-from-sync]])}}])}
          "populate from sync"]]
        [*field :text :content {:class input-class}]])]])
 
@@ -286,12 +286,10 @@
       [ui/explain "You can customize the input class with feedback"]
       [ui/explain
        [*input :text :zip-code
-        {:donut.input/class #(str input-class " " (dfc/feedback-classes %))}]]
+        {:class #(str input-class " " (dfc/feedback-css-classes %))}]]
       [ui/explain
        [*input :text :zip-code
-        {:donut.input/class #(str input-class
-                                  " "
-                                  (dfc/feedback-classes % {:errors "border-red-500"}))}]]])])
+        {:class #(str input-class " " (dfc/feedback-css-classes %))}]]])])
 
 (rf/reg-sub ::custom-buffer
   (fn [db _]

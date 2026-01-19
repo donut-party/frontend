@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
- :deps  {org.clojure/clojure         {:mvn/version "1.10.3"
+ :deps  {org.clojure/clojure         {:mvn/version "1.12.4"
                                       :scope       "provided"}
-         org.clojure/clojurescript   {:mvn/version "1.11.4"
+         org.clojure/clojurescript   {:mvn/version "1.12.134"
                                       :scope       "provided"}
          re-frame/re-frame           {:mvn/version "1.4.3"
                                       :scope       "provided"}
@@ -15,7 +15,7 @@
          metosin/reitit-frontend     {:mvn/version "0.5.15"}
          party.donut/compose         {:mvn/version "0.0.30"}
          party.donut/sugar           {:mvn/version "0.0.16"}
-         party.donut/system          {:mvn/version "0.0.167"}
+         party.donut/system          {:mvn/version "0.0.258"}
          rads/anomalies              {:mvn/version "0.1.13"}
          venantius/accountant        {:mvn/version "0.2.4"}}
 

@@ -92,7 +92,7 @@
    [:div {:class "p-4"}
     [ui/h2 "lifecycle handlers"]
     [ui/explain
-     "Route definitions can include a :lifecycle key that specifies lifecycle
+     "Route definitions can include a ::dfe/on key that specifies lifecycle
       handlers. For example, you could create a handler to initialize a form on
       entering a route (navigating to it) and to clear the form on exiting the route
       (navigating to some other route.) The examples below demonstrate lifecycle
@@ -174,6 +174,7 @@
    [ui/explain "donut has a rich set of tools for handling navigation."]
    [links]
    [lifecycle-handlers]
+   #_
    [buffer]
    [prevent-nav-change]
    [routed-entity-component]])

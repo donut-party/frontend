@@ -141,11 +141,11 @@
 (defn can-change-route?
   [db scope existing-route new-route]
   ;; are we changing the entire route or just the params?
-  (let [route-change-checks (-> (merge (select-keys (:lifecycle existing-route) [:can-change-params? :can-exit?])
-                                       (select-keys (:lifecycle new-route) [:can-enter?]))
+  (let [route-change-checks (-> (merge (select-keys (::dfe/can? existing-route) [:change-params :exit])
+                                       (select-keys (::dfe/can? new-route) [:enter]))
                                 (select-keys (case scope
-                                               :route  [:can-change-params? :can-exit? :can-enter?]
-                                               :params [:can-change-params?])))
+                                               :route  [:change-params :exit :enter]
+                                               :params [:change-params])))
         check-failures      (medley/filter-vals (fn [lifecycle-fn]
                                                   (and lifecycle-fn (not (lifecycle-fn db
                                                                                        existing-route
