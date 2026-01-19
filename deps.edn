@@ -13,7 +13,7 @@
          metosin/malli               {:mvn/version "0.7.5"}
          metosin/reitit-core         {:mvn/version "0.5.15"}
          metosin/reitit-frontend     {:mvn/version "0.5.15"}
-         party.donut/compose         {:mvn/version "0.0.25"}
+         party.donut/compose         {:mvn/version "0.0.30"}
          party.donut/sugar           {:mvn/version "0.0.16"}
          party.donut/system          {:mvn/version "0.0.167"}
          rads/anomalies              {:mvn/version "0.1.13"}
