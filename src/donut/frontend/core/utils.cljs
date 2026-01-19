@@ -85,6 +85,12 @@
   [e]
   (go-get e ["target" "checked"]))
 
+(defn e-clipboard-text
+  [e]
+  (-> e
+      (go-get ["clipboardData"])
+      (.getData "text")))
+
 (def loaded-scripts
   (atom #{}))
 

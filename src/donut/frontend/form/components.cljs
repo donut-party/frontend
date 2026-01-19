@@ -184,6 +184,7 @@
            :donut.input/buffer-value->input-opts (fn [value]
                                                    {:checked (= value checked-value)})
            :donut.input/dom-event->buffer-value  (fn [dom-event]
+                                                   (prn "checked value" checked-value)
                                                    (if (dcu/e-checked dom-event)
                                                      checked-value
                                                      unchecked-value)))))
@@ -199,6 +200,14 @@
            :donut.input/dom-event->buffer-value  (constantly checked-value)
            :donut.input/attr-buffer-update        (fn [buffer attr-path value]
                                                     (update-in buffer attr-path dsu/set-toggle value)))))
+
+(defmethod base-donut-input-opts-for-type
+  :radio
+  [input-opts]
+  (-> input-opts
+      (assoc :type :checkbox)
+      base-donut-input-opts-for-type
+      (assoc :type :radio)))
 
 (def default-date-fmt (:date tf/formatters))
 
