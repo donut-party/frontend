@@ -7,7 +7,7 @@
 
 (defmethod dfc/base-donut-input-opts-for-type :simplemde
   [opts]
-  (-> (dfc/base-donut-input-opts-for-type opts)
+  (-> (dfc/default-base-donut-input-opts opts)
       (dissoc :type)))
 
 (defn- set-change-obj-text

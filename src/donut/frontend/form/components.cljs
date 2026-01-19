@@ -31,8 +31,6 @@
 (def InputConfig
   (into dff/FormConfig
         [[:donut.input/attr-path]
-         [:donut.input/format-write]
-         [:donut.input/format-read]
          [:donut.form/feedback-fn]]))
 
 (def attr-input-keys (conj dff/form-config-keys :donut.input/attr-path))
@@ -72,9 +70,9 @@
   "Helper when you want non-input elements to update a value"
   [input-config value & [opts]]
   (rf/dispatch-sync
-   [::dff/attr-input-event (merge input-config
-                                  {:donut.input/value value}
-                                  opts)]))
+   [::dff/attr-update-value (merge input-config
+                                   {:donut.input/value value}
+                                   opts)]))
 
 (defn dispatch-attr-input-event
   [dom-event input-opts]

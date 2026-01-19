@@ -11,8 +11,7 @@
 (defmacro with-form
   [form-config & body]
   `(let [~'*form-config (form-config ~form-config)
-         ~'*sync-key    (:*sync-key ~'*form-config)
-         ~'*form-key    (:*form-key ~'*form-config)
+         ~'*form-key    (:donut.form/key ~'*form-config)
 
          {:keys [~'*form-ui-state
                  ~'*form-feedback

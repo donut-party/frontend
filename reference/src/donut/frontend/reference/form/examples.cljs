@@ -92,7 +92,8 @@
 
 (defn form-example-features
   []
-  (dfc/with-form {:donut.form.layout/buffer [:test-buffer]}
+  (dfc/with-form {:donut.form/key           :form-example-features
+                  :donut.form.layout/buffer [:test-buffer]}
     [ui/example
      [:div {:class "p-4"}
       [:form
@@ -119,7 +120,7 @@
             ;; submitting.
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
-             #(rf/dispatch [::dff/set-form {::dff/set-form {:buffer {:username "marcy"}}}]))}
+             #(rf/dispatch [::dff/set-form (assoc *form-config ::dff/set-form  {:buffer {:username "marcy"}})]))}
            "populate form"]
           " sets the username value to 'marcy'"]
          [ui/explain "input components manage state in the global app db:"]
@@ -196,12 +197,12 @@
                       :donut.field/label-text    "beach"
                       :donut.input/checked-value :beach}]]]]
 
-          #_
           [:div
            [:div ":profile"]
            [:div
             [ui/explain "you can create custom input elements, like this markdown editor"]
-            [*input :simplemde :profile]]
+            [*input {:type                  :simplemde
+                     :donut.input/attr-path :profile}]]
            [:div
             [ui/example-offset
              [rendered-markdown *form-buffer]]]]]]]]]]))
