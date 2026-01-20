@@ -147,7 +147,7 @@
 
 (rf/reg-fx ::start-system
   (fn [config]
-    (swap! rfdb/app-db assoc-in [:donut :system] (ds/signal config ::ds/start))))
+    (swap! rfdb/app-db assoc-in [:donut :system] (ds/signal (ds/system config) ::ds/start))))
 
 (rf/reg-event-fx ::stop-system
   (fn [_ _]

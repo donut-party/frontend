@@ -122,12 +122,10 @@
 
 (rf/reg-event-fx ::default-sync-fail
   [rf/trim-v]
-  (fn [_cofx [{:keys [::req], {:keys [response-data]} ::resp}]]
+  (fn [_cofx [{:keys [::req] :as _sync-lifecycle}]]
     ;; TODO possibly allow failed responses to carry data
-    (let [sync-info {:response-data response-data
-                     :req           (into [] (take 2 req))}]
-      (rfl/console :log "sync failed" sync-info)
-      {:dispatch [::dfaf/add-failure [:sync sync-info]]})))
+    (rfl/console :log "sync failed" req)
+    {:dispatch [::dfaf/add-failure req]}))
 
 (rf/reg-event-fx ::default-sync-unavailable
   [rf/trim-v]

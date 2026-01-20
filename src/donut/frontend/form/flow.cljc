@@ -380,12 +380,10 @@
    dsf/default-callbacks
    { ;; by default don't allow a form to be submitted
     ;; when we're waiting for a response
-    ::dfe/default {:on {:success (dc/into [[::dsf/default-sync-success]
-                                           [::submit-form-sync-success]])
-                        :fail    (dc/into [[::dsf/default-sync-fail]
-                                           [::submit-form-sync-fail]])}}
-    ::dfe/merge   {::form-config form-config}
-    ::dfe/pre     [dsf/not-active]}))
+    ::dfe/on    {:success (dc/into [[::submit-form-sync-success]])
+                 :fail    (dc/into [[::submit-form-sync-fail]])}
+    ::dfe/merge {::form-config form-config}
+    ::dfe/pre   [dsf/not-active]}))
 
 (defn form-req
   "Returns a request that the sync handler can use

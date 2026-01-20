@@ -42,7 +42,7 @@
 
 (defn ^:dev/after-load start []
   (prn "starting")
-  (rf/dispatch-sync [::dcf/start-system (ds/system :frontend-dev)])
+  (rf/dispatch-sync [::dcf/start-system :frontend-dev])
   (rf/dispatch-sync [::dnf/dispatch-current])
   (.render root (r/as-element [app/app])))
 

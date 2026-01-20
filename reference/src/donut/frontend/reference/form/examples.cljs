@@ -244,21 +244,28 @@
 
 (defn validation-example-stored-errors
   []
-  [ui/example
-   [:div {:class "p-4"}
-    [ui/h2 "Validation Example 1: Server-side-validation"]
-    [ui/explain
-     "This simulates a setup where your form fails server-side validation.
+  (dfc/with-form (merge user-form-config
+                        {:donut.form/feedback-fn dffk/stored-error-feedback})
+    [ui/example
+     [:div {:class "p-4"}
+      [ui/h2 "Validation Example 1: Server-side-validation"]
+      [ui/explain
+       "This simulates a setup where your form fails server-side validation.
         It hides the field's error message when its input receives focus, because
            I think that's a friendlier design."]
-    (dfc/with-form [:post :users]
-      {:donut.form/feedback-fn dffk/stored-error-feedback}
       [:div
-       [*field :text :first-name {:class input-class}]
+       [*field {:type                  :text
+                :class                 input-class
+                :donut.input/attr-path :first-name}]
        [ui/button
-        {:on-click #(*sync-form {::dsde/echo {:status        :fail
-                                              :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]}})}
-        "populate errors"]])]])
+        {:on-click #(*sync-form
+                     {:donut.sync/req
+                      {:route-name     :users
+                       :donut.sync/key (:donut.form/key *form)
+                       ::dsde/echo     {:status        :fail
+                                        :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]
+                                        :ms            2000}}})}
+        "populate errors"]]]]))
 
 (def UserSchema
   [:map
@@ -385,8 +392,8 @@
    [most-basic-form]
    [form-example-features]
    [activity-example]
-   #_#_#_#_#_#_
    [validation-example-stored-errors]
+   #_#_#_#_#_
    [validation-example-dynamic]
    [sync-and-init-example]
    [custom-input-class]
