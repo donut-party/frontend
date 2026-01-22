@@ -264,7 +264,7 @@
                        :donut.sync/key (:donut.form/key *form)
                        ::dsde/echo     {:status        :fail
                                         :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]
-                                        :ms            2000}}})}
+                                        :ms            200}}})}
         "populate errors"]]]]))
 
 (def UserSchema

@@ -382,7 +382,7 @@
     ;; when we're waiting for a response
     ::dfe/on    {:success (dc/into [[::submit-form-sync-success]])
                  :fail    (dc/into [[::submit-form-sync-fail]])}
-    ::dfe/merge {::form-config form-config}
+    ::dfe/merge form-config
     ::dfe/pre   [dsf/not-active]}))
 
 (defn form-req
@@ -469,7 +469,7 @@
         :keys            [::dsf/resp]
         :as              event-opts}]]
   (let [{:donut.form.layout/keys [feedback input-events]} (form-paths event-opts)]
-    (rfl/console :log "form submit fail:" key resp)
+    (rfl/console :log "form submit fail:" {:keys (keys event-opts)} (:donut.form/key event-opts) key feedback resp)
     (-> db
         (assoc-in (conj feedback :errors) (or (response-error event-opts)
                                               {:cause :unknown}))
