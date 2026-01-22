@@ -51,12 +51,13 @@
 
 (defn feedback-css-classes
   [{:donut.form/keys  [feedback-class-mapping]
-    :donut.input/keys [attr-feedback]
-    :or {feedback-class-mapping css-classes}}]
-  (->> @attr-feedback
-       (remove #(empty? (second %)))
-       (map first)
-       (mapv #(get feedback-class-mapping % (dsu/full-name %)))))
+    :donut.input/keys [attr-feedback]}]
+  (let [mapping (dc/compose css-classes feedback-class-mapping)]
+    (->> @attr-feedback
+         (remove #(empty? (second %)))
+         (map first)
+         (mapcat #(get mapping % (dsu/full-name %)))
+         vec)))
 
 ;;---
 ;; events

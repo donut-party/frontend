@@ -315,6 +315,7 @@
 
 (doseq [event-name [::get ::put ::post ::delete ::patch]]
   (let [method (keyword (name event-name))]
+    (prn "method" method)
     (rf/reg-event-fx event-name
       sync-interceptors
       (fn [cofx [req]]

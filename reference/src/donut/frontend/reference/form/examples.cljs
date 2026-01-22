@@ -278,69 +278,84 @@
     [ui/h2 "Validation Example 2: Dynamic"]
     [ui/explain
      "Uses malli to validate a form. Validation message doesn't appear until blur.
-        Otherwise it'd be obnoxious, telling you the input is incorrect when you haven't
+        Otherwise it'd be annoying, telling you the input is incorrect when you haven't
         even finished filling it out."]
-    (dfc/with-form [:post :users]
-      {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
+    (dfc/with-form
+      (merge user-form-config
+             {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)})
       [:div
-       [*field :text :zip-code {:class input-class}]])]])
+       [*field {:type :text
+                :class input-class
+                :donut.input/attr-path :zip-code}]])]])
 
 (defn sync-and-init-example
   []
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "Populate form with sync response"]
-    (dfc/with-form [:post :posts]
+    (dfc/with-form {:donut.form/key :new-post}
       [:div
        [ui/explain
         "You can perform a sync request and use the result to populate a form"]
        [ui/explain
         [ui/button
          {:on-click
-          #(rf/dispatch [::dsf/get {:id         1
-                                    :route-name :post
-                                    ::dsde/echo {:status        :success
-                                                 :response-data {:id      1
-                                                                 :content "post content"}}
-                                    ::dfe/on    {:success (dc/into [[::dff/set-form-from-sync]])}}])}
+          #(rf/dispatch [::dsf/get {:route-name     :post
+                                    :params         {:id 1}
+                                    :donut.form/key :new-post
+                                    ::dsde/echo     {:status        :success
+                                                     :response-data {:id      1
+                                                                     :content "post content"}}
+                                    ::dfe/on        {:success (dc/into [[::dff/set-form-from-sync]])}}])}
          "populate from sync"]]
-       [*field :text :content {:class input-class}]])]])
+       [*field {:type                  :text
+                :class                 input-class
+                :donut.input/attr-path :content}]])]])
 
 (defn custom-input-class
   []
   ;; Alternatives for specifying classes
   [ui/example
-   (dfc/with-form [:post :address]
-     {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
+   (dfc/with-form
+     {:donut.form/key :new-address
+      :donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
      [:div {:class "p-4"}
       [ui/h2 "Custom input classes"]
       [ui/explain "You can customize the input class with feedback"]
       [ui/explain
-       [*input :text :zip-code
-        {:class #(str input-class " " (dfc/feedback-css-classes %))}]]
-      [ui/explain
-       [*input :text :zip-code
-        {:class #(str input-class " " (dfc/feedback-css-classes %))}]]])])
+       [*field
+        {:type  :text
+         :class [input-class]
+         :donut.form/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
+         :donut.input/attr-path :zip-code}]]])])
 
 (rf/reg-sub ::custom-buffer
   (fn [db _]
     (::custom-buffer db)))
 
+(defn custom-buffer-display
+  []
+  [ui/explain
+   [:div "custom buffer:" @(rf/subscribe [::custom-buffer])]])
+
 (defn prevent-input-focus-loss
   "TODO I still don't fully understand why this is needed"
   []
   [ui/example
-   (dfc/with-form [:post :address]
-     {:donut.form.layout/buffer [::custom-buffer]}
+   (dfc/with-form
+     {:donut.form/key           :new-address
+      :donut.form.layout/buffer [::custom-buffer]}
      [:div {:class "p-4"}
       [ui/h2 "Inputs won't lose focus"]
       [ui/explain
-       [:div "When we deref in a way that causes the input components to get
-       recreated, they shouldn't lose focus"]]
+       [:div "if deref'ing a subscription would cause re-render of component that also includes an input,
+put the deref in its own component to prevent the re-render so that input doesn't lose focus"]]
+      [custom-buffer-display]
       [ui/explain
-       [:div "custom buffer:" @(rf/subscribe [::custom-buffer])]]
-      [ui/explain
-       [*input :text :blah {:class input-class}]]])])
+       [*input
+        {:type  :text
+         :class input-class
+         :donut.input/attr-path :blah}]]])])
 
 (defn initial-values-submit-button
   [{:keys [*submit *form-buffer :donut.form/key]}]
@@ -364,8 +379,9 @@
 (defn initial-values
   []
   [ui/example
-   (dfc/with-form [:post :users]
-     {:donut.form/initial-state {:buffer {:initial-value-test "initial value"
+   (dfc/with-form
+     {:donut.form/key :new-user
+      :donut.form/initial-state {:buffer {:initial-value-test "initial value"
                                           :nav-params @(rf/subscribe [::dnf/route])}}}
      [:div {:class "p-4"}
       [ui/h2 "Provide initial values for the form"]
@@ -378,7 +394,9 @@
        ':initial-value-test' and ':nav-params' keys. The value of ':nav-params'
        is a subscription."]]
       [ui/explain
-       [*field :text :initial-value-test {:class input-class}]]
+       [*field {:type :text
+                :class input-class
+                :donut.input/attr-path :initial-value-test}]]
       [:div
        [ui/h2 "submitted users"]
        [ui/example-offset
@@ -393,7 +411,6 @@
    [form-example-features]
    [activity-example]
    [validation-example-stored-errors]
-   #_#_#_#_#_
    [validation-example-dynamic]
    [sync-and-init-example]
    [custom-input-class]
