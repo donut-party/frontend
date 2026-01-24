@@ -380,9 +380,7 @@ put the deref in its own component to prevent the re-render so that input doesn'
   []
   [ui/example
    (dfc/with-form
-     {:donut.form/key :new-user
-      :donut.form/initial-state {:buffer {:initial-value-test "initial value"
-                                          :nav-params @(rf/subscribe [::dnf/route])}}}
+     {:donut.form/key :new-user}
      [:div {:class "p-4"}
       [ui/h2 "Provide initial values for the form"]
       [ui/explain

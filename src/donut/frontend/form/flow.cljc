@@ -58,7 +58,6 @@
   [:map
    [:donut.form/key :any]
    [:donut.form/sync? :boolean]
-   [:donut.form/initial-state map?]
    [:donut.form/feedback-class-mapping]
    [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
    [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
@@ -87,10 +86,6 @@
             {}
             layout-keys)))
 
-(defn merge-initial-state
-  [form-config form]
-  (dsu/deep-merge (:donut.form/initial-state form-config) (or form {})))
-
 (defn form-data
   [db form-config]
   (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]} (form-paths form-config)]
@@ -113,8 +108,7 @@
 
 (rf/reg-sub ::form
   (fn [db [_ form-config]]
-    (merge-initial-state form-config
-                         (form-data db form-config))))
+    (form-data db form-config)))
 
 (defn form-signal
   [[_ form-config]]
@@ -414,11 +408,7 @@
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-req form-config
-                                     (dsu/deep-merge
-                                      (:buffer (:donut.form/initial-state form-config))
-                                      (get-in db buffer))
-                                     req)]}))
+     :dispatch [::dsf/sync (form-req form-config (get-in db buffer) req)]}))
 
 (rf/reg-event-fx ::sync-form
   [rf/trim-v]
