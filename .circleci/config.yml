@@ -4,7 +4,7 @@ jobs:
     environment:
       - _JAVA_OPTIONS: "-Xms512m -Xmx1024m"
     docker:
-      - image: cimg/clojure:1.11.1-openjdk-8.0-node
+      - image: cimg/clojure:1.12.0-openjdk-21.0-node
     steps:
       - checkout
 
@@ -29,7 +29,7 @@ jobs:
             - ./
   deploy:
     docker:
-      - image: cimg/clojure:1.11.1-openjdk-8.0-node
+      - image: cimg/clojure:1.12.0-openjdk-21.0-node
     steps:
       - checkout
       - restore_cache:
