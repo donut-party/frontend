@@ -479,13 +479,13 @@
 (defn sync-form
   [form-config & [sync-opts]]
   (when-not (:donut.form/prevent-submit? sync-opts)
-    (rf/dispatch [::dff/sync-form (merge form-config sync-opts)])))
+    (rf/dispatch [::dff/sync-form (assoc form-config ::dff/sync-event sync-opts)])))
 
 (defn form-config
   [{:keys [::dff/form-key] :as f-config}]
   (dc/compose {::dff/sync?       true
                ::dff/feedback-fn dffk/stored-error-feedback
-               :donut.sync/req   {:donut.sync/key form-key}}
+               ::dsf/sync-key    form-key}
               f-config))
 
 (defn form-sync-subs

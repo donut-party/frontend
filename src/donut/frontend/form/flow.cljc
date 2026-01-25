@@ -372,6 +372,7 @@
     ::dfe/merge form-config
     ::dfe/pre   [dsf/not-active]}))
 
+;; TODO req should be in form-config
 (defn form-req
   "Returns a request that the sync handler can use
 
@@ -387,21 +388,23 @@
   - `form-spec` is a way to pass on whatevs data to the request completion
     handler.
   - the `:sync` key of form spec can customize the sync request"
-  [form-config buffer-data req]
-  (dc/compose (form-event-defaults form-config)
-              (update req :params merge buffer-data)))
+  [form-config buffer-data sync]
+  (-> form-config
+      (dissoc ::sync-event)
+      form-event-defaults
+      (dc/compose (update-in sync [::dsf/req :params] merge buffer-data))))
 
 (defn sync-form
   "build form request. update db with :submit input event for form"
   [db form-config]
   (let [{:keys [feedback input-events buffer]} (form-paths form-config)
-        req                                    (:donut.sync/req form-config)]
+        sync                                   (::sync-event form-config)]
     {:db       (-> db
                    (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-req form-config (get-in db buffer) req)]}))
+     :dispatch [::dsf/sync (form-req form-config (get-in db buffer) sync)]}))
 
 (rf/reg-event-fx ::sync-form
   [rf/trim-v]

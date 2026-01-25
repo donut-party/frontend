@@ -26,8 +26,8 @@
   otherwise uses a best-guess default of a projection of the request map that's
   likely to meaningfully distinguish different requests you want to track.
   `:donut.sync/key`."
-  [req]
-  (or (:donut.sync/key req)
+  [{:keys [::req] :as sync}]
+  (or (::sync-key sync)
       (let [req-id (dfr/req-id req)]
         (-> req
             (select-keys [:method :route-name])
@@ -49,8 +49,7 @@
    [:method ReqMethod]
    [:uri URI]
    [:query-params {:optional true} QueryParams]
-   [:params {:optional true} Params]
-   [:donut.sync/key {:optional true} some?]])
+   [:params {:optional true} Params]])
 
 (def RoutedReq
   [:map
@@ -58,8 +57,7 @@
    [:route-name {:optional true} RouteName]
    [:route-params {:optional true} RouteParams]
    [:query-params {:optional true} QueryParams]
-   [:params {:optional true} Params]
-   [:donut.sync/key {:optional true} some?]])
+   [:params {:optional true} Params]])
 
 (def Req
   [:or
@@ -165,11 +163,11 @@
 
 (rf/reg-event-fx ::handle-sync-response
   [rf/trim-v]
-  (fn [{:keys [db] :as cofx} [{:keys [::req ::resp] :as request-response-map}]]
+  (fn [{:keys [db] :as cofx} [{:keys [::resp] :as sync}]]
     (let [status (if (= (:status resp) :success) :success :fail)]
-      {:db (sync-finished db request-response-map)
+      {:db (sync-finished db sync)
        :fx (dfe/triggered-callback-fx
-            (update req ::dfe/merge merge request-response-map)
+            (update sync ::dfe/merge merge sync)
             cofx
             status)})))
 
@@ -184,10 +182,9 @@
 
 (defn sync-response-handler
   "Used by sync implementations (e.g. ajax) to create a response handler"
-  [req]
+  [sync]
   (fn anon-sync-response-handler [resp]
-    (rf/dispatch [::handle-sync-response {::req  req
-                                          ::resp resp}])))
+    (rf/dispatch [::handle-sync-response (assoc sync ::resp resp)])))
 
 ;;-----------------------
 ;; dispatch sync requests
@@ -206,16 +203,16 @@
 
 (defn adapt-req
   "Makes sure a path is findable from req and adds it"
-  [req router]
+  [{::keys [req] :as sync} router]
   (when-let [path (drp/path router req)]
-    (assoc req :path path)))
+    (assoc-in sync [::req :path] path)))
 
 (defn ctx-req
   "Retrieve request within interceptor"
   [ctx]
   (get-in ctx [:coeffects :event 1]))
 
-(defn update-ctx-req
+(defn update-ctx-sync
   [ctx f & args]
   (apply update-in ctx [:coeffects :event 1] f args))
 
@@ -235,11 +232,11 @@
   overrides"
   {:id     ::sync-dispatch-fn
    :before (fn [ctx]
-             (update-ctx-req ctx dc/>compose {::dfe/on           default-handlers
-                                              ::sync-dispatch-fn (-> ctx
-                                                                     (dfe/ctx-db)
-                                                                     (p/get-path :donut-component)
-                                                                     :sync-dispatch-fn)}))
+             (update-ctx-sync ctx dc/>compose {::dfe/on           default-handlers
+                                               ::sync-dispatch-fn (-> ctx
+                                                                      (dfe/ctx-db)
+                                                                      (p/get-path :donut-component)
+                                                                      :sync-dispatch-fn)}))
    :after  identity})
 
 (def add-auth-header
@@ -247,7 +244,7 @@
   {:id     ::add-auth-header
    :before (fn [ctx]
              (if-let [auth-token (p/get-path (dfe/ctx-db ctx) :auth [:auth-token])]
-               (update-ctx-req ctx update-in [:headers "Authorization"] #(or % auth-token))
+               (update-ctx-sync ctx update-in [::req :headers "Authorization"] #(or % auth-token))
                ctx))
    :after  identity})
 
@@ -270,15 +267,16 @@
   a) updated db to track a sync request
   b) ::dispatch-sync effect, to be handled by the ::dispatch-sync
   effect handler"
-  [{:keys [db] :as _cofx} {:keys [::sync-dispatch-fn] :as req}]
+  [{:keys [db] :as _cofx} sync]
   (let [{:keys [sync-router]} (p/get-path db :donut-component)
-        adapted-req           (adapt-req req sync-router)]
+        adapted-req           (adapt-req sync sync-router)]
     (if adapted-req
       {:db             (track-new-request db adapted-req)
-       ::dispatch-sync {:dispatch-fn sync-dispatch-fn
-                        :req         adapted-req}}
+       ::dispatch-sync adapted-req}
       (do (rfl/console :warn "sync router could not match req"
-                       {:req (update req 2 select-keys [:params :route-params :query-params :data])})
+                       {:req (-> sync
+                                 ::req
+                                 (update 2 select-keys [:params :route-params :query-params :data]))})
           {:db db}))))
 
 ;;---
@@ -290,24 +288,10 @@
   (fn [cofx [req]]
     (sync-event-fx cofx req)))
 
-(defn sync-entity-req
-  "To be used when dispatching a sync event for an entity:
-  (sync-entity-req :put :comment {:id 1 :content \"comment\"})"
-  [[method route ent & [opts]]]
-  [method route (-> opts
-                    (update :params #(or % ent))
-                    (update :route-params #(or % ent)))])
-
-;; makes it a little easier to sync a single entity
-(rf/reg-event-fx ::sync-entity
-  sync-interceptors
-  (fn [cofx [req]]
-    (sync-event-fx cofx (sync-entity-req req))))
-
 ;; The effect handler that actually performs a sync
 (rf/reg-fx ::dispatch-sync
-  (fn [{:keys [dispatch-fn req]}]
-    (dispatch-fn req)))
+  (fn [{::keys [sync-dispatch-fn] :as sync}]
+    (sync-dispatch-fn sync)))
 
 ;;---------------
 ;; sync events
@@ -317,8 +301,8 @@
   (let [method (keyword (name event-name))]
     (rf/reg-event-fx event-name
       sync-interceptors
-      (fn [cofx [req]]
-        (sync-event-fx cofx (assoc req :method method))))))
+      (fn [cofx [sync]]
+        (sync-event-fx cofx (assoc-in sync [::req :method] method))))))
 
 ;;---------------
 ;; response helpers
@@ -374,9 +358,10 @@
 
 (defn use-current-route-params
   [ctx]
-  (dfe/opts-merge-db-vals
+  (assoc-in
    ctx
-   {:route-params (p/path :nav [:route :params])}))
+   [:coeffects :event 1 ::req :route-params]
+   (get-in (dfe/ctx-db ctx) (p/path :nav [:route :params]))))
 
 (defn not-active
   [ctx]

@@ -32,49 +32,49 @@
 (defn adapt-req
   "Adapts the req opts as passed in by sync so that they'll work with
   cljs-ajax"
-  [{:keys [params path] :as req}]
-  (if path
-    (-> req
-        (assoc :uri path)
-        (cond-> (empty? params) (dissoc :params)))
-    (rfl/console :warn
-                 "Could not resolve route"
-                 ::route-not-found {:req          req
-                                    :route-params (:route-params req)})))
+  [{::dsf/keys [req]}]
+  (let [{:keys [params path]} req]
+    (if path
+      (-> req
+          (assoc :uri path)
+          (cond-> (empty? params) (dissoc :params)))
+      (rfl/console :warn
+                   "Could not resolve route"
+                   ::route-not-found {:req          req
+                                      :route-params (:route-params req)}))))
 
 (defn sync-dispatch-fn
   [{:keys [fail-map]
     :or   {fail-map fails}
     :as   global-opts}]
-  (fn [req]
-    (let [{:keys [method uri] :as adapted} (adapt-req req)
+  (fn [sync]
+    (let [{:keys [method uri] :as adapted} (adapt-req sync)
           request-method                   (get request-methods method)]
-
       (when-not adapted
         (rfl/console :error
                      "could not find route for request"
                      ::no-route-found
-                     {:req req})
+                     {:req sync})
         (throw (js/Error. "Invalid request: could not find route for request")))
 
       (when-not request-method
         (rfl/console :error
                      (str "request method did not map to an HTTP request function. valid methods are " (keys request-methods))
                      ::ajax-dispatch-no-request-method
-                     {:req    req
+                     {:req    sync
                       :method method})
         (throw (js/Error. "Invalid request: no request method found")))
 
       ((get request-methods method)
        uri
-       (-> (merge global-opts req)
+       (-> (merge global-opts adapted)
            (assoc :handler       (fn [resp]
-                                   ((dsf/sync-response-handler req)
+                                   ((dsf/sync-response-handler sync)
                                     {:status        :success
                                      :response-data resp})))
            (assoc :response-format (ajax.core/transit-response-format {:handlers denc/read-handlers}))
            (assoc :error-handler (fn [resp]
-                                   ((dsf/sync-response-handler req)
+                                   ((dsf/sync-response-handler sync)
                                     (-> resp
                                         (assoc :status (get fail-map (:status resp) :fail))
                                         (set/rename-keys {:response :response-data}))))))))))

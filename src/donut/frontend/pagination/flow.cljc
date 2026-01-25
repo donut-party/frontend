@@ -43,6 +43,7 @@
 (rf/reg-sub ::ent-count
   (fn [db [_ pager-id]] (:ent-count (pager db pager-id))))
 
+;; TODO update
 (rf/reg-sub ::sync-state
   (fn [db [_ endpoint pager-id]]
     (dsf/sync-state db [:get endpoint {:donut.sync/key pager-id}])))
@@ -56,6 +57,7 @@
   [db {:keys [pager-id] :as page-query}]
   (assoc-in db (p/page-path [pager-id :query]) page-query))
 
+;; TODO update
 (defn page-sync-req
   [endpoint page-query & [opts]]
   [:get endpoint (merge {:query-params   page-query

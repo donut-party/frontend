@@ -36,13 +36,12 @@
    {:on-click (dcu/prevent-default
                #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
-                 {:donut.sync/req
-                  {:route-name     :users
-                   :donut.sync/key form-key
-                   ::dsde/echo     {:status        :success
-                                    :response-data (assoc @*form-buffer :id (rand-int 1000))
-                                    :ms            2000}
-                   ::dfe/on        {:success (dc/into [[::dff/clear]])}}}))}
+                 {::dsf/key form-key
+                  ::dsf/req {:route-name :users
+                             ::dsde/echo {:status        :success
+                                          :response-data (assoc @*form-buffer :id (rand-int 1000))
+                                          :ms            2000}}
+                  ::dfe/on  {:success (dc/into [[::dff/clear]])}}))}
    "submit"])
 
 (defn submitting-indicator

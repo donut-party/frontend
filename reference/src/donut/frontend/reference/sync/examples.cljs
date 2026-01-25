@@ -128,13 +128,13 @@
 (defn sync-rules-example
   []
   (let [success-count (r/atom 0)
-        sync-req      {:method         :get
-                       :route-name     :users
-                       :donut.sync/key :rules-example
-                       ::dsde/echo     {:status :success
-                                        :ms     2000}
-                       ::dfe/pre       [dsf/not-active]
-                       ::dfe/on        {:success #(swap! success-count inc)}}]
+        sync-req      {::dsf/sync-key :rules-example
+                       ::dsf/req      {:method     :get
+                                       :route-name :users
+                                       ::dsde/echo {:status :success
+                                                    :ms     2000}}
+                       ::dfe/pre      [dsf/not-active]
+                       ::dfe/on       {:success #(swap! success-count inc)}}]
     (fn []
       [ui/example
        [:div {:class "p-4"}
