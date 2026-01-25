@@ -15,7 +15,7 @@
          metosin/reitit-frontend     {:mvn/version "0.5.15"}
          party.donut/compose         {:mvn/version "0.0.30"}
          party.donut/sugar           {:mvn/version "0.0.16"}
-         party.donut/system          {:mvn/version "0.0.258"}
+         party.donut/system          {:mvn/version "1.0.258"}
          rads/anomalies              {:mvn/version "0.1.13"}
          venantius/accountant        {:mvn/version "0.2.4"}}
 
