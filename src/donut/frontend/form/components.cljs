@@ -31,7 +31,7 @@
 (def InputConfig
   (into dff/FormConfig
         [[:donut.input/attr-path]
-         [:donut.form/feedback-fn]]))
+         [::dff/feedback-fn]]))
 
 (def attr-input-keys (conj dff/form-config-keys :donut.input/attr-path))
 
@@ -484,8 +484,8 @@
 (defn form-config
   [{:keys [::dff/form-key] :as f-config}]
   (dc/compose {::dff/sync?       true
-               :donut.form/feedback-fn dffk/stored-error-feedback
-               :donut.sync/req         {:donut.sync/key form-key}}
+               ::dff/feedback-fn dffk/stored-error-feedback
+               :donut.sync/req   {:donut.sync/key form-key}}
               f-config))
 
 (defn form-sync-subs

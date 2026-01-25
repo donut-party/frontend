@@ -244,7 +244,7 @@
 (defn validation-example-stored-errors
   []
   (dfc/with-form (merge user-form-config
-                        {:donut.form/feedback-fn dffk/stored-error-feedback})
+                        {::dff/feedback-fn dffk/stored-error-feedback})
     [ui/example
      [:div {:class "p-4"}
       [ui/h2 "Validation Example 1: Server-side-validation"]
@@ -281,7 +281,7 @@
         even finished filling it out."]
     (dfc/with-form
       (merge user-form-config
-             {:donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)})
+             {::dff/feedback-fn (dffk/malli-error-feedback-fn UserSchema)})
       [:div
        [*field {:type :text
                 :class input-class
@@ -316,17 +316,17 @@
   ;; Alternatives for specifying classes
   [ui/example
    (dfc/with-form
-     {::dff/form-key :new-address
-      :donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
+     {::dff/form-key    :new-address
+      ::dff/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
      [:div {:class "p-4"}
       [ui/h2 "Custom input classes"]
       [ui/explain "You can customize the input class with feedback"]
       [ui/explain
        [*field
-        {:type  :text
-         :class [input-class]
+        {:type                        :text
+         :class                       [input-class]
          ::dfc/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
-         :donut.input/attr-path :zip-code}]]])])
+         :donut.input/attr-path       :zip-code}]]])])
 
 (rf/reg-sub ::custom-buffer
   (fn [db _]

@@ -63,6 +63,7 @@
    [::form-key :any]
    [::layout FormLayout]
    [::sync? :boolean]
+   [::feedback-fn :any]
    [:donut.frontend.form.components/feedback-class-mapping :map]])
 
 (def form-config-keys (mapv first (rest FormConfig)))
@@ -88,7 +89,7 @@
   (dcu/merge-retrieved-vals {} db (form-paths form-config)))
 
 (defn form-feedback
-  [db {:donut.form/keys [feedback-fn] :as form-config}]
+  [db {:keys [::feedback-fn] :as form-config}]
   (feedback-fn (form-data db form-config)))
 
 
@@ -515,7 +516,7 @@
 (rf/reg-sub ::feedback
   (fn [[_ form-config]]
     (rf/subscribe [::form form-config]))
-  (fn [form-data [_ {:donut.form/keys [feedback-fn]}]]
+  (fn [form-data [_ {:keys [::feedback-fn]}]]
     (when feedback-fn
       (feedback-fn form-data))))
 
