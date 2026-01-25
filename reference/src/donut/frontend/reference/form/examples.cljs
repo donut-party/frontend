@@ -93,8 +93,8 @@
         [most-basic-form-value *form-buffer]]]]]))
 
 (def user-form-config
-  {::dff/form-key           :new-user
-   :donut.form.layout/buffer [:test-buffer]})
+  {::dff/form-key :new-user
+   ::dff/layout   {:buffer [:test-buffer]}})
 
 (defn form-example-features
   []
@@ -342,8 +342,8 @@
   []
   [ui/example
    (dfc/with-form
-     {::dff/form-key           :new-address
-      :donut.form.layout/buffer [::custom-buffer]}
+     {::dff/form-key :new-address
+      ::dff/layout   {:buffer [::custom-buffer]}}
      [:div {:class "p-4"}
       [ui/h2 "Inputs won't lose focus"]
       [ui/explain
@@ -352,8 +352,8 @@ put the deref in its own component to prevent the re-render so that input doesn'
       [custom-buffer-display]
       [ui/explain
        [*input
-        {:type  :text
-         :class input-class
+        {:type                  :text
+         :class                 input-class
          :donut.input/attr-path :blah}]]])])
 
 (defn initial-values-submit-button

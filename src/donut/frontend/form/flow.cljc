@@ -1,6 +1,7 @@
 (ns donut.frontend.form.flow
   (:require
    [donut.compose :as dc]
+   [donut.frontend.core.utils :as dcu]
    [donut.frontend.events :as dfe]
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.nav.utils :as dnu]
@@ -84,12 +85,7 @@
 
 (defn form-data
   [db form-config]
-  (let [{:donut.form.layout/keys [buffer feedback input-events buffer-init-val ui-state]} (form-paths form-config)]
-    {:buffer          (get-in db buffer)
-     :feedback        (get-in db feedback)
-     :input-events    (get-in db input-events)
-     :buffer-init-val (get-in db buffer-init-val)
-     :ui-state        (get-in db ui-state)}))
+  (dcu/merge-retrieved-vals {} db (form-paths form-config)))
 
 (defn form-feedback
   [db {:donut.form/keys [feedback-fn] :as form-config}]
@@ -163,7 +159,7 @@
   "record that a dom event happened: focus, blur, etc"
   [db [{:donut.input/keys [attr-path event-type]
         :as               opts}]]
-  (let [{:donut.form.layout/keys [input-events]} (form-paths opts)]
+  (let [{:keys [input-events]} (form-paths opts)]
     (cond-> db
       event-type
       (update-in (conj input-events (dsu/vectorize attr-path))
@@ -178,7 +174,7 @@
   "handle events that update a value in a buffer"
   [db [{:donut.input/keys [attr-path attr-buffer-update value event-type]
         :as               opts}]]
-  (let [{:donut.form.layout/keys [buffer input-events]} (form-paths opts)]
+  (let [{:keys [buffer input-events]} (form-paths opts)]
     (cond-> db
       event-type
       (update-in (conj input-events (dsu/vectorize attr-path))
@@ -194,11 +190,11 @@
 
 (defn inline-editing-paths
   [{:donut.input/keys [attr-path] :as input-opts}]
-  (let [{:donut.form.layout/keys [scratch buffer]} (form-paths input-opts)
-        attr-path                                  (dsu/vectorize attr-path)
-        on-focus-path                              (->> attr-path
-                                                        (into [::on-focus-value])
-                                                        (into scratch))]
+  (let [{:keys [scratch buffer]} (form-paths input-opts)
+        attr-path                (dsu/vectorize attr-path)
+        on-focus-path            (->> attr-path
+                                      (into [::on-focus-value])
+                                      (into scratch))]
     {:buffer-attr-path (into buffer attr-path)
      :on-focus-path    on-focus-path}))
 
@@ -233,7 +229,7 @@
 (defn attr-set-value
   "directly set the value of an attribute"
   [db [{:donut.input/keys [attr-path] :as form-config} value]]
-  (let [{:donut.form.layout/keys [buffer]} (form-paths form-config)]
+  (let [{:keys [buffer]} (form-paths form-config)]
     (assoc-in db (into buffer (dsu/vectorize attr-path))
               value)))
 
@@ -244,8 +240,8 @@
 (defn attr-dissoc
   "remove attribute from buffer"
   [db [form-config attr-path]]
-  (let [{:donut.form.layout/keys [buffer]} (form-paths form-config)
-        db-path (into buffer (dsu/vectorize attr-path))]
+  (let [{:keys [buffer]} (form-paths form-config)
+        db-path          (into buffer (dsu/vectorize attr-path))]
     (update-in db (butlast db-path) dissoc (last db-path))))
 
 (rf/reg-event-db ::attr-dissoc
@@ -255,9 +251,9 @@
 (defn form-input-event
   "conj an event-type onto the form's `:input-events`"
   [db [{:keys [:donut.input/event-type] :as form-config}]]
-  (let [paths (form-paths form-config)]
+  (let [{:keys [input-events]} (form-paths form-config)]
     (update-in db
-               (:donut.form.layout/input-events paths)
+               input-events
                (fnil conj #{})
                event-type)))
 
@@ -269,7 +265,7 @@
   [rf/trim-v]
   (fn [db [{:donut.input/keys [attr-path value]
             :as opts}]]
-    (let [{:donut.form.layout/keys [buffer]} (form-paths opts)]
+    (let [{:keys [buffer]} (form-paths opts)]
       (update-in db (into buffer (dsu/vectorize attr-path)) #(or % value)))))
 
 ;;---------------------
@@ -278,8 +274,8 @@
 
 (defn reset-form-buffer
   "Reset buffer to value when form was initialized. Typically paired with a 'reset' button"
-  [db form-layout]
-  (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths form-layout)]
+  [db form-config]
+  (let [{:keys [buffer buffer-init-val]} (form-paths form-config)]
     (assoc-in db buffer (get-in db buffer-init-val))))
 
 (rf/reg-event-db ::reset-form-buffer
@@ -291,12 +287,13 @@
   (let [{:keys [buffer]} set-form
         paths            (form-paths form-config)
         form             (update set-form :buffer-init-val #(or % buffer))]
+    ;; TODO kind of like dcu/merge-retrieved-vals
     (-> db
-        (assoc-in (:donut.form.layout/buffer paths) (:buffer form))
-        (assoc-in (:donut.form.layout/feedback paths) (:feedback form))
-        (assoc-in (:donut.form.layout/input-events paths) (:input-events form))
-        (assoc-in (:donut.form.layout/buffer-init-val paths) (:buffer-init-val form))
-        (assoc-in (:donut.form.layout/ui-state paths) (:ui-state form)))))
+        (assoc-in (:buffer paths) (:buffer form))
+        (assoc-in (:feedback paths) (:feedback form))
+        (assoc-in (:input-events paths) (:input-events form))
+        (assoc-in (:buffer-init-val paths) (:buffer-init-val form))
+        (assoc-in (:ui-state paths) (:ui-state form)))))
 
 ;; Populate form initial state
 (rf/reg-event-db ::set-form
@@ -305,13 +302,13 @@
     (set-form db opts)))
 
 (defn set-form-from-path
-  [db [form-layout {:keys [data-path data-fn]
+  [db [form-config {:keys [data-path data-fn]
                     :or   {data-fn identity}
                     :as   form}]]
   (set-form db (dc/compose {::set-form (-> form
                                            (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
                                            (dissoc :data-path :data-fn))}
-                           form-layout)))
+                           form-config)))
 
 ;; Populate form initial state
 (rf/reg-event-db ::set-form-from-path
@@ -329,31 +326,30 @@
 
 ;; TODO validate clear
 (defn clear-selected-keys
-  [db form-layout clear]
-  (let [paths          (form-paths form-layout)
+  [db form-config clear]
+  (let [paths          (form-paths form-config)
         paths-to-clear (if (or (= :all clear) (nil? clear))
                          inner-keys
                          clear)]
     (reduce-kv (fn [db _ path] (assoc-in db path nil))
                db
-               (select-keys paths (map #(keyword "donut.form.layout" (name %))
-                                       paths-to-clear)))))
+               (select-keys paths paths-to-clear))))
 
 (rf/reg-event-db ::clear
   [rf/trim-v]
-  (fn [db [form-layout clear]]
-    (clear-selected-keys db form-layout clear)))
+  (fn [db [form-config clear]]
+    (clear-selected-keys db form-config clear)))
 
 (rf/reg-event-db ::keep
   [rf/trim-v]
-  (fn [db [form-layout keep-keys]]
-    (clear-selected-keys db form-layout (disj (set inner-keys) (set keep-keys)))))
+  (fn [db [form-config keep-keys]]
+    (clear-selected-keys db form-config (disj (set inner-keys) (set keep-keys)))))
 
 (rf/reg-event-db ::replace-with-response
   [rf/trim-v]
   (fn [db [ctx]]
-    (let [{:donut.form.layout/keys [buffer buffer-init-val]} (form-paths ctx)
-          data                                               (dsf/single-entity ctx)]
+    (let [{:keys [buffer buffer-init-val]} (form-paths ctx)
+          data                             (dsf/single-entity ctx)]
       (-> db
           (assoc-in buffer-init-val data)
           (assoc-in buffer data)))))
@@ -397,8 +393,8 @@
 (defn sync-form
   "build form request. update db with :submit input event for form"
   [db form-config]
-  (let [{:donut.form.layout/keys [feedback input-events buffer]} (form-paths form-config)
-        req                                                      (:donut.sync/req form-config)]
+  (let [{:keys [feedback input-events buffer]} (form-paths form-config)
+        req                                    (:donut.sync/req form-config)]
     {:db       (-> db
                    (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
@@ -413,8 +409,8 @@
 
 (rf/reg-event-db ::record-form-submit
   [rf/trim-v]
-  (fn [db [form-layout]]
-    (let [{:donut.form.layout/keys [input-events]} (form-paths form-layout)]
+  (fn [db [form-config]]
+    (let [{:keys [input-events]} (form-paths form-config)]
       (update-in db
                  (conj input-events :form)
                  (fnil conj #{})
@@ -446,14 +442,14 @@
 
 (rf/reg-event-db ::submit-form-sync-success
   [rf/trim-v]
-  (fn [db [{:keys [::dsf/req]}]]
-    (let [{:donut.form.layout/keys [input-events]} (form-paths (::form-layout req))]
+  (fn [db [event]]
+    (let [{:keys [input-events]} (form-paths event)]
       (assoc-in db input-events nil))))
 
 (defn submit-form-sync-fail
   [db [{:keys [::dsf/resp ::form-key]
         :as   event-opts}]]
-  (let [{:donut.form.layout/keys [feedback input-events]} (form-paths event-opts)]
+  (let [{:keys [feedback input-events]} (form-paths event-opts)]
     (rfl/console :log "form submit fail:"
                  {:keys     (keys event-opts)
                   :form-key form-key
@@ -527,8 +523,8 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::form-feedback
-  (fn [[_ form-layout]]
-    (rf/subscribe [::feedback form-layout]))
+  (fn [[_ form-config]]
+    (rf/subscribe [::feedback form-config]))
   (fn [feedback _]
     (reduce-kv (fn [form-feedback feedback-type all-feedback]
                  (if-let [feedback (:form all-feedback)]
@@ -541,8 +537,8 @@
 ;; {:error [e1 e2 e3]
 ;;  :info  [i1 i2 i3]
 (rf/reg-sub ::attr-feedback
-  (fn [[_ form-layout _attr-path]]
-    (rf/subscribe [::feedback form-layout]))
+  (fn [[_ form-config _attr-path]]
+    (rf/subscribe [::feedback form-config]))
   (fn [feedback [_ {:donut.input/keys [attr-path]}]]
     (reduce-kv (fn [attr-feedback feedback-type all-feedback]
                  (if-let [feedback (get (:attrs all-feedback)

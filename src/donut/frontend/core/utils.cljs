@@ -148,7 +148,11 @@
   - a map `key->path` where the keys are keywords and the values are db-paths
 
   Transforms `key->path` such that the values are replaced by values
-  looked up in `reference-m` with `path` and merges the result into `m`"
+  looked up in `reference-m` with `path` and merges the result into `m`
+
+  (merge-retrieved-vals {} {:a 1} {:b [:a]})
+  =>
+  {:b 1}"
   [m reference-m key->path]
   (reduce-kv (fn [m' k path]
                (assoc m' k (get-in reference-m path)))
