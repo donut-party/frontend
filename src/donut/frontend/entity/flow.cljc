@@ -6,8 +6,9 @@
    [donut.frontend.sync.flow :as dsf]))
 
 (defn get-routed-entity-set-form-event
-  [{:keys [donut.form/key] :as opts}]
+  [opts]
+  (prn "get routed")
   [::dsf/get (merge {::dfe/pre   [dsf/not-active]
                      ::dfe/xf    [dsf/use-current-route-params]
-                     ::dfe/on    {:success (dc/into [[::dff/set-form-with-routed-entity {:donut.form/key key}]])}}
+                     ::dfe/on    {:success (dc/into [[::dff/set-form-with-routed-entity opts]])}}
                     opts)])

@@ -8,7 +8,6 @@
    [donut.frontend.form.components :as dfc]
    [donut.frontend.form.feedback :as dffk]
    [donut.frontend.form.flow :as dff]
-   [donut.frontend.nav.flow :as dnf]
    [donut.frontend.reference.form.simplemde]
    [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.dispatch.echo :as dsde]
@@ -32,14 +31,14 @@
 ;; username without causing the *input component to re-render and thus lose
 ;; focus
 (defn submit-button
-  [{:keys [*sync-form *form-buffer :donut.form/key]}]
+  [{:keys [*sync-form *form-buffer ::dff/form-key]}]
   [ui/button
    {:on-click (dcu/prevent-default
                #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
                  {:donut.sync/req
                   {:route-name     :users
-                   :donut.sync/key key
+                   :donut.sync/key form-key
                    ::dsde/echo     {:status        :success
                                     :response-data (assoc @*form-buffer :id (rand-int 1000))
                                     :ms            2000}
@@ -81,7 +80,7 @@
 
 (defn most-basic-form
   []
-  (dfc/with-form {:donut.form/key :most-basic-form}
+  (dfc/with-form {::dff/form-key :most-basic-form}
     [ui/example
      [:div {:class "p-4"}
       [:form
@@ -94,7 +93,7 @@
         [most-basic-form-value *form-buffer]]]]]))
 
 (def user-form-config
-  {:donut.form/key           :new-user
+  {::dff/form-key           :new-user
    :donut.form.layout/buffer [:test-buffer]})
 
 (defn form-example-features
@@ -261,7 +260,7 @@
         {:on-click #(*sync-form
                      {:donut.sync/req
                       {:route-name     :users
-                       :donut.sync/key (:donut.form/key *form)
+                       :donut.sync/key (::dff/form-key *form)
                        ::dsde/echo     {:status        :fail
                                         :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]
                                         :ms            200}}})}
@@ -293,7 +292,7 @@
   [ui/example
    [:div {:class "p-4"}
     [ui/h2 "Populate form with sync response"]
-    (dfc/with-form {:donut.form/key :new-post}
+    (dfc/with-form {::dff/form-key :new-post}
       [:div
        [ui/explain
         "You can perform a sync request and use the result to populate a form"]
@@ -302,7 +301,7 @@
          {:on-click
           #(rf/dispatch [::dsf/get {:route-name     :post
                                     :params         {:id 1}
-                                    :donut.form/key :new-post
+                                    ::dff/form-key :new-post
                                     ::dsde/echo     {:status        :success
                                                      :response-data {:id      1
                                                                      :content "post content"}}
@@ -317,7 +316,7 @@
   ;; Alternatives for specifying classes
   [ui/example
    (dfc/with-form
-     {:donut.form/key :new-address
+     {::dff/form-key :new-address
       :donut.form/feedback-fn (dffk/malli-error-feedback-fn UserSchema)}
      [:div {:class "p-4"}
       [ui/h2 "Custom input classes"]
@@ -326,7 +325,7 @@
        [*field
         {:type  :text
          :class [input-class]
-         :donut.form/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
+         ::dfc/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
          :donut.input/attr-path :zip-code}]]])])
 
 (rf/reg-sub ::custom-buffer
@@ -343,7 +342,7 @@
   []
   [ui/example
    (dfc/with-form
-     {:donut.form/key           :new-address
+     {::dff/form-key           :new-address
       :donut.form.layout/buffer [::custom-buffer]}
      [:div {:class "p-4"}
       [ui/h2 "Inputs won't lose focus"]
@@ -358,7 +357,7 @@ put the deref in its own component to prevent the re-render so that input doesn'
          :donut.input/attr-path :blah}]]])])
 
 (defn initial-values-submit-button
-  [{:keys [*submit *form-buffer :donut.form/key]}]
+  [{:keys [*submit *form-buffer ::dff/form-key]}]
   [ui/button
    {:on-click (dcu/prevent-default
                #(*submit
@@ -366,7 +365,7 @@ put the deref in its own component to prevent the re-render so that input doesn'
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
                                :ms            0}
-                  ::dfe/on    {:success (dc/into [[::dff/clear key]
+                  ::dfe/on    {:success (dc/into [[::dff/clear form-key]
                                                   [::initial-values-success]])}}))}
    "submit"])
 
@@ -380,7 +379,7 @@ put the deref in its own component to prevent the re-render so that input doesn'
   []
   [ui/example
    (dfc/with-form
-     {:donut.form/key :new-user}
+     {::dff/form-key :new-user}
      [:div {:class "p-4"}
       [ui/h2 "Provide initial values for the form"]
       [ui/explain

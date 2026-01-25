@@ -50,7 +50,7 @@
    :donut.feedback/ok               ["donut-feedback-ok"]})
 
 (defn feedback-css-classes
-  [{:donut.form/keys  [feedback-class-mapping]
+  [{::keys            [feedback-class-mapping]
     :donut.input/keys [attr-feedback]}]
   (let [mapping (dc/compose css-classes feedback-class-mapping)]
     (->> @attr-feedback
@@ -482,10 +482,10 @@
     (rf/dispatch [::dff/sync-form (merge form-config sync-opts)])))
 
 (defn form-config
-  [{:keys [donut.form/key] :as f-config}]
-  (dc/compose {:donut.form/sync?       true
+  [{:keys [::dff/form-key] :as f-config}]
+  (dc/compose {::dff/sync?       true
                :donut.form/feedback-fn dffk/stored-error-feedback
-               :donut.sync/req         {:donut.sync/key key}}
+               :donut.sync/req         {:donut.sync/key form-key}}
               f-config))
 
 (defn form-sync-subs
@@ -497,7 +497,7 @@
                     :sync-fail?    :*sync-fail?}))
 
 (defn form-subs
-  [{:keys [:donut.form/sync?] :as form-config}]
+  [{:keys [::dff/sync?] :as form-config}]
   (cond->  {:*form-ui-state (rf/subscribe [::dff/ui-state form-config])
             :*form-feedback (rf/subscribe [::dff/form-feedback form-config])
             :*form-buffer   (rf/subscribe [::dff/buffer form-config])

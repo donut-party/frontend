@@ -2,13 +2,14 @@
   (:require
    [donut.compose :as dc]
    [donut.frontend.events :as dfe]
+   [donut.frontend.form.feedback :as dffk]
    [donut.frontend.nav.utils :as dnu]
    [donut.frontend.path :as p]
    [donut.frontend.sync.flow :as dsf]
    [donut.sugar.utils :as dsu]
+   [malli.util :as mu]
    [re-frame.core :as rf]
-   [re-frame.loggers :as rfl]
-   [donut.frontend.form.feedback :as dffk]))
+   [re-frame.loggers :as rfl]))
 
 ;;--------------------
 ;; specs
@@ -25,7 +26,6 @@
                  [:form {:optional true} any?]])
 
 (def FormBuffer [:map])
-(def FormErrors BufferViewMap)
 (def FormInputEvents BufferViewMap)
 (def FormBufferInitVal [:map])
 (def FormUIState any?)
@@ -42,29 +42,27 @@
    ])
 
 ;;---
-;; form submitting options
-;;---
-
-(def FormSubmitOpts
-  [:map
-   [:sync]
-   [:data]])
-
-;;---
 ;; form config
 ;;---
 
+(def LayoutPath
+  [:vector :keyword])
+
+(def FormLayout
+  [:map
+   [:buffer {:optional true} LayoutPath]
+   [:feedback {:optional true} LayoutPath]
+   [:input-events {:optional true} LayoutPath]
+   [:buffer-init-val {:optional true} LayoutPath]
+   [:ui-state {:optional true} LayoutPath]
+   [:scratch {:optional true} [:map-of keyword? BufferView]]])
+
 (def FormConfig
   [:map
-   [:donut.form/key :any]
-   [:donut.form/sync? :boolean]
-   [:donut.form/feedback-class-mapping]
-   [:donut.form.layout/buffer {:optional true} [:vector keyword?]]
-   [:donut.form.layout/feedback {:optional true} [:vector keyword?]]
-   [:donut.form.layout/input-events {:optional true} [:vector keyword?]]
-   [:donut.form.layout/buffer-init-val {:optional true} [:vector keyword?]]
-   [:donut.form.layout/ui-state {:optional true} [:vector keyword?]]
-   [:donut.form.layout/scratch {:optional true} [:vector keyword?]]])
+   [::form-key :any]
+   [::layout FormLayout]
+   [::sync? :boolean]
+   [:donut.frontend.form.components/feedback-class-mapping :map]])
 
 (def form-config-keys (mapv first (rest FormConfig)))
 
@@ -77,14 +75,12 @@
   lets you specify different locations for form facets. This function translates
   your form layout into the actual paths to be used for subscriptions and
   events."
-  [form-config]
-  (let [[form-key-key & layout-keys] form-config-keys
-        form-key                     (form-key-key form-config)]
-    (reduce (fn [m k]
-              (assoc m k (or (k form-config)
-                             (p/form-path [form-key (keyword (name k))]))))
-            {}
-            layout-keys)))
+  [{::keys [form-key layout]}]
+  (reduce (fn [m k]
+            (assoc m k (or (k layout)
+                           (p/form-path [form-key (keyword (name k))]))))
+          {}
+          (mu/keys FormLayout)))
 
 (defn form-data
   [db form-config]
@@ -455,11 +451,14 @@
       (assoc-in db input-events nil))))
 
 (defn submit-form-sync-fail
-  [db [{:donut.form/keys [key]
-        :keys            [::dsf/resp]
-        :as              event-opts}]]
+  [db [{:keys [::dsf/resp ::form-key]
+        :as   event-opts}]]
   (let [{:donut.form.layout/keys [feedback input-events]} (form-paths event-opts)]
-    (rfl/console :log "form submit fail:" {:keys (keys event-opts)} (:donut.form/key event-opts) key feedback resp)
+    (rfl/console :log "form submit fail:"
+                 {:keys     (keys event-opts)
+                  :form-key form-key
+                  :feedback feedback
+                  :resp     resp})
     (-> db
         (assoc-in (conj feedback :errors) (or (response-error event-opts)
                                               {:cause :unknown}))
