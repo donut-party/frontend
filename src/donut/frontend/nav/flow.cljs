@@ -373,11 +373,6 @@
   (fn [db [_ entity-key param]]
     (dnu/routed-entity db entity-key param)))
 
-;; uses routed path params to get sync state
-(rf/reg-sub ::route-sync-state
-  (fn [db [_ path-prefix]]
-    (dsf/sync-state db (conj path-prefix (-> db nav :route :params)))))
-
 (rf/reg-event-fx ::navigate-to-synced-entity
   [rf/trim-v]
   (fn [_ [{:keys [route-name] :as sync-response}]]

@@ -485,7 +485,7 @@
   [{:keys [::dff/form-key] :as f-config}]
   (dc/compose {::dff/sync?       true
                ::dff/feedback-fn dffk/stored-error-feedback
-               ::dsf/sync-key    form-key}
+               ::dff/sync-event  {::dsf/sync-key form-key}}
               f-config))
 
 (defn form-sync-subs
