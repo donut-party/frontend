@@ -75,23 +75,23 @@
 ;;------
 
 (defn sync-state
-  [db req]
-  (p/get-path db :reqs [(sync-key req) :state]))
+  [db sync]
+  (p/get-path db :reqs [(sync-key sync) :state]))
 
 (rf/reg-sub ::req
   (fn [db [_ req]]
     (p/get-path db :reqs [(sync-key req)])))
 
 (rf/reg-sub ::sync-state
-  (fn [db [_ req comparison]]
-    (let [state (sync-state db req)]
+  (fn [db [_ sync comparison]]
+    (let [state (sync-state db sync)]
       (if comparison
         (isa? state comparison)
         state))))
 
 (defn sync-state-signal
-  [[_ req]]
-  (rf/subscribe [::sync-state req]))
+  [[_ sync]]
+  (rf/subscribe [::sync-state sync]))
 
 (rf/reg-sub ::sync-active?
   sync-state-signal
@@ -156,9 +156,10 @@
 ;;------
 (defn sync-finished
   "Update sync bookkeeping"
-  [db {:keys [::req ::resp]}]
+  [db {:keys [::resp] :as sync}]
+  (prn "sync finished")
   (-> db
-      (assoc-in (p/reqs-path [(sync-key req) :state]) (:status resp))
+      (assoc-in (p/reqs-path [(sync-key sync) :state]) (:status resp))
       (update ::active-request-count dec)))
 
 (rf/reg-event-fx ::handle-sync-response
