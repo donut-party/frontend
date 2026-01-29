@@ -32,7 +32,7 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+      {:on-click #(rf/dispatch [::dsf/get {::dsf/req   {:route-name :users}
                                            ::dsde/echo {:status        :success
                                                         :response-data {:id   1
                                                                         :name (random-string)}}}])}
@@ -54,7 +54,7 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+      {:on-click #(rf/dispatch [::dsf/get {::dsf/req   {:route-name :users}
                                            ::dsde/echo {:status        :success
                                                         :response-data [{:id   2
                                                                          :name (random-string)}
@@ -92,7 +92,7 @@
       ;; TODO make name random
       {:on-click
        #(rf/dispatch [::dsf/get
-                      {:route-name :users
+                      {::dsf/req   {:route-name :users}
                        ::dsde/echo {:status        :success
                                     :response-data [[:entities [:post :id [{:id      1
                                                                             :content (random-string)}]]]
@@ -117,22 +117,22 @@
     [ui/example-offset
      [ui/button
       ;; TODO make name random
-      {:on-click #(rf/dispatch [::dsf/get {:route-name :users
+      {:on-click #(rf/dispatch [::dsf/get {::dsf/req   {:route-name :users}
                                            ::dsde/echo {:status :success
                                                         :ms     1000}}])}
       "click to simulate a successful sync request that takes 1 second"]
      [:div {:class "mt-3"}
-      "Sync state: " @(rf/subscribe [::dsf/sync-state {:route-name :users
-                                                       :method     :get}])]]]])
+      "Sync state: " @(rf/subscribe [::dsf/sync-state {::dsf/req {:route-name :users
+                                                                  :method     :get}}])]]]])
 
 (defn sync-rules-example
   []
   (let [success-count (r/atom 0)
         sync-req      {::dsf/sync-key :rules-example
                        ::dsf/req      {:method     :get
-                                       :route-name :users
-                                       ::dsde/echo {:status :success
-                                                    :ms     2000}}
+                                       :route-name :users}
+                       ::dsde/echo    {:status :success
+                                       :ms     2000}
                        ::dfe/pre      [dsf/not-active]
                        ::dfe/on       {:success #(swap! success-count inc)}}]
     (fn []
