@@ -157,7 +157,6 @@
 (defn sync-finished
   "Update sync bookkeeping"
   [db {:keys [::resp] :as sync}]
-  (prn "sync finished")
   (-> db
       (assoc-in (p/reqs-path [(sync-key sync) :state]) (:status resp))
       (update ::active-request-count dec)))
