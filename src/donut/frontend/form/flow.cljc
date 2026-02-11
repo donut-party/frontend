@@ -322,7 +322,7 @@
 
 (rf/reg-event-db ::clear-form
   [rf/trim-v]
-  (fn [db [{::keys [form-config]}]]
+  (fn [db [form-config]]
     (clear-form db form-config)))
 
 ;; TODO validate clear
@@ -387,24 +387,23 @@
   - `success` and `fail` are the handlers for request completion.
   - `form-spec` is a way to pass on whatevs data to the request completion
     handler.
-  - the `:sync` key of form spec can customize the sync request"
-  [form-config buffer-data sync]
-  (-> form-config
+  - the `::sync-event` key of form spec can customize the sync request"
+  [{:keys [::sync-event] :as event-opts} buffer-data]
+  (-> event-opts
       (dissoc ::sync-event)
       form-event-defaults
-      (dc/compose (update-in sync [::dsf/req :params] merge buffer-data))))
+      (dc/compose (update-in sync-event [::dsf/req :params] merge buffer-data))))
 
 (defn sync-form
   "build form request. update db with :submit input event for form"
-  [db form-config]
-  (let [{:keys [feedback input-events buffer]} (form-paths form-config)
-        sync                                   (::sync-event form-config)]
+  [db event-opts]
+  (let [{:keys [feedback input-events buffer]} (form-paths event-opts)]
     {:db       (-> db
                    (assoc-in (conj feedback :errors) nil)
                    (update-in (conj input-events :form)
                               (fnil conj #{})
                               :submit))
-     :dispatch [::dsf/sync (form-req form-config (get-in db buffer) sync)]}))
+     :dispatch [::dsf/sync (form-req event-opts (get-in db buffer))]}))
 
 (rf/reg-event-fx ::sync-form
   [rf/trim-v]
