@@ -131,7 +131,7 @@
 
 (rf/reg-sub ::attr-buffer
   (attr-facet-sub ::buffer)
-  (fn [buffer [_ {:donut.input/keys [attr-path] :as otps}]]
+  (fn [buffer [_ {:donut.input/keys [attr-path] :as _opts}]]
     (get-in buffer (dsu/vectorize attr-path))))
 
 (rf/reg-sub ::attr-input-events

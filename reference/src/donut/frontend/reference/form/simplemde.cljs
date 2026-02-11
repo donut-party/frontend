@@ -1,13 +1,13 @@
 (ns donut.frontend.reference.form.simplemde
   (:require
    ["react-simplemde-editor" :default SimpleMDE]
+   [clojure.string :as str]
    [donut.frontend.core.utils :as dcu]
-   [donut.frontend.form.components :as dfc]
-   [clojure.string :as str]))
+   [donut.frontend.form.components.input :as dfci]))
 
-(defmethod dfc/base-donut-input-opts-for-type :simplemde
+(defmethod dfci/base-donut-input-opts-for-type :simplemde
   [opts]
-  (-> (dfc/default-base-donut-input-opts opts)
+  (-> (dfci/default-base-donut-input-opts opts)
       (dissoc :type)))
 
 (defn- set-change-obj-text
@@ -18,11 +18,11 @@
        (dcu/go-set change-obj
                    ["text"])))
 
-(defmethod dfc/input :simplemde
+(defmethod dfci/input :simplemde
   [{:donut.input/keys [value] :as opts}]
   (let [markdown-text (atom nil)]
-    [:> SimpleMDE {:onChange  (fn [val] (dfc/dispatch-new-value opts val))
-                   :onBlur    (fn [e] (dfc/dispatch-attr-input-event e opts))
+    [:> SimpleMDE {:onChange  (fn [val] (dfci/dispatch-new-value opts val))
+                   :onBlur    (fn [e] (dfci/dispatch-attr-input-event e opts))
                    :value     value
                    :events    #js{:beforeChange (fn [_ change-obj]
                                                   (when-let [text @markdown-text]

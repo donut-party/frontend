@@ -72,14 +72,13 @@
 
 (defn label-for
   [{:keys [id]
-    :donut.field/keys [form-id]
     :donut.input/keys [attr-path checked-value]}]
   (or id
-      (str form-id (attr-path-str attr-path) checked-value)))
+      (str (attr-path-str attr-path) checked-value)))
 
 (defn input-key
-  [{:donut.input/keys [form-id form-key attr-path]} & suffix]
-  (str form-id form-key attr-path (str/join "" suffix)))
+  [{::keys [attr-path]} & suffix]
+  (str attr-path (str/join "" suffix)))
 
 ;;---
 ;; input opts
