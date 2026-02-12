@@ -226,7 +226,7 @@
    :on-focus  #(dispatch-attr-input-event % input-opts)})
 
 (defmethod input-event-handlers
-  ::inline
+  :donut.input/inline
   [input-opts]
   {:on-change #(dispatch-attr-update-value-input-event % input-opts)
    :on-blur   (fn [e]

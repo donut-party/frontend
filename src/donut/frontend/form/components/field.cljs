@@ -22,7 +22,7 @@
    :donut.feedback/ok               ["donut-feedback-ok"]})
 
 (defn feedback-css-classes
-  [{::keys            [feedback-class-mapping]
+  [{:donut.field/keys [feedback-class-mapping]
     :donut.input/keys [attr-feedback]}]
   (let [mapping (dc/compose css-classes feedback-class-mapping)]
     (->> @attr-feedback
