@@ -26,6 +26,17 @@
    [donut.frontend.routes.protocol :as drp]
    [re-frame.loggers :as rfl]))
 
+(defn sync-data
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
+       :keys                   [:donut.frontend.sync.flow/req]}]
+  (let [router     (p/get-path db :donut-component [:sync-router])
+        route-name (:route-name req)
+        route      (drp/route router route-name)]
+    {:ent-type      (:ent-type route)
+     :id-key        (:id-key route)
+     :route-name    route-name
+     :route-params  (:route-params req)
+     :response-data response-data}))
 
 (defn replace-ents
   [db ent-type id-key ents]
@@ -34,76 +45,93 @@
           db
           ents))
 
-(def response-data-types
-  "Response data types and predicates are broken out from sync-success like this
-  to at least make it possible to alter them with set!"
-  [[:entity   (fn [response-data]
-                (map? response-data))]
-   [:entities (fn [response-data]
-                (and (vector? response-data)
-                     (map? (first response-data))))]
-   [:segments (fn [response-data]
-                (and (vector? response-data)
-                     (vector? (first response-data))))]
-   [:empty    (fn [response-data]
-                (empty? response-data))]])
+(defn delete-ents
+  [db ent-type id-key ents]
+  (reduce (fn [db ent]
+            (update-in db (p/path :entity [ent-type]) dissoc (id-key ent)))
+          db
+          ents))
 
+(defn handle-sync-response-data-dispatch-fn
+  [response-data]
+  (let [v? (vector? response-data)
+        e1 (when v? (first response-data))]
+    (cond
+      (map? response-data)     :entity
+      (and v? (map? e1))       :entities
+      (and v? (vector? e1))    :segments
+      (empty? response-data)   :empty
+      (and v? (keyword? e1))   :segment
+      (keyword? response-data) response-data
+      :else                    (throw (ex-info "could not determine response data type"
+                                               {:response-data response-data})))))
 
 (defmulti apply-sync-segment
-  "Sync segments allow the backend to convey heterogenous data to the frontend."
-  (fn [_db [segment-type]] segment-type))
+  "Sync segments allow the backend to convey heterogenous data to the frontend.
+  It's also the baseline customization point for response data, as segment
+  dispatch happens on the first element of a vector, and that vector value can
+  be anything! anything at all!"
+  (fn [_db _sync-lifecycle [segment-type]] segment-type))
 
 (defmethod apply-sync-segment :entities
-  [db [_ [ent-type id-key ents]]]
+  [db _sync-lifecycle [_ [ent-type id-key ents]]]
   (replace-ents db ent-type id-key ents))
 
+(defmethod apply-sync-segment :delete-entities
+  [db _sync-lifecycle [_ [ent-type id-key ents]]]
+  (delete-ents db ent-type id-key ents))
+
 (defmethod apply-sync-segment :auth
-  [db [_ auth-map]]
+  [db _sync-lifecycle [_ auth-map]]
   (assoc-in db (p/path :auth) auth-map))
+
+(defmethod apply-sync-segment :delete-routed-entity
+  [db sync-lifeycle _]
+  (let [{:keys [ent-type id-key route-params]} (sync-data db sync-lifeycle)]
+    (delete-ents db ent-type id-key [route-params])))
 
 (defmulti handle-sync-response-data
   "Dispatches based on the type of the response-data. Maps and vectors are treated
   identically; they're considered to be either a singal instance or collection
   of entities. Those entities are placed in the entity-db, replacing whatever's
   there. "
-  (fn [_db {{:keys [response-data]} :donut.frontend.sync.flow/resp}]
-    (loop [[[dt-name pred] & dts] response-data-types]
-      (when (nil? dt-name)
-        (throw (ex-info "could not determine response data type"
-                        {:response-data response-data})))
-      (if (pred response-data)
-        dt-name
-        (recur dts)))))
+  (fn [_db {{:keys [response-data]} :donut.frontend.sync.flow/resp :as _sync}]
+    (handle-sync-response-data-dispatch-fn response-data)))
 
-(defmethod handle-sync-response-data :entity
-  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
-       :as sync-lifecycle}]
-  ;; it's easier to forward to a base case, bruv
+(defn- forward-vector
+  "response data can include either X or a [X]. this allows us to define X methods
+  in terms of [X]"
+  [db sync-lifecycle]
   (handle-sync-response-data
    db
-   (assoc-in sync-lifecycle [:donut.frontend.sync.flow/resp :response-data] [response-data])))
+   (update-in sync-lifecycle [:donut.frontend.sync.flow/resp :response-data] vector)))
 
 ;; Updates db by replacing each entity with return value
 (defmethod handle-sync-response-data :entities
-  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp
-       :keys [:donut.frontend.sync.flow/req]}]
+  [db sync]
   ;; TODO handle case of `:ent-type` or `:id-key` missing
-  (let [sync-router     (p/get-path db :donut-component [:sync-router])
-        sync-route-name (:route-name req)
-        sync-route      (drp/route sync-router sync-route-name)
-        ent-type        (:ent-type sync-route)
-        id-key          (:id-key sync-route)]
+  (let [{:keys [ent-type id-key route-name response-data]} (sync-data db sync)]
     ;; TODO This replacement strategy could be seriously flawed! I'm trying to
     ;; keep this simple and make possibly problematic code obvious
     (when-not id-key
       (throw (ex-info "could not determine id-key for sync response"
-                      {:ent-type        ent-type
-                       :sync-route-name sync-route-name})))
+                      {:ent-type   ent-type
+                       :route-name route-name})))
     (replace-ents db ent-type id-key response-data)))
 
+(defmethod handle-sync-response-data :entity
+  [db sync-lifecycle]
+  (forward-vector db sync-lifecycle))
+
 (defmethod handle-sync-response-data :segments
-  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp}]
-  (reduce apply-sync-segment db response-data))
+  [db {{:keys [response-data]} :donut.frontend.sync.flow/resp :as sync-lifecycle}]
+  (reduce (fn [db segment] (apply-sync-segment db sync-lifecycle segment))
+          db
+          response-data))
+
+(defmethod handle-sync-response-data :segment
+  [db sync-lifecycle]
+  (forward-vector db sync-lifecycle))
 
 (defmethod handle-sync-response-data :empty [db _] db)
 
