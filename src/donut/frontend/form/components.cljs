@@ -39,7 +39,7 @@
 
 (defn form-sync-subs
   [form-config]
-  (set/rename-keys (dsf/sync-subs (:donut.sync/req form-config))
+  (set/rename-keys (dsf/sync-subs (::dff/sync-event form-config))
                    {:sync-state    :*sync-state
                     :sync-active?  :*sync-active?
                     :sync-success? :*sync-success?

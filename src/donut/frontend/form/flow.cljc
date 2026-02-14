@@ -476,9 +476,9 @@
 ;; [::dff/set-form-from-sync {:donut.form/key [:put :option]} :option :option/id {:ui-state true}]
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
-  (fn [db [{:keys [::dsf/req] :as sync-response}]]
-    (set-form db (dc/compose {::set-form {:buffer (dsf/single-entity sync-response)}}
-                             req))))
+  (fn [db [event-opts]]
+    (set-form db (dc/compose {::set-form {:buffer (dsf/single-entity event-opts)}}
+                             event-opts))))
 
 (defn set-form-with-routed-entity
   [db form-config entity-key param-key]

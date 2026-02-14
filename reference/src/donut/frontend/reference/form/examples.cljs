@@ -36,12 +36,12 @@
    {:on-click (dcu/prevent-default
                #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
-                 {::dsf/key form-key
-                  ::dsf/req {:route-name :users
-                             ::dsde/echo {:status        :success
-                                          :response-data (assoc @*form-buffer :id (rand-int 1000))
-                                          :ms            2000}}
-                  ::dfe/on  {:success (dc/into [[::dff/clear]])}}))}
+                 {::dsf/sync-key form-key
+                  ::dsf/req      {:route-name :users}
+                  ::dsde/echo    {:status        :success
+                                  :response-data (assoc @*form-buffer :id (rand-int 1000))
+                                  :ms            2000}
+                  ::dfe/on       {:success (dc/into [[::dff/clear]])}}))}
    "submit"])
 
 (defn submitting-indicator
@@ -257,12 +257,11 @@
                 :donut.input/attr-path :first-name}]
        [ui/button
         {:on-click #(*sync-form
-                     {:donut.sync/req
-                      {:route-name     :users
-                       :donut.sync/key (::dff/form-key *form)
-                       ::dsde/echo     {:status        :fail
-                                        :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]
-                                        :ms            200}}})}
+                     {::dsf/req      {:route-name :users}
+                      ::dsf/sync-key (::dff/form-key *form)
+                      ::dsde/echo    {:status        :fail
+                                      :response-data [[:errors {:attrs {[:first-name] ["bad first name"]}}]]
+                                      :ms            200}})}
         "populate errors"]]]]))
 
 (def UserSchema
@@ -298,13 +297,13 @@
        [ui/explain
         [ui/button
          {:on-click
-          #(rf/dispatch [::dsf/get {:route-name     :post
-                                    :params         {:id 1}
-                                    ::dff/form-key :new-post
-                                    ::dsde/echo     {:status        :success
-                                                     :response-data {:id      1
-                                                                     :content "post content"}}
-                                    ::dfe/on        {:success (dc/into [[::dff/set-form-from-sync]])}}])}
+          #(rf/dispatch [::dsf/get {::dsf/req      {:route-name :post
+                                                    :params     {:id 1}}
+                                    ::dsf/sync-key :new-post
+                                    ::dsde/echo    {:status        :success
+                                                    :response-data {:id      1
+                                                                    :content "post content"}}
+                                    ::dfe/on       {:success (dc/into [[::dff/set-form-from-sync {::dff/form-key :new-post}]])}}])}
          "populate from sync"]]
        [*field {:type                  :text
                 :class                 input-class
