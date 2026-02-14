@@ -321,10 +321,10 @@
       [ui/explain "You can customize the input class with feedback"]
       [ui/explain
        [*field
-        {:type                        :text
-         :class                       [input-class]
-         ::dfc/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
-         :donut.input/attr-path       :zip-code}]]])])
+        {:type                               :text
+         :class                              [input-class]
+         :donut.field/feedback-class-mapping {:donut.feedback/error ["bg-red-300"]}
+         :donut.input/attr-path              :zip-code}]]])])
 
 (rf/reg-sub ::custom-buffer
   (fn [db _]
@@ -355,10 +355,10 @@ put the deref in its own component to prevent the re-render so that input doesn'
          :donut.input/attr-path :blah}]]])])
 
 (defn initial-values-submit-button
-  [{:keys [*submit *form-buffer ::dff/form-key]}]
+  [{:keys [*sync-form *form-buffer ::dff/form-key]}]
   [ui/button
    {:on-click (dcu/prevent-default
-               #(*submit
+               #(*sync-form
                  ;; we have to use echo here because we don't actually have a backend
                  {::dsde/echo {:status        :success
                                :response-data (assoc @*form-buffer :id (rand-int 1000))
@@ -410,4 +410,5 @@ put the deref in its own component to prevent the re-render so that input doesn'
    [sync-and-init-example]
    [custom-input-class]
    [prevent-input-focus-loss]
+   #_
    [initial-values]])
