@@ -38,9 +38,7 @@
    [:feedback {:optional true} [:map-of keyword? BufferView]]
    [:input-events {:optional true} FormInputEvents]
    [:buffer-init-val FormBufferInitVal]
-   [:ui-state {:optional true} FormUIState]
-   [:scratch {:optional true} FormInlineEditing] ;; place internal data
-   ])
+   [:ui-state {:optional true} FormUIState]])
 
 ;;---
 ;; form config
@@ -55,8 +53,7 @@
    [:feedback {:optional true} LayoutPath]
    [:input-events {:optional true} LayoutPath]
    [:buffer-init-val {:optional true} LayoutPath]
-   [:ui-state {:optional true} LayoutPath]
-   [:scratch {:optional true} [:map-of keyword? BufferView]]])
+   [:ui-state {:optional true} LayoutPath]])
 
 (def FormConfig
   [:map
@@ -64,7 +61,7 @@
    [::layout FormLayout]
    [::sync? :boolean]
    [::feedback-fn :any]
-   [:donut.frontend.form.components/feedback-class-mapping :map]])
+   [:donut.frontend.form.components.field/feedback-class-mapping :map]])
 
 (def form-config-keys (mapv first (rest FormConfig)))
 
@@ -284,10 +281,10 @@
   reset-form-buffer)
 
 (defn set-form
-  [db {:keys [::set-form] :as form-config}]
-  (let [{:keys [buffer]} set-form
+  [db {:keys [::form-data] :as form-config}]
+  (let [{:keys [buffer]} form-data
         paths            (form-paths form-config)
-        form             (update set-form :buffer-init-val #(or % buffer))]
+        form             (update form-data :buffer-init-val #(or % buffer))]
     ;; TODO kind of like dcu/merge-retrieved-vals
     (-> db
         (assoc-in (:buffer paths) (:buffer form))
@@ -306,9 +303,9 @@
   [db [form-config {:keys [data-path data-fn]
                     :or   {data-fn identity}
                     :as   form}]]
-  (set-form db (dc/compose {::set-form (-> form
-                                           (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
-                                           (dissoc :data-path :data-fn))}
+  (set-form db (dc/compose {::form-data (-> form
+                                            (assoc :buffer (data-fn (get-in db (dsu/vectorize data-path))))
+                                            (dissoc :data-path :data-fn))}
                            form-config)))
 
 ;; Populate form initial state
@@ -318,7 +315,7 @@
 
 (defn clear-form
   [db form-config]
-  (set-form db (assoc form-config ::set-form nil)))
+  (set-form db (assoc form-config ::form-data nil)))
 
 (rf/reg-event-db ::clear-form
   [rf/trim-v]
@@ -477,13 +474,13 @@
 (rf/reg-event-db ::set-form-from-sync
   [rf/trim-v]
   (fn [db [event-opts]]
-    (set-form db (dc/compose {::set-form {:buffer (dsf/single-entity event-opts)}}
+    (set-form db (dc/compose {::form-data {:buffer (dsf/single-entity event-opts)}}
                              event-opts))))
 
 (defn set-form-with-routed-entity
   [db form-config entity-key param-key]
   (let [ent (dnu/routed-entity db entity-key param-key)]
-    (set-form db (dc/compose {::set-form {:buffer ent}}
+    (set-form db (dc/compose {::form-data {:buffer ent}}
                              form-config))))
 
 ;; TODO revisit this signature

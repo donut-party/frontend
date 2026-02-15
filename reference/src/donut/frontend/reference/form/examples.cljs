@@ -124,7 +124,7 @@
             ;; submitting.
             ;; another option is to just not have an enclosing form
             (dcu/prevent-default
-             #(rf/dispatch [::dff/set-form (assoc *form-config ::dff/set-form  {:buffer {:username "marcy"}})]))}
+             #(rf/dispatch [::dff/set-form (assoc *form-config ::dff/form-data  {:buffer {:username "marcy"}})]))}
            "populate form"]
           " sets the username value to 'marcy'"]
          [ui/explain "input components manage state in the global app db:"]
