@@ -15,6 +15,7 @@
    [:value-component]
    [:syncing-component]])
 
+;; TODO add submit-key-bindings and cancel-key-bindings options
 (defn inline-input
   "component that toggles between displaying value and input"
   [{:keys [*form
