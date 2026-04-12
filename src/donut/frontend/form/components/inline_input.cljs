@@ -55,10 +55,11 @@
           input-opts)])})))
 
 (defn togglable-inline-input
-  [{:keys [form-config] :as _opts}]
-  (dfc/with-form form-config
-    (let [show-form?         (r/atom false)]
-      (fn [{:keys [value-component syncing-component] :as opts}]
+  [{:keys [value-component syncing-component] :as _opts}]
+  {:pre [value-component syncing-component]}
+  (let [show-form?         (r/atom false)]
+    (fn [{:keys [value-component syncing-component form-config] :as opts}]
+      (dfc/with-form form-config
         (let [sub-component-opts (assoc opts
                                         :*form *form
                                         :show-form? show-form?)
