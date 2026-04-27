@@ -72,7 +72,7 @@
 (def checkbox-class
   "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounde border mr-1")
 
-(defn most-basic-form-value
+(defc most-basic-form-value
   [*form-buffer]
   [:div {:class "mt-4"}
    [ui/h2 "Input value"]
@@ -91,6 +91,15 @@
                   :class input-class
                   :donut.input/attr-path :form-attribute-name-goes-here}]]
         [most-basic-form-value *form-buffer]]]]]))
+
+(defn most-basic-form-panels
+  []
+  [:div {:class "grid grid-cols-3 gap-2"}
+   [:div
+    [most-basic-form]]
+   [:div {:class "col-span-2"}
+    [ui/pppre most-basic-form-value-source]
+    [ui/pppre most-basic-form-source]]])
 
 (def user-form-config
   {::dff/form-key :new-user
@@ -403,7 +412,7 @@ put the deref in its own component to prevent the re-render so that input doesn'
   []
   [:div
    [ui/h1 "form examples"]
-   [most-basic-form]
+   [most-basic-form-panels]
    [form-example-features]
    [activity-example]
    [validation-example-stored-errors]
