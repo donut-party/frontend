@@ -98,8 +98,8 @@
    [:div
     [most-basic-form]]
    [:div {:class "col-span-2"}
-    [ui/pppre most-basic-form-value-source]
-    [ui/pppre most-basic-form-source]]])
+    [ui/pppre most-basic-form-source]
+    [ui/pppre most-basic-form-value-source]]])
 
 (def user-form-config
   {::dff/form-key :new-user
