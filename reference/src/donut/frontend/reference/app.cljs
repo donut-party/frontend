@@ -23,7 +23,8 @@
 (defn app
   []
   [:div {:class ""}
-   [:div {:class "hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0"}
+   ;; nav
+   [:div {:class "hidden md:flex md:w-32 md:flex-col md:fixed md:inset-y-0"}
     [:div {:class "flex-1 flex flex-col min-h-0 border-r border-gray-200"}
      [:div {:class "flex-1 flex flex-col pb-4 overflow-y-auto"}
       [:nav {:class "pt-4 flex-1 px-2 bg-white space-y-1"}
@@ -32,7 +33,8 @@
        [sidenav-link :nav.flow "nav"]
        [sidenav-link :sync.flow "sync"]
        [sidenav-link :form.flow "form"]]]]]
-   [:div {:class "md:pl-64 flex flex-col flex-1"}
+   ;; main
+   [:div {:class "md:pl-32 flex flex-col flex-1"}
     [:main {:class "flex-1"}
-     [:div {:class "max-w-7xl mx-auto py-6 px-4 sm:px-6 md:px-8"}
+     [:div {:class "max-w-7xl mx-auto py-12 px-4 sm:px-6 md:px-8"}
       @(rf/subscribe [::dnf/routed-component :main])]]]])

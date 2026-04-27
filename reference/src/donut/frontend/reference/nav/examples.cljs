@@ -15,7 +15,7 @@
    [:div {:class "bg-gray-200 px-2 py-1 mb-2 rounded-md"}
     "subscription value for "
     [:span {:class "font-mono font-semibold"} (str sub-name)]]
-   [ui/pprint @(rf/subscribe [sub-name])]])
+   [ui/pppre @(rf/subscribe [sub-name])]])
 
 (defn route-subs
   []

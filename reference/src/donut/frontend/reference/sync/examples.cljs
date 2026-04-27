@@ -27,7 +27,7 @@
     [ui/h2 "basic sync success"]
     [ui/explain
      "By default, when an API call returns a map it's merged into the global
-     state atom under [entity-type entity-id]. Both entity-type and entity-id
+     state atom under `[entity-type entity-id]`. Both entity-type and entity-id
      are derived from metadata associated with the route for the API call."]
     [ui/example-offset
      [ui/button

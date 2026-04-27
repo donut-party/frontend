@@ -1,5 +1,10 @@
 (ns donut.frontend.reference.ui
-  (:require [donut.frontend.nav.components :as dnc]))
+  (:require
+   [cljs.pprint :as pprint]
+   [donut.frontend.nav.components :as dnc]
+   ["marked" :as marked]
+   [react :as react]
+   [reagent.core :as r]))
 
 (defn h1
   [& children]
@@ -57,10 +62,13 @@
                         opts)]
         children))
 
+(defn markdown [txt]
+  {:dangerouslySetInnerHTML #js {:__html (marked/parse (or txt ""))}})
+
 (defn explain
   [text]
-  [:div {:class "text-gray-600 my-3"}
-   text])
+  [:div (merge {:class "text-gray-600 my-3"}
+               (markdown text))])
 
 (defn example-offset
   [& children]
@@ -76,3 +84,20 @@
   [data]
   [:pre {:class "text-sm font-mono"}
    (with-out-str (cljs.pprint/pprint data))])
+
+(defn highlight
+  [x]
+  (let [dom (r/atom {})]
+    (fn [x]
+      (react/useEffect (fn [] (.highlightElement js/Prism (:code @dom))))
+      [:div
+       [:pre
+        {:class "!text-sm"}
+        [:code {:class                   "language-clojure"
+                :style                   {:white-space "pre-wrap"}
+                :dangerouslySetInnerHTML {:__html (with-out-str (pprint/pprint x))}
+                :ref                     #(swap! dom assoc :code %)}]]])))
+
+(defn pppre
+  [x]
+  [:f> highlight x])
