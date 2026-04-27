@@ -9,7 +9,6 @@
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
-
 ;; TODO list
 ;; - specify success handler
 ;; - handle failure
@@ -26,9 +25,11 @@
    [:div {:class "p-4"}
     [ui/h2 "basic sync success"]
     [ui/explain
-     "By default, when an API call returns a map it's merged into the global
-     state atom under `[entity-type entity-id]`. Both entity-type and entity-id
-     are derived from metadata associated with the route for the API call."]
+     [:div
+      (ui/markdown
+       "By default, when an API call returns a map it's merged into the global
+       state atom under `[entity-type entity-id]`. Both entity-type and entity-id
+       are derived from metadata associated with the route for the API call.")]]
     [ui/example-offset
      [ui/button
       ;; TODO make name random

@@ -62,13 +62,16 @@
                         opts)]
         children))
 
-(defn markdown [txt]
-  {:dangerouslySetInnerHTML #js {:__html (marked/parse (or txt ""))}})
+(defn markdown
+  ([txt]
+   {:dangerouslySetInnerHTML #js {:__html (marked/parse (or txt ""))}})
+  ([m txt]
+   (merge m (markdown txt))))
 
 (defn explain
   [text]
-  [:div (merge {:class "text-gray-600 my-3"}
-               (markdown text))])
+  [:div {:class "text-gray-600 my-3"}
+   text])
 
 (defn example-offset
   [& children]
@@ -95,7 +98,10 @@
         {:class "!text-sm"}
         [:code {:class                   "language-clojure"
                 :style                   {:white-space "pre-wrap"}
-                :dangerouslySetInnerHTML {:__html (with-out-str (pprint/pprint x))}
+                :dangerouslySetInnerHTML {:__html
+                                          (if (string? x)
+                                            x
+                                            (with-out-str (pprint/pprint x)))}
                 :ref                     #(swap! dom assoc :code %)}]]])))
 
 (defn pppre

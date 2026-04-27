@@ -12,6 +12,7 @@
    [donut.frontend.reference.ui :as ui]
    [donut.frontend.sync.dispatch.echo :as dsde]
    [donut.frontend.sync.flow :as dsf]
+   [donut.frontend.reference.macros :refer-macros [defc]]
    [re-frame.core :as rf]))
 
 (defn random-string
@@ -77,7 +78,7 @@
    [ui/h2 "Input value"]
    [:div (:form-attribute-name-goes-here @*form-buffer)]])
 
-(defn most-basic-form
+(defc most-basic-form
   []
   (dfc/with-form {::dff/form-key :most-basic-form}
     [ui/example

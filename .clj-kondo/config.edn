@@ -1,1 +1,2 @@
-{:config-paths ["party.donut/frontend"]}
+{:lint-as      {donut.frontend.reference.macros/defc clojure.core/defn}
+ :config-paths ["party.donut/frontend"]}

@@ -21,7 +21,6 @@
       (assoc :lib lib :version version)
       (bb/deploy)))
 
-
 (defn jar "build a jar"
   [opts]
   (-> opts
