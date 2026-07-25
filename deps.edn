@@ -19,6 +19,11 @@
          rads/anomalies              {:mvn/version "0.1.13"}
          venantius/accountant        {:mvn/version "0.2.4"}}
 
+ :donut/lib {:name           party.donut/frontend
+             :description    "a re-frame-based framework for building single page apps"
+             :github         "donut-party/frontend"
+             :version-prefix "0.0"}
+
  :aliases
  {:dev
   {:override-deps {party.donut/compose {:local/root "../compose"}
@@ -32,6 +37,6 @@
    :exec-fn     cljs-test-runner.main/-main}
 
   :build
-  {:deps       {io.github.clojure/tools.build {:mvn/version "0.9.6"}
-                slipset/deps-deploy           {:mvn/version "0.2.1"}}
-   :ns-default build}}}
+  {:deps       {io.github.donut-party/framework-build
+                {:git/sha "912e0b0ffc914cf1b5824650268307062d92e40c"}}
+   :ns-default donut.build}}}
